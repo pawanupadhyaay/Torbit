@@ -1,0 +1,158 @@
+'use client';
+import React from 'react';
+import Link from 'next/link';
+import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
+import VerifiedUserOutlinedIcon from '@mui/icons-material/VerifiedUserOutlined';
+import CorporateFareOutlinedIcon from '@mui/icons-material/CorporateFareOutlined';
+import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
+import WorkOutlineOutlinedIcon from '@mui/icons-material/WorkOutlineOutlined';
+import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined';
+import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined';
+import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
+import OpenInNewOutlinedIcon from '@mui/icons-material/OpenInNewOutlined';
+
+interface MenuItem {
+  id: string;
+  label: string;
+  icon: any;
+  badge?: string | number | null;
+  badgeColor?: string;
+}
+
+interface MenuGroup {
+  group: string;
+  items: MenuItem[];
+}
+
+interface AdminSidebarProps {
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  pendingCount: number;
+}
+
+export default function AdminSidebar({ activeTab, setActiveTab, pendingCount }: AdminSidebarProps) {
+  const menuGroups: MenuGroup[] = [
+    {
+      group: 'MODERATION & OPERATIONS',
+      items: [
+        { id: 'OVERVIEW', label: 'Console Overview', icon: DashboardOutlinedIcon, badge: null },
+        {
+          id: 'APPROVALS',
+          label: 'KYC Approvals Queue',
+          icon: VerifiedUserOutlinedIcon,
+          badge: pendingCount > 0 ? `${pendingCount} Pending` : null,
+          badgeColor: 'bg-amber-500 text-slate-950 font-bold'
+        },
+        { id: 'COMPANIES', label: 'Company Directory', icon: CorporateFareOutlinedIcon, badge: null },
+        { id: 'SEEKERS', label: 'Candidate Pool', icon: PeopleAltOutlinedIcon, badge: null },
+        { id: 'JOBS', label: 'Job Governance', icon: WorkOutlineOutlinedIcon, badge: null },
+      ]
+    },
+    {
+      group: 'DOMAIN TAXONOMY',
+      items: [
+        { id: 'CATEGORIES', label: 'RE Categories', icon: LayersOutlinedIcon, badge: null },
+        { id: 'ANALYTICS', label: 'Hiring & CTC Trends', icon: TrendingUpOutlinedIcon, badge: null },
+      ]
+    }
+  ];
+
+  return (
+    <aside className="w-64 bg-[#080809] text-slate-200 flex flex-col shrink-0 border-r border-slate-800/90 select-none min-h-screen font-['Helvetica',Arial,sans-serif] fixed inset-y-0 left-0 z-30 h-screen">
+      {/* Brand & Logo */}
+      <div className="p-5 border-b border-slate-800/80 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-[#080809] shadow-md">
+            <CorporateFareOutlinedIcon sx={{ fontSize: 22 }} />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-white text-base tracking-wider uppercase">TORBIT</span>
+              <span className="bg-[#94C322] text-[#080809] text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider">
+                ADMIN
+              </span>
+            </div>
+            <span className="text-[10px] text-slate-400 font-medium block">Enterprise Master Console</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
+        {menuGroups.map((group, idx) => (
+          <div key={idx} className="space-y-1.5">
+            <div className="px-3.5 text-[12px] font-extrabold uppercase tracking-wider text-slate-400 mb-2">
+              {group.group}
+            </div>
+            {group.items.map((item) => {
+              const IconComponent = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[14px] font-bold transition-all duration-150 tracking-wide ${
+                    isActive
+                      ? 'bg-[#94C322] text-[#080809] font-black shadow-sm'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-900/80'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <IconComponent sx={{ fontSize: 19 }} className={isActive ? 'text-[#080809]' : 'text-slate-400'} />
+                    <span>{item.label}</span>
+                  </div>
+                  {item.badge && (
+                    <span
+                      className={`text-[11px] font-black px-2.5 py-0.5 rounded-full ${
+                        item.badgeColor || (isActive ? 'bg-slate-950 text-white' : 'bg-slate-800 text-slate-300')
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+
+      {/* External Portal Links */}
+      <div className="p-3 border-t border-slate-800/80 space-y-1">
+        <a
+          href="http://localhost:3000"
+          target="_blank"
+          rel="noreferrer"
+          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs text-slate-400 hover:text-white hover:bg-slate-900 transition"
+        >
+          <div className="flex items-center gap-2">
+            <OpenInNewOutlinedIcon sx={{ fontSize: 16 }} className="text-[#94C322]" />
+            <span>Public Job Portal (3000)</span>
+          </div>
+          <span className="text-[10px] text-slate-400">↗</span>
+        </a>
+      </div>
+
+      {/* Admin Profile Bottom */}
+      <div className="p-4 border-t border-slate-800/80 bg-slate-950/60 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-slate-800 text-[#94C322] flex items-center justify-center text-xs font-bold shrink-0">
+            SA
+          </div>
+          <div className="min-w-0">
+            <div className="text-xs font-bold text-white truncate">Super Admin</div>
+            <div className="text-[10px] text-slate-400 truncate">admin@torbit.in</div>
+          </div>
+        </div>
+
+        <Link
+          href="/"
+          title="Exit Admin"
+          className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-900 rounded-lg transition"
+        >
+          <LogoutOutlinedIcon sx={{ fontSize: 18 }} />
+        </Link>
+      </div>
+    </aside>
+  );
+}
