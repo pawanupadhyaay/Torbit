@@ -29,8 +29,12 @@ export default function AdminLoginPage() {
 
     try {
       let res: Response | null = null;
+      const apiEndpoint = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')}/auth/login`
+        : '/api/auth/login';
+
       try {
-        res = await fetch('/api/auth/login', {
+        res = await fetch(apiEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ identifier, password })

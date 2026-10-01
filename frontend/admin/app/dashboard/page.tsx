@@ -235,6 +235,20 @@ export default function AdminDashboardPage() {
         });
       }
 
+      // ⚡ Instant Cache Hydration: Render cached stats & data in 0ms (no blank 0 flash)
+      const cachedSnapshot = typeof window !== 'undefined' ? sessionStorage.getItem('torbitAdminSnapshot') : null;
+      if (cachedSnapshot) {
+        try {
+          const parsed = JSON.parse(cachedSnapshot);
+          if (parsed.stats) setStats(parsed.stats);
+          if (parsed.pendingCompanies) setPendingCompanies(parsed.pendingCompanies);
+          if (parsed.approvedCompanies) setApprovedCompanies(parsed.approvedCompanies);
+          if (parsed.rejectedCompanies) setRejectedCompanies(parsed.rejectedCompanies);
+          if (parsed.seekersList) setSeekersList(parsed.seekersList);
+          if (parsed.jobsList) setJobsList(parsed.jobsList);
+        } catch (e) {}
+      }
+
       const savedSettings = localStorage.getItem('torbitAdminSettings');
       if (savedSettings) {
         const parsed = JSON.parse(savedSettings);
@@ -266,14 +280,18 @@ export default function AdminDashboardPage() {
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
       // Fetch all endpoints concurrently for maximum responsiveness
       const [statsResult, compResult, seekersResult, jobsResult, analyticsResult, categoriesResult] = await Promise.allSettled([
-        fetch('/api/admin/stats', { headers }).then(r => r.ok ? r.json() : null),
-        fetch('/api/admin/companies', { headers }).then(r => r.ok ? r.json() : null),
-        fetch('/api/admin/seekers', { headers }).then(r => r.ok ? r.json() : null),
-        fetch('/api/admin/jobs', { headers }).then(r => r.ok ? r.json() : null),
-        fetch(`/api/admin/analytics?timeframe=${analyticsTimeframeRef.current || '7D'}`, { headers }).then(r => r.ok ? r.json() : null),
-        fetch('/api/admin/categories', { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${apiBase}/admin/stats`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${apiBase}/admin/companies`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${apiBase}/admin/seekers`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${apiBase}/admin/jobs`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${apiBase}/admin/analytics?timeframe=${analyticsTimeframeRef.current || '7D'}`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${apiBase}/admin/categories`, { headers }).then(r => r.ok ? r.json() : null),
       ]);
 
       // 1. Process Stats
@@ -482,6 +500,20 @@ export default function AdminDashboardPage() {
       initialLoadedRef.current = true;
       setLastSyncTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
 
+      // ⚡ Save snapshot for instant 0ms hydration on subsequent visits
+      try {
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('torbitAdminSnapshot', JSON.stringify({
+            stats: statsResult.status === 'fulfilled' && statsResult.value ? statsResult.value.stats || statsResult.value : null,
+            pendingCompanies: pending,
+            approvedCompanies: approved,
+            rejectedCompanies: rejected,
+            seekersList: mappedSeekers,
+            jobsList: mappedJobs
+          }));
+        }
+      } catch (cacheErr) {}
+
       if (manual) showToast('Live database sync completed successfully.');
     } catch (err) {
       console.error('Failed to fetch admin data:', err);
@@ -559,28 +591,50 @@ export default function AdminDashboardPage() {
     };
   }, [fetchAdminData]);
 
-  // Actions: Approve Company
+  // ⚡ Actions: Approve Company (Instant Optimistic UI in 0ms)
   const handleApprove = async (id: string) => {
+    const targetComp = pendingCompanies.find(c => c.id === id);
+    const compName = targetComp?.companyName || 'Company';
+
+    // Instant optimistic local state update
+    setPendingCompanies(prev => prev.filter(c => c.id !== id));
+    if (targetComp) {
+      setApprovedCompanies(prev => [
+        {
+          ...targetComp,
+          status: 'Active',
+          verifiedAt: 'Just Now',
+          activeJobs: 0,
+          applications: 0
+        },
+        ...prev.filter(c => c.id !== id)
+      ]);
+    }
+    setStats((prev: any) => ({
+      ...prev,
+      pendingApprovals: Math.max(0, (prev?.pendingApprovals || 1) - 1),
+      totalCompanies: (prev?.totalCompanies || 0) + (targetComp ? 0 : 0)
+    }));
+    showToast(`✅ "${compName}" approved! Recruiter credentials dispatched.`);
+    setSelectedCompanyForView(null);
+
+    // Non-blocking background API dispatch
     try {
       const token = localStorage.getItem('adminToken');
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`/api/admin/companies/${id}/approve`, {
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
+      await fetch(`${apiBase}/admin/companies/${id}/approve`, {
         method: 'POST',
         headers
       });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        await fetchAdminData();
-        showToast(data.message || 'Company approved! Login credentials emailed to recruiter.');
-      } else {
-        await fetchAdminData();
-        showToast('Company approval updated.');
-      }
-      setSelectedCompanyForView(null);
+      fetchAdminData(false);
     } catch (e) {
-      showToast('Action processed.');
+      fetchAdminData(false);
     }
   };
 
@@ -590,65 +644,104 @@ export default function AdminDashboardPage() {
     setRejectionReasonInput('');
   };
 
-  // Actions: Submit Reject with Reason
+  // ⚡ Actions: Submit Reject with Reason (Instant Optimistic UI in 0ms)
   const handleConfirmReject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rejectModalCompany) return;
+    const compId = rejectModalCompany.id;
+    const compName = rejectModalCompany.companyName;
     const reason = rejectionReasonInput.trim() || 'Verification documents do not meet compliance guidelines';
+
+    // Instant optimistic local state update
+    setPendingCompanies(prev => prev.filter(c => c.id !== compId));
+    setRejectedCompanies(prev => [
+      {
+        ...rejectModalCompany,
+        status: 'Rejected',
+        rejectionReason: reason
+      },
+      ...prev.filter(c => c.id !== compId)
+    ]);
+    setStats((prev: any) => ({
+      ...prev,
+      pendingApprovals: Math.max(0, (prev?.pendingApprovals || 1) - 1)
+    }));
+    showToast(`🚫 "${compName}" rejected: ${reason}`);
+    setRejectModalCompany(null);
+    setSelectedCompanyForView(null);
+
+    // Non-blocking background API dispatch
     try {
-      const res = await fetch(`/api/admin/companies/${rejectModalCompany.id}/reject`, {
+      const token = localStorage.getItem('adminToken');
+      const headers: any = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
+      await fetch(`${apiBase}/admin/companies/${compId}/reject`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ reason })
       });
-      if (res.ok) {
-        await fetchAdminData();
-        showToast(`Company rejected: "${reason}"`);
-      }
-      setRejectModalCompany(null);
-      setSelectedCompanyForView(null);
+      fetchAdminData(false);
     } catch (e) {
-      showToast('Company rejected.');
-      setRejectModalCompany(null);
+      fetchAdminData(false);
     }
   };
 
   // Actions: Request More Information
   const handleRequestMoreInfo = async (comp: any) => {
     try {
-      await fetch(`/api/admin/companies/${comp.id}/request-info`, {
+      showToast(`Information request dispatched to ${comp.companyName}.`);
+      setSelectedCompanyForView(null);
+      const token = localStorage.getItem('adminToken');
+      const headers: any = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
+      await fetch(`${apiBase}/admin/companies/${comp.id}/request-info`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ message: 'Please provide updated certificate of incorporation and clear GSTIN documentation.' })
       });
-      await fetchAdminData();
-      showToast(`Information request sent to ${comp.companyName}.`);
-      setSelectedCompanyForView(null);
+      fetchAdminData(false);
     } catch (e) {
       showToast('Request sent to company.');
     }
   };
 
-  // Actions: Block / Unblock Company
+  // ⚡ Actions: Block / Unblock Company (Instant Optimistic UI in 0ms)
   const handleToggleBlock = async (id: string) => {
+    const comp = approvedCompanies.find(c => c.id === id);
+    const willBlock = comp?.status === 'Active';
+    const action = willBlock ? 'block' : 'unblock';
+
+    // Instant optimistic state update
+    setApprovedCompanies(prev => prev.map(c => c.id === id ? { ...c, status: willBlock ? 'Blocked' : 'Active' } : c));
+    showToast(willBlock ? '🔒 Company has been blocked.' : '🔓 Company unblocked.');
+    setSelectedCompanyForView(null);
+
     try {
-      const comp = approvedCompanies.find(c => c.id === id);
-      const willBlock = comp?.status === 'Active';
-      const action = willBlock ? 'block' : 'unblock';
+      const token = localStorage.getItem('adminToken');
+      const headers: any = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      await fetch(`/api/admin/companies/${id}/${action}`, {
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
+      await fetch(`${apiBase}/admin/companies/${id}/${action}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: willBlock ? 'Policy violation / administrative block' : undefined })
+        headers
       });
-
-      await fetchAdminData();
-      showToast(`Company has been ${willBlock ? 'blocked' : 'unblocked'}.`);
+      fetchAdminData(false);
     } catch (e) {
-      setApprovedCompanies(prev =>
-        prev.map(c => (c.id === id ? { ...c, status: c.status === 'Active' ? 'Blocked' : 'Active' } : c))
-      );
-      showToast('Company status updated.');
+      fetchAdminData(false);
     }
   };
 

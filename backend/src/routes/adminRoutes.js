@@ -191,12 +191,11 @@ const handleApproveCompany = async (req, res) => {
     const targetEmail = company.workEmail || company.user?.email || existingCompany.user?.email;
     const clientUrl = process.env.RECRUITER_URL || "http://localhost:3001";
 
-    // Send official approval email with temporary password & login URL
-    try {
-      await sendCompanyApprovalEmail(targetEmail, company.companyName, tempPassword, clientUrl);
-      console.log(`✉️ [APPROVAL EMAIL SENT] Sent approval email with temporary password to ${targetEmail}`);
-    } catch (mailErr) {
-      console.error("⚠️ Failed to send approval email:", mailErr);
+    // Dispatch official approval email with temporary password in background (non-blocking)
+    if (targetEmail) {
+      sendCompanyApprovalEmail(targetEmail, company.companyName, tempPassword, clientUrl)
+        .then(() => console.log(`✉️ [APPROVAL EMAIL SENT] Sent approval email with temporary password to ${targetEmail}`))
+        .catch((mailErr) => console.error("⚠️ Failed to send approval email in background:", mailErr));
     }
 
     res.json({
@@ -238,11 +237,11 @@ const handleRejectCompany = async (req, res) => {
 
     const targetEmail = company.workEmail || company.user?.email || existingCompany.user?.email;
 
-    try {
-      await sendCompanyRejectionEmail(targetEmail, company.companyName, rejectionMsg);
-      console.log(`✉️ [REJECTION EMAIL SENT] Sent rejection email to ${targetEmail}`);
-    } catch (mailErr) {
-      console.error("⚠️ Failed to send rejection email:", mailErr);
+    // Dispatch rejection email in background (non-blocking)
+    if (targetEmail) {
+      sendCompanyRejectionEmail(targetEmail, company.companyName, rejectionMsg)
+        .then(() => console.log(`✉️ [REJECTION EMAIL SENT] Sent rejection email to ${targetEmail}`))
+        .catch((mailErr) => console.error("⚠️ Failed to send rejection email in background:", mailErr));
     }
 
     res.json({
