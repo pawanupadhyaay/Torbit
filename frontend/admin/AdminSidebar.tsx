@@ -60,20 +60,21 @@ export default function AdminSidebar({ activeTab, setActiveTab, pendingCount }: 
   return (
     <aside className="w-64 bg-[#080809] text-slate-200 flex flex-col shrink-0 border-r border-slate-800/90 select-none min-h-screen font-['Helvetica',Arial,sans-serif] fixed inset-y-0 left-0 z-30 h-screen">
       {/* Brand & Logo */}
-      <div className="p-5 border-b border-slate-800/80 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-[#080809] shadow-md">
-            <CorporateFareOutlinedIcon sx={{ fontSize: 22 }} />
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-white text-base tracking-wider uppercase">TORBIT</span>
-              <span className="bg-[#94C322] text-[#080809] text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider">
-                ADMIN
-              </span>
+      <div className="p-4.5 border-b border-slate-800/80 flex items-center justify-between">
+        <div className="flex flex-col gap-1.5 w-full">
+          <div className="flex items-center justify-between gap-2">
+            <div className="bg-white rounded-lg px-2.5 py-1.5 flex items-center shadow-xs">
+              <img
+                src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
+                alt="Torbit Realty"
+                className="h-6 w-auto object-contain max-w-[140px]"
+              />
             </div>
-            <span className="text-[10px] text-slate-400 font-medium block">Enterprise Master Console</span>
+            <span className="bg-[#94C322] text-[#080809] text-[9px] font-black px-2 py-0.5 rounded tracking-wider uppercase shrink-0">
+              ADMIN
+            </span>
           </div>
+          <span className="text-[10px] text-slate-400 font-medium tracking-wide">Enterprise Master Console</span>
         </div>
       </div>
 

@@ -106,20 +106,12 @@ export default function Header({ onOpenAuth }: HeaderProps) {
         </div>
 
         {/* Center / Brand Logo */}
-        <Link href="/?view=home" className="flex items-center sm:flex-col sm:items-center group">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-lime-100 border border-[#94C322] flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
-              🐢
-            </div>
-            <div>
-              <div className="text-xl sm:text-2xl md:text-3xl font-['Helvetica',Arial,sans-serif] font-bold tracking-tight text-[#111827] leading-none">
-                TORBIT <span className="font-normal text-gray-700">REALTY</span>
-              </div>
-              <p className="hidden sm:block text-[10px] font-['Helvetica',Arial,sans-serif] text-gray-500 font-normal tracking-wide mt-0.5">
-                Fortnightly Insight into Real Estate • Job Portal Platform
-              </p>
-            </div>
-          </div>
+        <Link href="/?view=home" className="flex items-center group py-0.5" title="Torbit Realty Home">
+          <img
+            src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
+            alt="Torbit Realty"
+            className="h-8 sm:h-11 md:h-12 w-auto object-contain max-w-[190px] sm:max-w-[280px] md:max-w-[340px] group-hover:opacity-95 transition-opacity"
+          />
         </Link>
 
         {/* Right Actions - Desktop & Mobile */}

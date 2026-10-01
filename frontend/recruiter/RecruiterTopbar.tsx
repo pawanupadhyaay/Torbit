@@ -34,17 +34,14 @@ export default function RecruiterTopbar({
       </div>
 
       <div className="flex items-center gap-2.5 mx-auto md:mx-0">
-        <div className="w-7 h-7 rounded-lg bg-[#080809] flex items-center justify-center text-white shadow-xs">
-          <Building2 className="w-4 h-4 text-white" />
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-lg sm:text-xl font-bold text-[#080809] tracking-tight uppercase">
-            TORBIT<span className="text-slate-400 font-light">REALTY</span>
-          </span>
-          <span className="bg-[#94C322] text-[#080809] text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider uppercase">
-            RECRUITER
-          </span>
-        </div>
+        <img
+          src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
+          alt="Torbit Realty"
+          className="h-6 sm:h-7.5 w-auto object-contain max-w-[150px] sm:max-w-[200px]"
+        />
+        <span className="bg-[#94C322] text-[#080809] text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider uppercase shrink-0">
+          RECRUITER
+        </span>
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">

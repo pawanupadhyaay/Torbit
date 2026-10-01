@@ -50,20 +50,17 @@ export default function SeekerTopbar({
         <Link
           href="/seeker/dashboard"
           onClick={handleLogoClick}
-          className="flex items-center gap-2 sm:gap-2.5 group cursor-pointer"
+          className="flex items-center gap-2 group cursor-pointer"
           title="Go to Seeker Dashboard"
         >
-          <div className="w-7 h-7 rounded-lg bg-[#080809] flex items-center justify-center text-white shadow-xs group-hover:scale-105 transition shrink-0">
-            <AccountBalanceOutlinedIcon sx={{ fontSize: 18 }} />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-lg sm:text-xl font-black text-[#080809] tracking-tight uppercase font-['Helvetica',Arial,sans-serif]">
-              TORBIT<span className="text-slate-400 font-light">REALTY</span>
-            </span>
-            <span className="bg-[#94C322] text-[#080809] text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase">
-              SEEKER
-            </span>
-          </div>
+          <img
+            src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
+            alt="Torbit Realty"
+            className="h-6 sm:h-7.5 w-auto object-contain max-w-[150px] sm:max-w-[200px]"
+          />
+          <span className="bg-[#94C322] text-[#080809] text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase shrink-0">
+            SEEKER
+          </span>
         </Link>
       </div>
 

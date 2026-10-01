@@ -181,19 +181,20 @@ export default function RecruiterDashboardPage() {
             {/* Drawer Header */}
             <div className="p-4 border-b border-gray-800/80 flex items-center justify-between bg-[#121418]">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-[#94C322] flex items-center justify-center text-[#080809] font-black">
-                  T
+                <div className="bg-white rounded-lg px-2 py-1 flex items-center shadow-xs">
+                  <img
+                    src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
+                    alt="Torbit Realty"
+                    className="h-5 w-auto object-contain max-w-[120px]"
+                  />
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-sm tracking-wide text-white">TORBIT</span>
-                  <span className="bg-[#94C322] text-[#080809] text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase">
-                    RECRUITER
-                  </span>
-                </div>
+                <span className="bg-[#94C322] text-[#080809] text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase shrink-0">
+                  RECRUITER
+                </span>
               </div>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition"
+                className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition cursor-pointer"
               >
                 <CloseOutlinedIcon sx={{ fontSize: 18 }} />
               </button>

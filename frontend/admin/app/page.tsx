@@ -94,17 +94,16 @@ export default function AdminLoginPage() {
       {/* Top Header Bar */}
       <header className="bg-[#080809] text-white px-5 sm:px-8 py-3.5 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-[#080809] shadow-xs">
-            <CorporateFareOutlinedIcon sx={{ fontSize: 20 }} />
+          <div className="bg-white rounded-lg px-2.5 py-1 flex items-center shadow-xs">
+            <img
+              src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
+              alt="Torbit Realty"
+              className="h-6 sm:h-7 w-auto object-contain max-w-[140px] sm:max-w-[180px]"
+            />
           </div>
-          <div>
-            <div className="font-extrabold text-white text-sm tracking-wider uppercase">
-              TORBIT REALTY
-            </div>
-            <div className="text-[10px] font-bold text-[#94C322] tracking-widest uppercase">
-              ADMIN MASTER PORTAL
-            </div>
-          </div>
+          <span className="bg-[#94C322] text-[#080809] text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded tracking-wider uppercase">
+            ADMIN PORTAL
+          </span>
         </div>
 
         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs text-gray-300 font-medium">
