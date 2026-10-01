@@ -31,11 +31,15 @@ export default function CompanyProfileSettings({ company, onProfileUpdated }: Co
     setSaving(true);
 
     try {
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch('/api/auth/company-profile', {
+      const res = await fetch(`${apiBase}/auth/company-profile`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({ companyName, phone, hqLocation, industry })

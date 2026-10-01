@@ -142,6 +142,13 @@ export default function AuthModal({
     };
   }, [isOpen, defaultTab, defaultRole]);
 
+  const getApiEndpoint = (path: string) => {
+    const base = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+      ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+      : '/api';
+    return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+  };
+
   if (!isOpen) return null;
 
   // Handle Send Seeker OTP
@@ -154,7 +161,7 @@ export default function AuthModal({
     setSeekerOtpNotice(null);
     setSeekerOtpSending(true);
     try {
-      const res = await fetch('/api/auth/send-otp', {
+      const res = await fetch(getApiEndpoint('/auth/send-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: seekerEmail.trim(), fullName: seekerName.trim() })
@@ -186,7 +193,7 @@ export default function AuthModal({
     setError(null);
     setSeekerOtpVerifying(true);
     try {
-      const res = await fetch('/api/auth/verify-otp', {
+      const res = await fetch(getApiEndpoint('/auth/verify-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: seekerEmail.trim(), otp: seekerOtpInput.trim() })
@@ -234,7 +241,7 @@ export default function AuthModal({
 
     setSeekerLoading(true);
     try {
-      const res = await fetch('/api/auth/register-seeker', {
+      const res = await fetch(getApiEndpoint('/auth/register-seeker'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -291,7 +298,7 @@ export default function AuthModal({
       formData.append('file', file);
       formData.append('folder', 'company-docs');
 
-      const res = await fetch('/api/upload', {
+      const res = await fetch(getApiEndpoint('/upload'), {
         method: 'POST',
         body: formData
       });
@@ -352,7 +359,7 @@ export default function AuthModal({
 
     setRecruiterLoading(true);
     try {
-      const res = await fetch('/api/auth/register-recruiter', {
+      const res = await fetch(getApiEndpoint('/auth/register-recruiter'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -411,7 +418,7 @@ export default function AuthModal({
     setLoginLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(getApiEndpoint('/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -492,7 +499,7 @@ export default function AuthModal({
 
     setNewPasswordLoading(true);
     try {
-      const res = await fetch('/api/auth/set-new-password', {
+      const res = await fetch(getApiEndpoint('/auth/set-new-password'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -550,7 +557,7 @@ export default function AuthModal({
     setForgotNotice(null);
 
     try {
-      const res = await fetch('/api/auth/forgot-password-otp', {
+      const res = await fetch(getApiEndpoint('/auth/forgot-password-otp'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: forgotEmail.trim().toLowerCase() })
@@ -592,7 +599,7 @@ export default function AuthModal({
 
     setForgotLoading(true);
     try {
-      const res = await fetch('/api/auth/reset-password', {
+      const res = await fetch(getApiEndpoint('/auth/reset-password'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

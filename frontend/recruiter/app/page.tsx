@@ -27,13 +27,35 @@ export default function RecruiterPortalRootPage() {
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
 
+  const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+    ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+    : '/api';
+
+  // 0ms instant snapshot cache hydration on mount
+  useEffect(() => {
+    try {
+      const cachedJobs = sessionStorage.getItem('torbitFeaturedJobs');
+      const cachedCats = sessionStorage.getItem('torbitCategories');
+      if (cachedJobs) setJobs(JSON.parse(cachedJobs));
+      if (cachedCats) setCategories(JSON.parse(cachedCats));
+    } catch (e) {
+      console.error('Snapshot hydration error:', e);
+    }
+  }, []);
+
   const fetchJobs = async (params = {}) => {
     try {
       const qs = new URLSearchParams(params as any).toString();
-      const res = await fetch(`/api/jobs?${qs}`);
+      const res = await fetch(`${apiBase}/jobs?${qs}`);
       const data = await res.json();
-      if (data.jobs) setJobs(data.jobs);
-      if (data.categories) setCategories(data.categories);
+      if (data.jobs) {
+        setJobs(data.jobs);
+        try { sessionStorage.setItem('torbitFeaturedJobs', JSON.stringify(data.jobs)); } catch (e) {}
+      }
+      if (data.categories) {
+        setCategories(data.categories);
+        try { sessionStorage.setItem('torbitCategories', JSON.stringify(data.categories)); } catch (e) {}
+      }
     } catch (err) {
       console.error('Error fetching jobs:', err);
     }
@@ -58,7 +80,7 @@ export default function RecruiterPortalRootPage() {
 
       // 2. Validate with backend session
       if (token) {
-        const res = await fetch('/api/auth/me', {
+        const res = await fetch(`${apiBase}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();

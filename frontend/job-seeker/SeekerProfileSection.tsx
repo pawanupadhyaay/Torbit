@@ -112,11 +112,15 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
 
     setUploadingAvatar(true);
     try {
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('folder', 'avatars');
 
-      const res = await fetch('/api/upload', {
+      const res = await fetch(`${apiBase}/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -131,19 +135,11 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
         const headers: any = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        let syncRes = await fetch('/api/auth/profile', {
+        const syncRes = await fetch(`${apiBase}/auth/profile`, {
           method: 'PUT',
           headers,
           body: JSON.stringify({ avatarUrl: data.fileUrl })
         });
-        if (!syncRes.ok && syncRes.status >= 500) {
-          const backendBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-          syncRes = await fetch(`${backendBase}/auth/profile`, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify({ avatarUrl: data.fileUrl })
-          });
-        }
         const syncData = await syncRes.json();
         if (onProfileUpdated && syncData.profile) {
           onProfileUpdated(syncData.profile);
@@ -182,11 +178,15 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
 
     setUploadingResume(true);
     try {
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('folder', 'resumes');
 
-      const res = await fetch('/api/upload', {
+      const res = await fetch(`${apiBase}/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -204,19 +204,11 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
         const headers: any = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        let syncRes = await fetch('/api/auth/profile', {
+        const syncRes = await fetch(`${apiBase}/auth/profile`, {
           method: 'PUT',
           headers,
           body: JSON.stringify({ resumeUrl: data.fileUrl, resumeOriginalName: file.name })
         });
-        if (!syncRes.ok && syncRes.status >= 500) {
-          const backendBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-          syncRes = await fetch(`${backendBase}/auth/profile`, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify({ resumeUrl: data.fileUrl, resumeOriginalName: file.name })
-          });
-        }
         const syncData = await syncRes.json();
         if (onProfileUpdated && syncData.profile) {
           onProfileUpdated(syncData.profile);
@@ -237,24 +229,19 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
     setAvatarUrl('');
     if (avatarInputRef.current) avatarInputRef.current.value = '';
     try {
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      let res = await fetch('/api/auth/profile', {
+      const res = await fetch(`${apiBase}/auth/profile`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({ avatarUrl: null })
       });
-
-      if (!res.ok && res.status >= 500) {
-        const backendBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-        res = await fetch(`${backendBase}/auth/profile`, {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify({ avatarUrl: null })
-        });
-      }
 
       const data = await res.json();
       if (onProfileUpdated && data.profile) {
@@ -272,24 +259,19 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
     setResumeUploadSuccess(null);
     if (resumeInputRef.current) resumeInputRef.current.value = '';
     try {
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      let res = await fetch('/api/auth/profile', {
+      const res = await fetch(`${apiBase}/auth/profile`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({ resumeUrl: null, resumeOriginalName: null })
       });
-
-      if (!res.ok && res.status >= 500) {
-        const backendBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-        res = await fetch(`${backendBase}/auth/profile`, {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify({ resumeUrl: null, resumeOriginalName: null })
-        });
-      }
 
       const data = await res.json();
       if (onProfileUpdated && data.profile) {
@@ -315,6 +297,10 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
     setError(null);
     setSaving(true);
     try {
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -335,21 +321,11 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
         avatarUrl
       };
 
-      // Try local proxy first, fallback to direct backend if needed
-      let res = await fetch('/api/auth/profile', {
+      const res = await fetch(`${apiBase}/auth/profile`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(payload)
       });
-
-      if (!res.ok && res.status >= 500) {
-        const backendBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-        res = await fetch(`${backendBase}/auth/profile`, {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify(payload)
-        });
-      }
 
       let data: any = {};
       const text = await res.text();

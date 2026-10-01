@@ -51,11 +51,15 @@ export default function CompanySignUpCard({ onSuccess, onSwitchToLogin, onShowVe
 
     setGstDocUploading(true);
     try {
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('folder', 'company-docs');
 
-      const res = await fetch('/api/upload', {
+      const res = await fetch(`${apiBase}/upload`, {
         method: 'POST',
         body: formData
       });
@@ -116,7 +120,11 @@ export default function CompanySignUpCard({ onSuccess, onSwitchToLogin, onShowVe
 
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/register-recruiter', {
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
+      const res = await fetch(`${apiBase}/auth/register-recruiter`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

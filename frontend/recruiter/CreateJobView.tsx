@@ -53,8 +53,12 @@ export default function CreateJobView({
 
   const [categoriesList, setCategoriesList] = useState<string[]>(REAL_ESTATE_32);
 
+  const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+    ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+    : '/api';
+
   useEffect(() => {
-    fetch('/api/categories')
+    fetch(`${apiBase}/categories`)
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data?.categories && data.categories.length > 0) {
@@ -63,7 +67,7 @@ export default function CreateJobView({
         }
       })
       .catch(() => {});
-  }, []);
+  }, [apiBase]);
 
   const [title, setTitle] = useState('');
   const [department, setDepartment] = useState('Sales & Business Development');
@@ -178,7 +182,7 @@ export default function CreateJobView({
         isDraft
       };
 
-      const res = await fetch('/api/jobs', {
+      const res = await fetch(`${apiBase}/jobs`, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload)

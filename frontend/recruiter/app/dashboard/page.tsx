@@ -27,13 +27,29 @@ export default function RecruiterDashboardPage() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [applications, setApplications] = useState<any[]>([]);
   const [createJobModalOpen, setCreateJobModalOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isFetchingRef = useRef(false);
-
   const lastFetchedAtRef = useRef<number>(Date.now());
+
+  // ⚡ Instant Cache Hydration on Mount (0ms visual render)
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem('torbitRecruiterSnapshot');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.user) setUser(parsed.user);
+        if (parsed.applications) setApplications(parsed.applications);
+        if (parsed.jobs) setJobs(parsed.jobs);
+      }
+      const storedUser = localStorage.getItem('user');
+      if (storedUser && !cached) {
+        setUser(JSON.parse(storedUser));
+      }
+    } catch (e) {}
+  }, []);
 
   const loadData = useCallback(async (manual = false) => {
     if (isFetchingRef.current && !manual) return;
@@ -45,11 +61,19 @@ export default function RecruiterDashboardPage() {
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
       const [meRes, appRes, jobsRes] = await Promise.allSettled([
-        fetch('/api/auth/me', { headers }).then(r => r.json()),
-        fetch('/api/applications', { headers }).then(r => r.json()),
-        fetch('/api/jobs/my/listings', { headers }).then(r => r.json())
+        fetch(`${apiBase}/auth/me`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${apiBase}/applications`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${apiBase}/jobs/my/listings`, { headers }).then(r => r.ok ? r.json() : null)
       ]);
+
+      const newUser = meRes.status === 'fulfilled' && meRes.value?.user ? meRes.value.user : user;
+      const newApps = appRes.status === 'fulfilled' && Array.isArray(appRes.value?.applications) ? appRes.value.applications : applications;
+      const newJobs = jobsRes.status === 'fulfilled' && Array.isArray(jobsRes.value?.jobs) ? jobsRes.value.jobs : jobs;
 
       if (meRes.status === 'fulfilled' && meRes.value?.user) {
         setUser(meRes.value.user);
@@ -61,6 +85,15 @@ export default function RecruiterDashboardPage() {
         setJobs(jobsRes.value.jobs);
       }
       lastFetchedAtRef.current = Date.now();
+
+      // Save snapshot for next instant 0ms load
+      try {
+        sessionStorage.setItem('torbitRecruiterSnapshot', JSON.stringify({
+          user: newUser,
+          applications: newApps,
+          jobs: newJobs
+        }));
+      } catch (cacheErr) {}
     } catch (err) {
       console.error('Error fetching recruiter data:', err);
     } finally {
@@ -68,23 +101,23 @@ export default function RecruiterDashboardPage() {
       setIsRefreshing(false);
       isFetchingRef.current = false;
     }
-  }, []);
+  }, [user, applications, jobs]);
 
   useEffect(() => {
     loadData();
 
-    // Enterprise Smart Polling: 25s interval, only when browser tab is actively visible
+    // Enterprise Smart Polling: 20s interval, only when browser tab is actively visible
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         loadData(false);
       }
-    }, 25000);
+    }, 20000);
 
     // Instant smart sync on window focus/tab switch (throttled to at most once per 10 seconds)
     const handleVisibility = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         const timeSinceLast = Date.now() - lastFetchedAtRef.current;
-        if (timeSinceLast > 10000) {
+        if (timeSinceLast > 8000) {
           loadData(false);
         }
       }
@@ -122,21 +155,28 @@ export default function RecruiterDashboardPage() {
   const isApproved = company.status === 'APPROVED';
 
   const handleUpdateApplicantStatus = async (applicationId: string, status: string) => {
+    // ⚡ Instant Optimistic UI Update in 0ms
+    setApplications(prev => prev.map(a => a.id === applicationId ? { ...a, status } : a));
+
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch('/api/applications', {
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
+      await fetch(`${apiBase}/applications/${applicationId}/status`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({ applicationId, status })
       });
-      if (res.ok) {
-        setApplications(prev => prev.map(a => a.id === applicationId ? { ...a, status } : a));
-      }
     } catch (e) {
       console.error(e);
+      loadData(false);
+    }
+  };
     }
   };
 

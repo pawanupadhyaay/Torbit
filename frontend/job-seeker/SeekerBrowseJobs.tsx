@@ -14,18 +14,43 @@ export default function SeekerBrowseJobs({ currentUser, onApplicationSubmitted }
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('ALL');
   const [selectedLoc, setSelectedLoc] = useState('ALL');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const [selectedJobForApply, setSelectedJobForApply] = useState<any>(null);
   const [applyModalOpen, setApplyModalOpen] = useState(false);
 
+  const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+    ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+    : '/api';
+
+  // Instant 0ms cache snapshot hydration on mount
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem('torbitSeekerBrowseJobs');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.jobs && Array.isArray(parsed.jobs)) setJobs(parsed.jobs);
+        if (parsed.categories && Array.isArray(parsed.categories)) setCategories(parsed.categories);
+      }
+    } catch (e) {
+      console.error('Snapshot hydration error:', e);
+    }
+  }, []);
+
   const fetchJobs = async () => {
     try {
-      setLoading(true);
-      const res = await fetch('/api/jobs');
+      if (jobs.length === 0) setLoading(true);
+      const res = await fetch(`${apiBase}/jobs`);
       const data = await res.json();
       if (data.jobs) setJobs(data.jobs);
       if (data.categories) setCategories(data.categories);
+
+      try {
+        sessionStorage.setItem('torbitSeekerBrowseJobs', JSON.stringify({
+          jobs: data.jobs || [],
+          categories: data.categories || []
+        }));
+      } catch (e) {}
     } catch (err) {
       console.error('Error fetching jobs:', err);
     } finally {

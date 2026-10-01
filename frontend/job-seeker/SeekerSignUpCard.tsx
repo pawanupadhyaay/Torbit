@@ -57,7 +57,11 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
     setOtpNotice(null);
     setOtpSending(true);
     try {
-      const res = await fetch('/api/auth/send-otp', {
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
+      const res = await fetch(`${apiBase}/auth/send-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), fullName: fullName.trim() })
@@ -89,7 +93,11 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
     setError(null);
     setOtpVerifying(true);
     try {
-      const res = await fetch('/api/auth/verify-otp', {
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
+      const res = await fetch(`${apiBase}/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), otp: otpInput.trim() })
@@ -136,7 +144,11 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
 
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/register-seeker', {
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
+      const res = await fetch(`${apiBase}/auth/register-seeker`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

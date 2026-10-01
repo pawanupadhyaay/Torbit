@@ -47,8 +47,12 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
 
   const [categoriesList, setCategoriesList] = useState<string[]>(REAL_ESTATE_32);
 
+  const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+    ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+    : '/api';
+
   React.useEffect(() => {
-    fetch('/api/categories')
+    fetch(`${apiBase}/categories`)
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data?.categories && data.categories.length > 0) {
@@ -57,7 +61,7 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
         }
       })
       .catch(() => {});
-  }, []);
+  }, [apiBase]);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -103,7 +107,7 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch('/api/jobs', {
+      const res = await fetch(`${apiBase}/jobs`, {
         method: 'POST',
         headers,
         body: JSON.stringify(formData)

@@ -26,11 +26,28 @@ export default function SeekerDashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [applications, setApplications] = useState<any[]>([]);
   const [recommendedJobs, setRecommendedJobs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const isFetchingRef = useRef(false);
   const lastFetchedAtRef = useRef<number>(Date.now());
+
+  // ⚡ Instant Cache Hydration on Mount (0ms visual render)
+  useEffect(() => {
+    try {
+      const cached = sessionStorage.getItem('torbitSeekerSnapshot');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.user) setUser(parsed.user);
+        if (parsed.applications) setApplications(parsed.applications);
+        if (parsed.recommendedJobs) setRecommendedJobs(parsed.recommendedJobs);
+      }
+      const storedUser = localStorage.getItem('user');
+      if (storedUser && !cached) {
+        setUser(JSON.parse(storedUser));
+      }
+    } catch (e) {}
+  }, []);
 
   const loadData = useCallback(async (manual = false) => {
     if (isFetchingRef.current && !manual) return;
@@ -42,11 +59,19 @@ export default function SeekerDashboardPage() {
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
       const [meRes, appRes, jobsRes] = await Promise.allSettled([
-        fetch('/api/auth/me', { headers }).then(r => r.json()),
-        fetch('/api/applications', { headers }).then(r => r.json()),
-        fetch('/api/jobs').then(r => r.json())
+        fetch(`${apiBase}/auth/me`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${apiBase}/applications`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${apiBase}/jobs`).then(r => r.ok ? r.json() : null)
       ]);
+
+      const newUser = meRes.status === 'fulfilled' && meRes.value?.user ? meRes.value.user : user;
+      const newApps = appRes.status === 'fulfilled' && Array.isArray(appRes.value?.applications) ? appRes.value.applications : applications;
+      const newJobs = jobsRes.status === 'fulfilled' && Array.isArray(jobsRes.value?.jobs) ? jobsRes.value.jobs : recommendedJobs;
 
       if (meRes.status === 'fulfilled' && meRes.value?.user) {
         setUser(meRes.value.user);
@@ -58,6 +83,15 @@ export default function SeekerDashboardPage() {
         setRecommendedJobs(jobsRes.value.jobs);
       }
       lastFetchedAtRef.current = Date.now();
+
+      // Save snapshot for next instant 0ms load
+      try {
+        sessionStorage.setItem('torbitSeekerSnapshot', JSON.stringify({
+          user: newUser,
+          applications: newApps,
+          recommendedJobs: newJobs
+        }));
+      } catch (cacheErr) {}
     } catch (err) {
       console.error('Error fetching seeker data:', err);
     } finally {
@@ -65,7 +99,7 @@ export default function SeekerDashboardPage() {
       setIsRefreshing(false);
       isFetchingRef.current = false;
     }
-  }, []);
+  }, [user, applications, recommendedJobs]);
 
   useEffect(() => {
     loadData();

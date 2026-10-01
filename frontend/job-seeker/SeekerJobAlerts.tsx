@@ -70,12 +70,29 @@ const LOCATIONS_LIST = [
 export default function SeekerJobAlerts() {
   const [categoriesList, setCategoriesList] = useState<string[]>(REAL_ESTATE_DEPARTMENTS);
   const [alerts, setAlerts] = useState<JobAlertItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+    ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+    : '/api';
+
+  // Instant 0ms cache snapshot hydration on mount
   useEffect(() => {
-    fetch('/api/categories')
+    try {
+      const cached = sessionStorage.getItem('torbitSeekerJobAlertsSnapshot');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) setAlerts(parsed);
+      }
+    } catch (e) {
+      console.error('Snapshot hydration error:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetch(`${apiBase}/categories`)
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data?.categories && data.categories.length > 0) {
@@ -84,7 +101,7 @@ export default function SeekerJobAlerts() {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [apiBase]);
 
   // Form State
   const [title, setTitle] = useState('');
@@ -114,16 +131,20 @@ export default function SeekerJobAlerts() {
   const fetchAlerts = useCallback(async (isManualRefresh = false) => {
     try {
       if (isManualRefresh) setRefreshing(true);
+      if (alerts.length === 0) setLoading(true);
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch('/api/alerts', { headers });
+      const res = await fetch(`${apiBase}/alerts`, { headers });
       if (!res.ok) throw new Error('Failed to load job alerts.');
 
       const data = await res.json();
       if (data.alerts && Array.isArray(data.alerts)) {
         setAlerts(data.alerts);
+        try {
+          sessionStorage.setItem('torbitSeekerJobAlertsSnapshot', JSON.stringify(data.alerts));
+        } catch (e) {}
       }
     } catch (err: any) {
       console.error('Error loading alerts:', err);
@@ -131,7 +152,7 @@ export default function SeekerJobAlerts() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [apiBase, alerts.length]);
 
   useEffect(() => {
     fetchAlerts();
@@ -151,7 +172,7 @@ export default function SeekerJobAlerts() {
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch('/api/alerts', {
+      const res = await fetch(`${apiBase}/alerts`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -170,7 +191,13 @@ export default function SeekerJobAlerts() {
       }
 
       if (data.alert) {
-        setAlerts((prev) => [data.alert, ...prev]);
+        setAlerts((prev) => {
+          const updated = [data.alert, ...prev];
+          try {
+            sessionStorage.setItem('torbitSeekerJobAlertsSnapshot', JSON.stringify(updated));
+          } catch (e) {}
+          return updated;
+        });
         setTitle('');
         showToast('success', `Alert "${data.alert.title}" activated! Confirmation email sent.`);
       }
@@ -185,16 +212,20 @@ export default function SeekerJobAlerts() {
   // 3. Toggle Alert (Pause / Resume)
   const handleToggleAlert = async (id: string, currentStatus: boolean) => {
     // Optimistic UI Update
-    setAlerts((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, emailActive: !currentStatus } : a))
-    );
+    setAlerts((prev) => {
+      const updated = prev.map((a) => (a.id === id ? { ...a, emailActive: !currentStatus } : a));
+      try {
+        sessionStorage.setItem('torbitSeekerJobAlertsSnapshot', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
 
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`/api/alerts/${id}/toggle`, {
+      const res = await fetch(`${apiBase}/alerts/${id}/toggle`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({ emailActive: !currentStatus })
@@ -222,14 +253,20 @@ export default function SeekerJobAlerts() {
     }
 
     const previousAlerts = [...alerts];
-    setAlerts((prev) => prev.filter((a) => a.id !== id));
+    setAlerts((prev) => {
+      const updated = prev.filter((a) => a.id !== id);
+      try {
+        sessionStorage.setItem('torbitSeekerJobAlertsSnapshot', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
 
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`/api/alerts/${id}`, {
+      const res = await fetch(`${apiBase}/alerts/${id}`, {
         method: 'DELETE',
         headers
       });
@@ -254,7 +291,7 @@ export default function SeekerJobAlerts() {
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`/api/alerts/${alert.id}/matches`, { headers });
+      const res = await fetch(`${apiBase}/alerts/${alert.id}/matches`, { headers });
       const data = await res.json();
       if (res.ok && data.matchingJobs) {
         setMatchingJobs(data.matchingJobs);
@@ -274,7 +311,7 @@ export default function SeekerJobAlerts() {
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`/api/alerts/${alert.id}/send-digest`, {
+      const res = await fetch(`${apiBase}/alerts/${alert.id}/send-digest`, {
         method: 'POST',
         headers
       });

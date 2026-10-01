@@ -50,9 +50,10 @@ router.post("/send-otp", async (req, res) => {
       verified: false
     });
 
-    await sendOtpEmail(cleanEmail, otp, fullName || "Candidate");
+    sendOtpEmail(cleanEmail, otp, fullName || "Candidate")
+      .then(() => console.log(`✉️ [OTP SENT] Sent verification code to ${cleanEmail}`))
+      .catch((mailErr) => console.error("⚠️ Error sending OTP email in background:", mailErr));
 
-    console.log(`✉️ [OTP SENT] Sent verification code to ${cleanEmail}`);
     res.json({
       success: true,
       message: `Verification code sent successfully to ${cleanEmail}`
@@ -141,9 +142,10 @@ router.post("/forgot-password-otp", async (req, res) => {
     });
 
     const displayName = user.seekerProfile?.fullName || user.companyProfile?.companyName || "User";
-    await sendOtpEmail(cleanEmail, otp, displayName);
+    sendOtpEmail(cleanEmail, otp, displayName)
+      .then(() => console.log(`🔐 [RESET OTP SENT] Sent password reset OTP to ${cleanEmail}`))
+      .catch((mailErr) => console.error("⚠️ Error sending reset OTP email in background:", mailErr));
 
-    console.log(`🔐 [RESET OTP SENT] Sent password reset OTP to ${cleanEmail}`);
     res.json({
       success: true,
       message: `Password reset OTP has been dispatched to ${cleanEmail}`

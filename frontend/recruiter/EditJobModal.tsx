@@ -68,8 +68,12 @@ export default function EditJobModal({
 
   const [categoriesList, setCategoriesList] = useState<string[]>(REAL_ESTATE_32);
 
+  const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+    ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+    : '/api';
+
   useEffect(() => {
-    fetch('/api/categories')
+    fetch(`${apiBase}/categories`)
       .then(res => res.ok ? res.json() : null)
       .then(data => {
         if (data?.categories && data.categories.length > 0) {
@@ -78,7 +82,7 @@ export default function EditJobModal({
         }
       })
       .catch(() => {});
-  }, []);
+  }, [apiBase]);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -162,7 +166,7 @@ export default function EditJobModal({
         department: formData.department === 'Others' && formData.customDepartment ? formData.customDepartment.trim() : formData.department
       };
 
-      const res = await fetch(`/api/jobs/${job.id}`, {
+      const res = await fetch(`${apiBase}/jobs/${job.id}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify(payload)
@@ -192,7 +196,7 @@ export default function EditJobModal({
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetch(`/api/jobs/${job.id}`, {
+      const res = await fetch(`${apiBase}/jobs/${job.id}`, {
         method: 'DELETE',
         headers
       });

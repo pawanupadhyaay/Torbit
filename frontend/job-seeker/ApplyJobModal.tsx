@@ -104,10 +104,14 @@ export default function ApplyJobModal({
     setResumeName(file.name);
     setUploading(true);
     try {
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
       const formData = new FormData();
       formData.append('file', file);
 
-      const res = await fetch('/api/upload', {
+      const res = await fetch(`${apiBase}/upload`, {
         method: 'POST',
         body: formData
       });
@@ -135,6 +139,10 @@ export default function ApplyJobModal({
 
     setSubmitting(true);
     try {
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -149,20 +157,11 @@ export default function ApplyJobModal({
         portfolioUrl
       };
 
-      let res = await fetch('/api/applications', {
+      const res = await fetch(`${apiBase}/applications`, {
         method: 'POST',
         headers,
         body: JSON.stringify(payload)
       });
-
-      if (!res.ok && res.status >= 500) {
-        const backendBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-        res = await fetch(`${backendBase}/applications`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(payload)
-        });
-      }
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed to submit application');

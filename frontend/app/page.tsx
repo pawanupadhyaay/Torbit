@@ -30,17 +30,35 @@ export default function HomePage() {
 
   const fetchJobs = async (params = {}) => {
     try {
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
       const qs = new URLSearchParams(params as any).toString();
-      const res = await fetch(`/api/jobs?${qs}`);
-      const data = await res.json();
-      if (data.jobs) setJobs(data.jobs);
-      if (data.categories) setCategories(data.categories);
+      const res = await fetch(`${apiBase}/jobs?${qs}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.jobs) setJobs(data.jobs);
+        if (data.categories) setCategories(data.categories);
+        try {
+          sessionStorage.setItem('torbitHomeSnapshot', JSON.stringify({ jobs: data.jobs, categories: data.categories }));
+        } catch (e) {}
+      }
     } catch (err) {
       console.error('Error fetching jobs:', err);
     }
   };
 
   useEffect(() => {
+    // ⚡ Instant Cache Hydration on Mount (0ms visual render)
+    try {
+      const cached = typeof window !== 'undefined' ? sessionStorage.getItem('torbitHomeSnapshot') : null;
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.jobs) setJobs(parsed.jobs);
+        if (parsed.categories) setCategories(parsed.categories);
+      }
+    } catch (e) {}
+
     fetchJobs();
 
     // Check saved session in browser
