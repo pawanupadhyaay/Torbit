@@ -58,7 +58,7 @@ export default function SeekerTopbar({
             alt="Torbit Realty"
             className="h-6 sm:h-7.5 w-auto object-contain max-w-[150px] sm:max-w-[200px]"
           />
-          <span className="bg-[#94C322] text-[#080809] text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase shrink-0">
+          <span className="bg-[#b2c359] text-[#080809] text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase shrink-0">
             SEEKER
           </span>
         </Link>
@@ -82,7 +82,7 @@ export default function SeekerTopbar({
           >
             <RefreshOutlinedIcon
               sx={{ fontSize: 19 }}
-              className={isRefreshing ? 'animate-spin text-[#94C322]' : ''}
+              className={isRefreshing ? 'animate-spin text-[#b2c359]' : ''}
             />
           </button>
         )}

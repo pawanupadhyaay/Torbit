@@ -2,9 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import TopTicker from '@/common/TopTicker';
 import Header from '@/common/Header';
-import Navbar from '@/common/Navbar';
 import Footer from '@/common/Footer';
 import HeroSection from '@/common/HeroSection';
 import PopularCategories from '@/common/PopularCategories';
@@ -12,6 +10,7 @@ import FeaturedJobs from '@/common/FeaturedJobs';
 import RightSidebar from '@/common/RightSidebar';
 import AuthModal from '@/common/AuthModal';
 import ApplyJobModal from '@/job-seeker/ApplyJobModal';
+import JobDetailsModal from '@/common/JobDetailsModal';
 import MobileBottomBar from '@/common/MobileBottomBar';
 
 export default function HomePage() {
@@ -25,8 +24,38 @@ export default function HomePage() {
   const [authRole, setAuthRole] = useState<'JOB_SEEKER' | 'RECRUITER' | null>(null);
   const [authTab, setAuthTab] = useState<'LOGIN' | 'REGISTER'>('REGISTER');
 
+  const [jobDetailsOpen, setJobDetailsOpen] = useState(false);
+  const [selectedJobForDetails, setSelectedJobForDetails] = useState<any>(null);
+
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
+  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
+
+  const fetchUserApplications = async () => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+      if (!token || !userStr) return;
+      const u = JSON.parse(userStr);
+      if (u?.role !== 'JOB_SEEKER') return;
+
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+      const res = await fetch(`${apiBase}/applications`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.applications && Array.isArray(data.applications)) {
+          const ids = new Set<string>(
+            data.applications.map((a: any) => a.jobId || a.job?.id).filter(Boolean)
+          );
+          setAppliedJobIds(ids);
+        }
+      }
+    } catch (e) {}
+  };
 
   const fetchJobs = async (params = {}) => {
     try {
@@ -60,54 +89,45 @@ export default function HomePage() {
     } catch (e) {}
 
     fetchJobs();
+    fetchUserApplications();
 
-    // Check saved session in browser
+    // Check saved session in browser (Industry Standard: Auto-Restore Active Dashboard)
     try {
       const stored = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const adminUser = typeof window !== 'undefined' ? localStorage.getItem('adminUser') : null;
+      const adminToken = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
       const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
       const isExplicitHome = params.get('view') === 'home';
 
-      if (stored && token && !isExplicitHome) {
-        const u = JSON.parse(stored);
-        setCurrentUser(u);
-        if (u.role === 'JOB_SEEKER') {
-          router.replace('/seeker/dashboard');
+      if (!isExplicitHome) {
+        if (adminUser && adminToken) {
+          window.location.replace('/admin/dashboard');
           return;
-        } else if (u.role === 'RECRUITER') {
-          router.replace('/recruiter/dashboard');
-          return;
-        } else if (u.role === 'ADMIN') {
-          router.replace('/admin/dashboard');
-          return;
+        }
+
+        if (stored && token) {
+          try {
+            const u = JSON.parse(stored);
+            setCurrentUser(u);
+            if (u.role === 'JOB_SEEKER') {
+              const seekerId = u.seekerProfile?.id || (u.id ? `TOR-JS-${u.id.slice(-6).toUpperCase()}` : 'TOR-JS-ME');
+              window.location.replace(`/seeker/dashboard/${seekerId}`);
+              return;
+            } else if (u.role === 'RECRUITER' || u.role === 'COMPANY') {
+              const recId = u.companyProfile?.gstNumber || u.companyProfile?.id || u.id;
+              const target = recId ? `/recruiter/dashboard/${recId}` : '/recruiter/dashboard';
+              window.location.replace(target);
+              return;
+            } else if (u.role === 'ADMIN') {
+              window.location.replace('/admin/dashboard');
+              return;
+            }
+          } catch (e) {}
         }
       }
 
-      if (token && !isExplicitHome) {
-        fetch('/api/auth/me', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-          .then(r => r.json())
-          .then(data => {
-            if (data.user) {
-              setCurrentUser(data.user);
-              if (data.user.role === 'JOB_SEEKER') {
-                router.replace('/seeker/dashboard');
-                return;
-              } else if (data.user.role === 'RECRUITER') {
-                router.replace('/recruiter/dashboard');
-                return;
-              } else if (data.user.role === 'ADMIN') {
-                router.replace('/admin/dashboard');
-                return;
-              }
-            }
-            setIsCheckingAuth(false);
-          })
-          .catch(() => setIsCheckingAuth(false));
-      } else {
-        setIsCheckingAuth(false);
-      }
+      setIsCheckingAuth(false);
     } catch (e) {
       setIsCheckingAuth(false);
     }
@@ -119,19 +139,53 @@ export default function HomePage() {
     setAuthOpen(true);
   };
 
+  const handleOpenDetails = (job: any) => {
+    setSelectedJobForDetails(job);
+    setJobDetailsOpen(true);
+  };
+
   const handleOpenApply = (job: any) => {
-    setSelectedJob(job);
-    setApplyModalOpen(true);
+    if (job?.status === 'CLOSED' || appliedJobIds.has(job?.id)) return;
+
+    // Check if user is already logged in as a JOB_SEEKER
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+    let isSeekerLoggedIn = false;
+    let seekerId = 'TOR-JS-ME';
+
+    if (token && userStr) {
+      try {
+        const u = JSON.parse(userStr);
+        if (u?.role === 'JOB_SEEKER') {
+          isSeekerLoggedIn = true;
+          seekerId = u.seekerProfile?.id || (u.id ? `TOR-JS-${u.id.slice(-6).toUpperCase()}` : 'TOR-JS-ME');
+        }
+      } catch (e) {}
+    }
+
+    if (isSeekerLoggedIn) {
+      // Already logged in as Job Seeker -> Redirect directly to job application form
+      window.location.href = `/seeker/dashboard/${seekerId}?applyJobId=${encodeURIComponent(job.id)}`;
+    } else {
+      // Not logged in or not a job seeker -> Store pending job and redirect to login page
+      try {
+        sessionStorage.setItem('torbit_pending_apply_job_id', job.id);
+        localStorage.setItem('torbit_pending_apply_job_id', job.id);
+      } catch (e) {}
+      window.location.href = `/login?redirect=apply&jobId=${encodeURIComponent(job.id)}`;
+    }
   };
 
   const handleAuthSuccess = (user: any) => {
     setCurrentUser(user);
     if (user?.role === 'JOB_SEEKER') {
-      router.push('/seeker/dashboard');
-    } else if (user?.role === 'RECRUITER') {
-      router.push('/recruiter/dashboard');
+      const seekerId = user.seekerProfile?.id || (user.id ? `TOR-JS-${user.id.slice(-6).toUpperCase()}` : 'TOR-JS-ME');
+      window.location.href = `/seeker/dashboard/${seekerId}`;
+    } else if (user?.role === 'RECRUITER' || user?.role === 'COMPANY') {
+      const recId = user.companyProfile?.gstNumber || user.companyProfile?.id || user.id;
+      window.location.href = recId ? `/recruiter/dashboard/${recId}` : '/recruiter/dashboard';
     } else if (user?.role === 'ADMIN') {
-      router.push('/admin/dashboard');
+      window.location.href = '/admin/dashboard';
     }
   };
 
@@ -139,11 +193,11 @@ export default function HomePage() {
     return (
       <div className="min-h-screen bg-[#0F172A] flex flex-col items-center justify-center p-4">
         <div className="flex flex-col items-center space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#7CB342] to-[#9CCC65] flex items-center justify-center shadow-lg shadow-[#7CB342]/20 animate-pulse">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#b2c359] to-[#b2c359] flex items-center justify-center shadow-lg shadow-[#b2c359]/20 animate-pulse">
             <span className="text-white font-black text-2xl tracking-tighter">TR</span>
           </div>
           <div className="flex items-center space-x-3 text-slate-300">
-            <Loader2 className="w-5 h-5 animate-spin text-[#7CB342]" />
+            <Loader2 className="w-5 h-5 animate-spin text-[#b2c359]" />
             <span className="text-sm font-medium tracking-wide">Checking your session...</span>
           </div>
         </div>
@@ -153,12 +207,10 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC] pb-16 lg:pb-0">
-      <TopTicker />
       <Header onOpenAuth={handleOpenAuth} />
-      <Navbar />
 
       <HeroSection 
-        categories={categories}
+        categories={categories} 
         onSearch={(params) => fetchJobs(params)} 
         onOpenAuth={handleOpenAuth} 
       />
@@ -172,7 +224,9 @@ export default function HomePage() {
             />
             <FeaturedJobs 
               jobs={jobs} 
-              onApply={handleOpenApply} 
+              onApply={handleOpenApply}
+              onViewDetails={handleOpenDetails}
+              appliedJobIds={appliedJobIds}
             />
           </div>
 
@@ -195,13 +249,27 @@ export default function HomePage() {
         onSuccess={handleAuthSuccess}
       />
 
+      {/* Reusable Job Details Modal */}
+      {selectedJobForDetails && (
+        <JobDetailsModal
+          isOpen={jobDetailsOpen}
+          onClose={() => setJobDetailsOpen(false)}
+          job={selectedJobForDetails}
+          isApplied={appliedJobIds.has(selectedJobForDetails.id)}
+          onApply={handleOpenApply}
+        />
+      )}
+
       {selectedJob && (
         <ApplyJobModal
           isOpen={applyModalOpen}
           onClose={() => setApplyModalOpen(false)}
           job={selectedJob}
           currentUser={currentUser}
-          onApplicationSubmitted={() => fetchJobs()}
+          onApplicationSubmitted={() => {
+            fetchJobs();
+            fetchUserApplications();
+          }}
         />
       )}
     </div>

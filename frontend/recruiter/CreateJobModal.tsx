@@ -1,6 +1,6 @@
 'use client';
 import React, { useState } from 'react';
-import { X, Briefcase, PlusCircle, AlertCircle, Calendar, Users, IndianRupee, MapPin } from 'lucide-react';
+import { X, Briefcase, PlusCircle, AlertCircle, Calendar, Users, IndianRupee, MapPin, CheckCircle2 } from 'lucide-react';
 
 interface CreateJobModalProps {
   isOpen: boolean;
@@ -83,6 +83,7 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showThankYou, setShowThankYou] = useState(false);
 
   React.useEffect(() => {
     if (isOpen) {
@@ -116,8 +117,7 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
       if (!res.ok) {
         throw new Error(data.error || 'Failed to post job');
       }
-      onJobCreated();
-      onClose();
+      setShowThankYou(true);
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
     } finally {
@@ -125,9 +125,15 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
     }
   };
 
+  const handleFinish = () => {
+    setShowThankYou(false);
+    onJobCreated();
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in overflow-y-auto">
-      <div className="bg-white rounded-2xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-gray-200 relative my-6 max-h-[92vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-gray-200 relative my-6 max-h-[92vh] overflow-y-auto font-sans">
         <button
           onClick={onClose}
           className="absolute right-4 top-4 p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition cursor-pointer"
@@ -135,22 +141,50 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
           <X className="w-4 h-4" />
         </button>
 
-        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
-          <div className="w-10 h-10 rounded-xl bg-[#94C322] text-slate-950 flex items-center justify-center font-bold shrink-0">
-            <PlusCircle className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-gray-900">Create a New Job Posting</h3>
-            <p className="text-[11px] text-gray-500">Fill in the details below. Fields marked mandatory are required to publish.</p>
-          </div>
-        </div>
+        {showThankYou ? (
+          <div className="text-center py-6 space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="relative mx-auto w-16 h-16 rounded-2xl bg-[#EBF7EE] border border-[#C3E8CC] flex items-center justify-center text-[#28A745] shadow-xs">
+              <CheckCircle2 className="w-9 h-9" />
+              <span className="absolute -top-1.5 -right-1.5 text-lg">🎉</span>
+            </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
+            <div className="space-y-1">
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Thank You! Job Published
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto">
+                Your opening for <strong>{formData.title}</strong> is now live on Torbit Portal.
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleFinish}
+                className="w-full sm:w-auto px-8 py-3 bg-[#b2c359] hover:bg-[#9eb047] text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-xs transition cursor-pointer"
+              >
+                View in My Job Listings →
+              </button>
+            </div>
           </div>
-        )}
+        ) : (
+          <>
+            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+              <div className="w-10 h-10 rounded-xl bg-[#b2c359] text-slate-950 flex items-center justify-center font-bold shrink-0">
+                <PlusCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Create a New Job Posting</h3>
+                <p className="text-[11px] text-gray-500">Fill in the details below. Fields marked mandatory are required to publish.</p>
+              </div>
+            </div>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 text-red-700 text-xs rounded-xl border border-red-200 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           {/* Row 1: Job Title & Department */}
@@ -164,8 +198,8 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
                 required
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="e.g. Sales Manager – Residential Projects"
-                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-[#94C322] focus:border-[#94C322] bg-white transition"
+                placeholder="e.g. Senior Project Manager / Business Development Lead"
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-[#b2c359] focus:border-[#b2c359] bg-white transition"
               />
             </div>
 
@@ -176,7 +210,7 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
               <select
                 value={formData.department}
                 onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl font-medium bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322] focus:border-[#94C322] cursor-pointer transition"
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl font-medium bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] focus:border-[#b2c359] cursor-pointer transition"
               >
                 {categoriesList.map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -188,7 +222,7 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
           {/* Conditional Custom Department */}
           {formData.department === 'Others' && (
             <div className="animate-in fade-in">
-              <label className="block text-xs font-bold text-[#94C322] mb-1">
+              <label className="block text-xs font-bold text-[#b2c359] mb-1">
                 Specify Custom Department <span className="text-red-500">*</span>
               </label>
               <input
@@ -197,7 +231,7 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
                 value={formData.customDepartment}
                 onChange={(e) => setFormData({ ...formData, customDepartment: e.target.value })}
                 placeholder="e.g. Fractional Ownership / REITs Management"
-                className="w-full px-3.5 py-2.5 border-2 border-[#94C322] rounded-xl font-medium focus:outline-none bg-white"
+                className="w-full px-3.5 py-2.5 border-2 border-[#b2c359] rounded-xl font-medium focus:outline-none bg-white"
               />
             </div>
           )}
@@ -303,7 +337,7 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
                   type="checkbox"
                   checked={formData.hideSalary}
                   onChange={(e) => setFormData({ ...formData, hideSalary: e.target.checked })}
-                  className="rounded text-[#94C322] focus:ring-[#94C322] w-3.5 h-3.5"
+                  className="rounded text-[#b2c359] focus:ring-[#b2c359] w-3.5 h-3.5"
                 />
                 <span className="text-[10px] text-slate-500 font-medium">Hide salary from candidates</span>
               </label>
@@ -333,7 +367,7 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Roles & responsibilities, day-to-day..."
-              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#94C322] focus:border-[#94C322] resize-none font-normal"
+              className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#b2c359] focus:border-[#b2c359] resize-none font-normal"
             />
           </div>
 
@@ -347,7 +381,7 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
                 value={formData.skills}
                 onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
                 placeholder="e.g. Negotiation, Client Relations, CRM Tools"
-                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-[#94C322]"
+                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-[#b2c359]"
               />
             </div>
 
@@ -373,12 +407,15 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2.5 bg-[#94C322] hover:bg-[#82ad1b] text-slate-950 font-bold rounded-xl text-xs shadow-xs transition cursor-pointer disabled:opacity-50"
+              className="px-6 py-2.5 bg-[#b2c359] hover:bg-[#9eb047] text-slate-950 font-bold rounded-xl text-xs shadow-xs transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
             >
-              {loading ? 'Publishing...' : 'Publish Job Listing →'}
+              {loading && <span className="w-3.5 h-3.5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></span>}
+              <span>{loading ? 'Publishing Opening...' : 'Publish Job Listing →'}</span>
             </button>
           </div>
         </form>
+        </>
+      )}
       </div>
     </div>
   );

@@ -5,7 +5,6 @@ import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import AssignmentTurnedInOutlinedIcon from '@mui/icons-material/AssignmentTurnedInOutlined';
-import BookmarkBorderOutlinedIcon from '@mui/icons-material/BookmarkBorderOutlined';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
 
@@ -23,12 +22,13 @@ export default function SeekerSidebar({
   activeTab,
   setActiveTab,
   appliedCount,
-  profileName = 'Registered Candidate',
-  profileEmail = 'candidate@torbit.in',
-  profileScore = 100,
+  profileName = '',
+  profileEmail = '',
+  profileScore = 0,
   avatarUrl
 }: SeekerSidebarProps) {
-  const initials = (profileName || 'CA')
+  const cleanName = profileName && profileName !== 'Registered Candidate' ? profileName : (profileEmail ? profileEmail.split('@')[0] : '');
+  const initials = (cleanName || profileEmail || 'JS')
     .split(' ')
     .filter(Boolean)
     .map((n) => n[0])
@@ -39,14 +39,18 @@ export default function SeekerSidebar({
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.href = '/';
+    localStorage.removeItem('torbit_remember_me');
+    localStorage.removeItem('torbit_last_active_role');
+    localStorage.removeItem('torbit_session_saved_at');
+    try { sessionStorage.clear(); } catch (e) {}
+    window.location.href = '/?view=home';
   };
 
   const navItems = [
     {
       id: 'OVERVIEW',
       label: 'Dashboard',
-      icon: <DashboardOutlinedIcon sx={{ fontSize: 20 }} className={activeTab === 'OVERVIEW' ? 'text-[#94C322]' : 'text-amber-400'} />,
+      icon: <DashboardOutlinedIcon sx={{ fontSize: 20 }} className={activeTab === 'OVERVIEW' ? 'text-[#b2c359]' : 'text-amber-400'} />,
       hasActiveDot: true
     },
     {
@@ -64,14 +68,9 @@ export default function SeekerSidebar({
     {
       id: 'APPLICATIONS',
       label: 'Applied Jobs',
-      icon: <AssignmentTurnedInOutlinedIcon sx={{ fontSize: 20 }} className="text-[#94C322]" />,
+      icon: <AssignmentTurnedInOutlinedIcon sx={{ fontSize: 20 }} className="text-[#b2c359]" />,
       badge: appliedCount > 0 ? appliedCount : null,
       badgeColor: 'bg-[#DC2626] text-white'
-    },
-    {
-      id: 'SAVED',
-      label: 'Saved Jobs',
-      icon: <BookmarkBorderOutlinedIcon sx={{ fontSize: 20 }} className="text-red-400" />
     },
     {
       id: 'ALERTS',
@@ -81,8 +80,11 @@ export default function SeekerSidebar({
   ];
 
   return (
-    <aside className="hidden md:flex w-64 sm:w-72 bg-[#16181D] text-gray-300 flex-col justify-between shrink-0 border-r border-gray-800 select-none min-h-screen font-['Helvetica',Arial,sans-serif] sticky top-0 h-screen">
+    <aside className="hidden md:flex w-64 lg:w-72 bg-[#16181D] text-gray-300 flex-col justify-between shrink-0 border-r border-gray-800 select-none font-['Helvetica',Arial,sans-serif] sticky top-0 h-screen z-30">
       <nav className="px-5 pt-7 pb-4 space-y-2 overflow-y-auto flex-1">
+        <div className="px-3.5 text-[11px] font-extrabold tracking-wider text-[#94A3B8] uppercase mb-2">
+          CANDIDATE WORKSPACE
+        </div>
         {navItems.map((item) => {
           const isActive = activeTab === item.id;
           return (
@@ -91,7 +93,7 @@ export default function SeekerSidebar({
               onClick={() => setActiveTab(item.id)}
               className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[14px] font-bold transition-all text-left cursor-pointer ${
                 isActive
-                  ? 'bg-[#94C322]/15 text-[#94C322] font-black shadow-xs'
+                  ? 'bg-[#b2c359]/15 text-[#b2c359] font-black shadow-xs'
                   : 'text-[#CBD5E1] hover:text-white hover:bg-white/5 font-medium'
               }`}
             >
@@ -99,7 +101,7 @@ export default function SeekerSidebar({
                 {item.hasActiveDot && (
                   <span
                     className={`w-2 h-2 rounded-full shrink-0 transition-all ${
-                      isActive ? 'bg-[#94C322] shadow-[0_0_8px_#94C322]' : 'bg-transparent'
+                      isActive ? 'bg-[#b2c359] shadow-[0_0_8px_#b2c359]' : 'bg-transparent'
                     }`}
                   />
                 )}
@@ -109,6 +111,7 @@ export default function SeekerSidebar({
 
               {item.badge && (
                 <span
+                  suppressHydrationWarning
                   className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                     item.badgeColor || 'bg-slate-800 text-slate-300'
                   }`}
@@ -128,20 +131,29 @@ export default function SeekerSidebar({
             <img
               src={avatarUrl}
               alt={profileName}
-              className="w-9 h-9 rounded-xl object-cover border border-[#94C322]/50 shadow-xs shrink-0"
+              className="w-9 h-9 rounded-xl object-cover border border-[#b2c359]/50 shadow-xs shrink-0"
             />
           ) : (
-            <div className="w-9 h-9 rounded-xl bg-gray-800 border border-gray-700 text-[#94C322] font-black flex items-center justify-center text-xs shadow-xs shrink-0">
+            <div suppressHydrationWarning className="w-9 h-9 rounded-xl bg-gray-800 border border-gray-700 text-[#b2c359] font-black flex items-center justify-center text-xs shadow-xs shrink-0">
               {initials || 'JS'}
             </div>
           )}
           <div className="min-w-0">
-            <div className="text-[13px] font-bold text-white truncate leading-tight">
-              {profileName}
-            </div>
-            <div className="text-[11px] text-gray-400 truncate leading-tight mt-0.5">
-              {profileEmail}
-            </div>
+            {cleanName ? (
+              <>
+                <div suppressHydrationWarning className="text-[13px] font-bold text-white truncate leading-tight">
+                  {cleanName}
+                </div>
+                <div suppressHydrationWarning className="text-[11px] text-gray-400 truncate leading-tight mt-0.5">
+                  {profileEmail}
+                </div>
+              </>
+            ) : (
+              <div className="space-y-1.5 py-0.5">
+                <div className="h-3 w-20 bg-gray-800 rounded animate-pulse" />
+                <div className="h-2.5 w-28 bg-gray-900 rounded animate-pulse" />
+              </div>
+            )}
           </div>
         </div>
 

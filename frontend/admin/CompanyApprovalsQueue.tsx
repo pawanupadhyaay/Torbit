@@ -1,10 +1,10 @@
 'use client';
 import React, { useState } from 'react';
-import { ShieldAlert, CheckCircle2, XCircle, Search, Mail, Phone, MapPin, Check, FileText, ExternalLink } from 'lucide-react';
+import { ShieldAlert, CheckCircle2, XCircle, Search, Mail, Phone, MapPin, Check, FileText, ExternalLink, Loader2 } from 'lucide-react';
 
 interface CompanyApprovalsQueueProps {
   pendingCompanies: any[];
-  onApprove: (id: string) => void;
+  onApprove: (id: string) => Promise<void> | void;
   onOpenActionModal: (id: string, action: 'REJECT' | 'BLOCK') => void;
 }
 
@@ -14,12 +14,22 @@ export default function CompanyApprovalsQueue({
   onOpenActionModal
 }: CompanyApprovalsQueueProps) {
   const [filterQuery, setFilterQuery] = useState('');
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   const filtered = pendingCompanies.filter((c) =>
     (c.companyName || '').toLowerCase().includes(filterQuery.toLowerCase()) ||
     (c.gstNumber || '').toLowerCase().includes(filterQuery.toLowerCase()) ||
     (c.hqLocation || '').toLowerCase().includes(filterQuery.toLowerCase())
   );
+
+  const handleApproveClick = async (id: string) => {
+    setApprovingId(id);
+    try {
+      await onApprove(id);
+    } finally {
+      setApprovingId(null);
+    }
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-6 space-y-6">
@@ -43,7 +53,7 @@ export default function CompanyApprovalsQueue({
             value={filterQuery}
             onChange={(e) => setFilterQuery(e.target.value)}
             placeholder="Filter by company, GST..."
-            className="w-full pl-9 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#94C322]"
+            className="w-full pl-9 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#b2c359]"
           />
         </div>
       </div>
@@ -62,6 +72,8 @@ export default function CompanyApprovalsQueue({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filtered.map((c) => {
             const refId = c.rejectionReason?.startsWith('REF:') ? c.rejectionReason.replace('REF:', '') : null;
+            const isApprovingThis = approvingId === c.id;
+
             return (
               <div
                 key={c.id}
@@ -76,7 +88,7 @@ export default function CompanyApprovalsQueue({
                           {c.industry || 'Real Estate Developer'}
                         </span>
                         {refId && (
-                          <span className="bg-slate-900 text-[#94C322] text-[9px] font-mono font-bold px-1.5 py-0.5 rounded">
+                          <span className="bg-slate-900 text-[#b2c359] text-[9px] font-mono font-bold px-1.5 py-0.5 rounded">
                             {refId}
                           </span>
                         )}
@@ -130,15 +142,28 @@ export default function CompanyApprovalsQueue({
 
                 <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
                   <button
-                    onClick={() => onApprove(c.id)}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                    type="button"
+                    disabled={isApprovingThis}
+                    onClick={() => handleApproveClick(c.id)}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-2.5 rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
                   >
-                    <Check className="w-4 h-4" />
-                    <span>Approve Recruiter</span>
+                    {isApprovingThis ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Approving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4" />
+                        <span>Approve Recruiter</span>
+                      </>
+                    )}
                   </button>
                   <button
+                    type="button"
+                    disabled={isApprovingThis}
                     onClick={() => onOpenActionModal(c.id, 'REJECT')}
-                    className="flex-1 bg-white hover:bg-red-50 text-red-600 border border-red-200 font-bold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 bg-white hover:bg-red-50 text-red-600 border border-red-200 font-bold text-xs py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
                   >
                     <XCircle className="w-4 h-4" />
                     <span>Reject</span>

@@ -5,23 +5,7 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { authenticateToken } = require("../middleware/authMiddleware");
 const { sendCompanyApprovalEmail, sendCompanyRejectionEmail } = require("../services/emailService");
-
-// In-memory system settings fallback store for fast persistence
-let platformSettings = {
-  brandingLogo: "",
-  featuredContent: "",
-  legalContent: "",
-  notifications: {
-    companyApprovalEmail: true,
-    companyRejectionEmail: true,
-    statusChangeSms: true,
-    newJobAlertDigest: false
-  },
-  subAdmins: [
-    { id: "admin-1", name: "Rahul Kapoor", role: "Super Admin", access: "Full access" },
-    { id: "admin-2", name: "Sana Iyer", role: "Approvals-only Admin", access: "Company Approvals only" }
-  ]
-};
+const settingsService = require("../services/settingsService");
 
 // 1. GET Admin Stats & Overview
 router.get("/stats", async (req, res) => {
@@ -540,6 +524,179 @@ router.patch("/jobs", handleUpdateJob);
 router.patch("/jobs/:id", handleUpdateJob);
 router.put("/jobs/:id", handleUpdateJob);
 
+// 5b. GET Applicants for a specific job in Admin Console
+router.get("/jobs/:id/applications", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const applications = await prisma.application.findMany({
+      where: { jobId: id },
+      include: {
+        seeker: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                phone: true,
+                role: true
+              }
+            }
+          }
+        },
+        job: {
+          include: {
+            company: true
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
+    res.json({ success: true, applications });
+  } catch (err) {
+    console.error("Error fetching job applications for admin:", err);
+    res.status(500).json({ error: "Failed to fetch job applications" });
+  }
+});
+
+// 5c. Update Application Status as Admin
+router.patch("/applications/:id", async (req, res) => {
+  try {
+    const { status } = req.body;
+    const updated = await prisma.application.update({
+      where: { id: req.params.id },
+      data: { status }
+    });
+    res.json({ success: true, application: updated });
+  } catch (err) {
+    console.error("Error updating application status:", err);
+    res.status(500).json({ error: "Failed to update application status" });
+  }
+});
+
+// 6. POST Special Job as Admin (Custom Company Selection)
+router.post("/jobs", async (req, res) => {
+  try {
+    const {
+      companyName,
+      logoUrl,
+      title,
+      department,
+      customDepartment,
+      jobType,
+      workMode,
+      location,
+      expMin,
+      expMax,
+      salaryMin,
+      salaryMax,
+      hideSalary,
+      description,
+      skills,
+      openings,
+      customQuestions,
+      isFeatured
+    } = req.body;
+
+    if (!companyName || !companyName.trim()) {
+      return res.status(400).json({ error: "Company name is required for special jobs." });
+    }
+    if (!title || !title.trim()) {
+      return res.status(400).json({ error: "Job title is required." });
+    }
+
+    const trimmedCompanyName = companyName.trim();
+    const cleanLogoUrl = typeof logoUrl === 'string' && logoUrl.trim() ? logoUrl.trim() : undefined;
+
+    // 1. Find or create companyProfile
+    let company = await prisma.companyProfile.findFirst({
+      where: { companyName: { equals: trimmedCompanyName, mode: "insensitive" } }
+    });
+
+    if (!company) {
+      const safeSlug = trimmedCompanyName.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const uniqueEmail = `special.${safeSlug || "company"}.${Date.now()}@torbit-partner.com`;
+      const passwordHash = await bcrypt.hash("TorbitSpecialCompany@2026", 10);
+
+      const companyUser = await prisma.user.create({
+        data: {
+          email: uniqueEmail,
+          passwordHash,
+          role: "RECRUITER",
+          companyProfile: {
+            create: {
+              companyName: trimmedCompanyName,
+              industry: "Real Estate",
+              workEmail: uniqueEmail,
+              phone: "9800000000",
+              gstNumber: `GST-SPECIAL-${safeSlug.slice(0, 5).toUpperCase()}`,
+              hqLocation: location || "India",
+              status: "APPROVED",
+              verifiedAt: new Date(),
+              logoUrl: cleanLogoUrl
+            }
+          }
+        },
+        include: { companyProfile: true }
+      });
+      company = companyUser.companyProfile;
+    } else if (cleanLogoUrl && company.logoUrl !== cleanLogoUrl) {
+      try {
+        company = await prisma.companyProfile.update({
+          where: { id: company.id },
+          data: { logoUrl: cleanLogoUrl }
+        });
+      } catch (err) {
+        console.warn("Could not update company logoUrl:", err.message);
+      }
+    }
+
+    // 2. Parse screener questions if any
+    let parsedQuestions = null;
+    if (customQuestions) {
+      parsedQuestions = typeof customQuestions === "string" ? JSON.parse(customQuestions) : customQuestions;
+    }
+
+    // 3. Create the Job
+    const job = await prisma.job.create({
+      data: {
+        companyId: company.id,
+        title: title.trim(),
+        department: department || "Sales & Business Development",
+        customDepartment: department === "Others" ? customDepartment : null,
+        jobType: jobType || "Full Time",
+        workMode: workMode || "On-site",
+        location: location || "India",
+        expMin: Number(expMin) || 0,
+        expMax: Number(expMax) || 5,
+        salaryMin: salaryMin ? Number(salaryMin) : null,
+        salaryMax: salaryMax ? Number(salaryMax) : null,
+        hideSalary: Boolean(hideSalary),
+        description: description || "",
+        skills: typeof skills === "string" ? skills : JSON.stringify(skills || []),
+        openings: Number(openings) || 1,
+        customQuestions: parsedQuestions,
+        isFeatured: Boolean(isFeatured),
+        status: "ACTIVE"
+      },
+      include: { company: true }
+    });
+
+    // 4. Update category job count
+    if (department) {
+      await prisma.category.updateMany({
+        where: { name: department },
+        data: { jobCount: { increment: 1 } }
+      });
+    }
+
+    res.json({ success: true, job });
+  } catch (err) {
+    console.error("Error creating special job:", err);
+    res.status(500).json({ error: "Failed to create special job listing." });
+  }
+});
+
 
 
 // 7. Categories API
@@ -842,19 +999,13 @@ router.get("/analytics", async (req, res) => {
 
 // 8. Settings API
 router.get("/settings", async (req, res) => {
-  res.json({ settings: platformSettings });
+  res.json({ settings: settingsService.getSettings() });
 });
 
 router.put("/settings", async (req, res) => {
   try {
-    const { notifications, subAdmins, brandingLogo, featuredContent, legalContent } = req.body;
-    if (notifications) platformSettings.notifications = notifications;
-    if (subAdmins) platformSettings.subAdmins = subAdmins;
-    if (brandingLogo !== undefined) platformSettings.brandingLogo = brandingLogo;
-    if (featuredContent !== undefined) platformSettings.featuredContent = featuredContent;
-    if (legalContent !== undefined) platformSettings.legalContent = legalContent;
-
-    res.json({ success: true, settings: platformSettings });
+    const updated = settingsService.updateSettings(req.body);
+    res.json({ success: true, settings: updated });
   } catch (err) {
     res.status(500).json({ error: "Failed to save settings" });
   }

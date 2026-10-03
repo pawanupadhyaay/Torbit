@@ -392,16 +392,16 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
                 <img
                   src={avatarUrl}
                   alt={fullName || 'Avatar'}
-                  className="w-16 h-16 rounded-2xl object-cover border-2 border-[#94C322] shadow-xs"
+                  className="w-16 h-16 rounded-2xl object-cover border-2 border-[#b2c359] shadow-xs"
                 />
               ) : (
-                <div className="w-16 h-16 rounded-2xl bg-gray-900 border border-gray-800 text-[#94C322] font-black text-xl flex items-center justify-center shadow-xs">
+                <div className="w-16 h-16 rounded-2xl bg-gray-900 border border-gray-800 text-[#b2c359] font-black text-xl flex items-center justify-center shadow-xs">
                   {initials}
                 </div>
               )}
               {uploadingAvatar && (
                 <div className="absolute inset-0 bg-black/50 rounded-2xl flex items-center justify-center text-white">
-                  <Loader2 className="w-5 h-5 animate-spin text-[#94C322]" />
+                  <Loader2 className="w-5 h-5 animate-spin text-[#b2c359]" />
                 </div>
               )}
             </div>
@@ -433,7 +433,7 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
               onClick={() => avatarInputRef.current?.click()}
               className="px-3.5 py-2 bg-white hover:bg-gray-100 border border-gray-300 rounded-xl font-bold text-xs text-gray-800 transition flex items-center gap-1.5 shadow-2xs cursor-pointer disabled:opacity-50"
             >
-              <Camera className="w-3.5 h-3.5 text-[#94C322]" />
+              <Camera className="w-3.5 h-3.5 text-[#b2c359]" />
               <span>{uploadingAvatar ? 'Uploading...' : avatarUrl ? 'Change Photo' : 'Upload Photo'}</span>
             </button>
             {avatarUrl && (
@@ -457,7 +457,7 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-xs sm:text-[13px] text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322] transition"
+              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-xs sm:text-[13px] text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition"
             />
           </div>
 
@@ -468,7 +468,7 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
               required
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-xs sm:text-[13px] text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322] transition"
+              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-xs sm:text-[13px] text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition"
             />
           </div>
 
@@ -479,7 +479,7 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="e.g. Gurugram, Haryana"
-              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-xs sm:text-[13px] text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322] transition"
+              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-xs sm:text-[13px] text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition"
             />
           </div>
 
@@ -487,7 +487,7 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
             <label className="block text-[11px] font-bold text-gray-700 uppercase mb-1 flex items-center justify-between">
               <span>Highest Qualification</span>
               {qualification && (
-                <span className="text-[10px] text-[#94C322] font-semibold lowercase">selected</span>
+                <span className="text-[10px] text-[#b2c359] font-semibold lowercase">selected</span>
               )}
             </label>
 
@@ -500,12 +500,12 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
               }}
               className={`w-full px-3.5 py-2.5 bg-gray-50 border rounded-xl font-semibold text-xs sm:text-[13px] text-left flex items-center justify-between transition cursor-pointer ${
                 qualDropdownOpen
-                  ? 'border-[#94C322] ring-1 ring-[#94C322] bg-white shadow-xs'
+                  ? 'border-[#b2c359] ring-1 ring-[#b2c359] bg-white shadow-xs'
                   : 'border-gray-200 hover:border-gray-300'
               } ${qualification ? 'text-gray-900' : 'text-gray-400'}`}
             >
               <div className="flex items-center gap-2 truncate pr-2">
-                <GraduationCap className="w-4 h-4 text-[#94C322] shrink-0" />
+                <GraduationCap className="w-4 h-4 text-[#b2c359] shrink-0" />
                 <span className="truncate">{qualification || 'Select Highest Qualification'}</span>
               </div>
               <ChevronDown
@@ -554,10 +554,10 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
                           onClick={() => {
                             setQualDropdownOpen(false);
                           }}
-                          className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold bg-[#94C322]/15 text-gray-950 flex items-center justify-between transition"
+                          className="w-full text-left px-3 py-2 rounded-lg text-xs font-semibold bg-[#b2c359]/15 text-gray-950 flex items-center justify-between transition"
                         >
                           <span className="truncate">{qualification}</span>
-                          <Check className="w-3.5 h-3.5 text-[#94C322] shrink-0" />
+                          <Check className="w-3.5 h-3.5 text-[#b2c359] shrink-0" />
                         </button>
                       </div>
                     )}
@@ -586,13 +586,13 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
                                 }}
                                 className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition flex items-center justify-between gap-2 cursor-pointer ${
                                   isSelected
-                                    ? 'bg-[#94C322]/15 text-gray-950 font-bold'
+                                    ? 'bg-[#b2c359]/15 text-gray-950 font-bold'
                                     : 'text-gray-700 hover:bg-gray-100 font-medium'
                                 }`}
                               >
                                 <span className="leading-snug">{opt}</span>
                                 {isSelected && (
-                                  <Check className="w-3.5 h-3.5 text-[#94C322] shrink-0" />
+                                  <Check className="w-3.5 h-3.5 text-[#b2c359] shrink-0" />
                                 )}
                               </button>
                             );
@@ -613,7 +613,7 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
               value={experience}
               onChange={(e) => setExperience(e.target.value)}
               placeholder="e.g. 3–5 years"
-              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-xs sm:text-[13px] text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322] transition"
+              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-xs sm:text-[13px] text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition"
             />
           </div>
 
@@ -623,8 +623,8 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
               type="text"
               value={noticePeriod}
               onChange={(e) => setNoticePeriod(e.target.value)}
-              placeholder="e.g. Immediate / 30 Days"
-              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-xs sm:text-[13px] text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322] transition"
+              placeholder="e.g. Immediate / 30 Days / Available from 15 Nov"
+              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-xs sm:text-[13px] text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition"
             />
           </div>
 
@@ -635,7 +635,7 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
               value={currentSalary}
               onChange={(e) => setCurrentSalary(e.target.value)}
               placeholder="e.g. 750000"
-              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-xs sm:text-[13px] text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322] transition"
+              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-xs sm:text-[13px] text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
 
@@ -646,7 +646,7 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
               value={expectedSalary}
               onChange={(e) => setExpectedSalary(e.target.value)}
               placeholder="e.g. 1100000"
-              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-xs sm:text-[13px] text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322] transition"
+              className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-xs sm:text-[13px] text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>
         </div>
@@ -658,7 +658,7 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
             value={skills}
             onChange={(e) => setSkills(e.target.value)}
             placeholder="e.g. Sales, Marketing, Project Management, CRM, Full-Stack, Communication, Operations"
-            className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-xs sm:text-[13px] text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322] transition"
+            className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-xs sm:text-[13px] text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition"
           />
         </div>
 
@@ -669,7 +669,7 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
             value={portfolioUrl}
             onChange={(e) => setPortfolioUrl(e.target.value)}
             placeholder="https://linkedin.com/in/yourprofile"
-            className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-xs sm:text-[13px] text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322] transition"
+            className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-xs sm:text-[13px] text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition"
           />
         </div>
 
@@ -678,7 +678,7 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
           <div className="flex items-center justify-between">
             <div>
               <div className="font-bold text-gray-900 text-xs sm:text-sm flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#94C322]" />
+                <FileText className="w-4 h-4 text-[#b2c359]" />
                 <span>Resume / Curriculum Vitae (CV)</span>
               </div>
               <p className="text-[11px] text-gray-500 mt-0.5">
@@ -707,8 +707,8 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
           )}
 
           {uploadingResume ? (
-            <div className="p-6 bg-lime-50/80 border-2 border-dashed border-[#94C322] rounded-xl flex items-center justify-center gap-3.5 text-center animate-in fade-in duration-200">
-              <Loader2 className="w-7 h-7 animate-spin text-[#94C322] shrink-0" />
+            <div className="p-6 bg-lime-50/80 border-2 border-dashed border-[#b2c359] rounded-xl flex items-center justify-center gap-3.5 text-center animate-in fade-in duration-200">
+              <Loader2 className="w-7 h-7 animate-spin text-[#b2c359] shrink-0" />
               <div className="text-left">
                 <div className="text-xs font-bold text-gray-900">Uploading &amp; Verifying Resume Document...</div>
                 <div className="text-[10px] text-gray-500 mt-0.5">Please wait, saving your file (&lt; 1 MB limit)</div>
@@ -717,7 +717,7 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
           ) : resumeUrl ? (
             <div className="p-3 bg-white rounded-xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-lg bg-lime-50 text-[#94C322] border border-lime-200 flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-lime-50 text-[#b2c359] border border-lime-200 flex items-center justify-center shrink-0">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">
@@ -753,7 +753,7 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
                   onClick={() => resumeInputRef.current?.click()}
                   className="px-3 py-1.5 bg-white hover:bg-gray-50 border border-gray-300 text-gray-800 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer disabled:opacity-50"
                 >
-                  <Upload className="w-3.5 h-3.5 text-[#94C322]" />
+                  <Upload className="w-3.5 h-3.5 text-[#b2c359]" />
                   <span>Replace</span>
                 </button>
                 <button
@@ -767,7 +767,7 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
               </div>
             </div>
           ) : (
-            <div className="border-2 border-dashed border-gray-300 hover:border-[#94C322] rounded-xl p-5 text-center bg-white transition relative">
+            <div className="border-2 border-dashed border-gray-300 hover:border-[#b2c359] rounded-xl p-5 text-center bg-white transition relative">
               <input
                 ref={resumeInputRef}
                 type="file"
@@ -792,7 +792,7 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
           <button
             type="submit"
             disabled={saving || uploadingAvatar || uploadingResume}
-            className="w-full sm:w-auto bg-[#94C322] hover:bg-[#82ad1b] text-slate-950 font-bold px-6 py-3 sm:py-2.5 rounded-xl transition shadow-xs disabled:opacity-50 cursor-pointer text-center text-xs sm:text-[13px] flex items-center justify-center gap-2"
+            className="w-full sm:w-auto bg-[#b2c359] hover:bg-[#9eb047] text-slate-950 font-bold px-6 py-3 sm:py-2.5 rounded-xl transition shadow-xs disabled:opacity-50 cursor-pointer text-center text-xs sm:text-[13px] flex items-center justify-center gap-2"
           >
             {saving ? (
               <>

@@ -127,7 +127,7 @@ export default function RecruiterOverview({
             {applications.length > 0 && (
               <button
                 onClick={() => setActiveTab('APPLICANTS')}
-                className="text-xs font-bold text-[#658A0D] hover:text-[#94C322] cursor-pointer"
+                className="text-xs font-bold text-[#658A0D] hover:text-[#b2c359] cursor-pointer"
               >
                 View All →
               </button>
@@ -372,7 +372,7 @@ export default function RecruiterOverview({
               {last7Days.map((d, idx) => (
                 <div key={idx} className="flex-1 flex flex-col items-center justify-end h-full gap-2">
                   <div 
-                    className="w-full bg-[#94C322] rounded-xs transition-all duration-300 hover:opacity-90"
+                    className="w-full bg-[#b2c359] rounded-xs transition-all duration-300 hover:opacity-90"
                     style={{ height: d.count > 0 ? `${Math.max((d.count / maxDailyCount) * 100, 15)}%` : '4px' }}
                     title={`${d.dayName} (${d.dateStr}): ${d.count} application${d.count !== 1 ? 's' : ''}`}
                   />
@@ -394,7 +394,7 @@ export default function RecruiterOverview({
                 {applications.length > 0 && (
                   <button
                     onClick={() => setActiveTab('APPLICANTS')}
-                    className="text-xs font-bold text-[#658A0D] hover:text-[#94C322] cursor-pointer"
+                    className="text-xs font-bold text-[#658A0D] hover:text-[#b2c359] cursor-pointer"
                   >
                     View All →
                   </button>

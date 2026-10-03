@@ -38,6 +38,84 @@ import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
 import BarChartOutlinedIcon from '@mui/icons-material/BarChartOutlined';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import SmsOutlinedIcon from '@mui/icons-material/SmsOutlined';
+import AdminPostSpecialJobModal from '@/common/AdminPostSpecialJobModal';
+import { Building2 } from 'lucide-react';
+import Footer from '@/common/Footer';
+
+export interface SpecialCompanyItem {
+  name: string;
+  logo?: string;
+  logoUrl?: string;
+  websiteUrl?: string;
+}
+
+const DEFAULT_SPECIAL_COMPANIES: SpecialCompanyItem[] = [
+  { 
+    name: 'DLF Limited', 
+    logo: 'DLF', 
+    logoUrl: 'https://res.cloudinary.com/dcpqrvjh0/image/upload/e_trim/v1783861188/DLF_LOGO_uvd2ry.jpg',
+    websiteUrl: 'https://www.dlf.in/career-page'
+  },
+  { 
+    name: 'Godrej Properties', 
+    logo: 'GODREJ', 
+    logoUrl: 'https://res.cloudinary.com/dcpqrvjh0/image/upload/e_trim/v1783863242/godrej_propertiess_pbywng.jpg',
+    websiteUrl: 'https://careers.godrejindustries.com/in/en/godrejproperties'
+  },
+  { 
+    name: 'SOBHA Realty', 
+    logo: 'SOBHA', 
+    logoUrl: 'https://varanyam.vercel.app/sobha_logo.png',
+    websiteUrl: 'https://www.sobha.com/careers/'
+  },
+  { 
+    name: 'EMAAR India', 
+    logo: 'EMAAR', 
+    logoUrl: 'https://res.cloudinary.com/dcpqrvjh0/image/upload/e_trim/v1783865314/emaar_ak4iw2.jpg',
+    websiteUrl: 'https://www.emaar.com/en/careers'
+  },
+  { 
+    name: 'Prestige Group', 
+    logo: 'PRESTIGE', 
+    logoUrl: '',
+    websiteUrl: 'https://jobs.prestigeconstructions.com/'
+  },
+  { 
+    name: 'Puravankara', 
+    logo: 'PURVA', 
+    logoUrl: '',
+    websiteUrl: 'https://www.puravankara.com/careers'
+  }
+];
+
+const normalizeSpecialCompanies = (list: any[]): SpecialCompanyItem[] => {
+  if (!Array.isArray(list) || list.length === 0) return DEFAULT_SPECIAL_COMPANIES;
+  const result: SpecialCompanyItem[] = [];
+  for (const item of list) {
+    if (typeof item === 'string') {
+      const trimmed = item.trim();
+      if (trimmed) {
+        result.push({
+          name: trimmed,
+          logo: trimmed.slice(0, 8).toUpperCase(),
+          logoUrl: '',
+          websiteUrl: ''
+        });
+      }
+    } else if (item && typeof item === 'object') {
+      const name = (item.name || '').trim();
+      if (name) {
+        result.push({
+          name,
+          logo: item.logo || name.slice(0, 8).toUpperCase(),
+          logoUrl: item.logoUrl || '',
+          websiteUrl: item.websiteUrl || ''
+        });
+      }
+    }
+  }
+  return result.length > 0 ? result : DEFAULT_SPECIAL_COMPANIES;
+};
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -95,8 +173,54 @@ export default function AdminDashboardPage() {
     workEmail: ''
   });
 
-  // Selected Job for Full Listing Details Modal
+  // Selected Job for Full Listing Details & Applicants Modal
   const [selectedJobForView, setSelectedJobForView] = useState<any>(null);
+  const [jobApplicants, setJobApplicants] = useState<any[]>([]);
+  const [loadingApplicants, setLoadingApplicants] = useState(false);
+  const [jobModalTab, setJobModalTab] = useState<'APPLICANTS' | 'DETAILS'>('APPLICANTS');
+
+  useEffect(() => {
+    if (selectedJobForView?.id) {
+      setLoadingApplicants(true);
+      setJobModalTab('APPLICANTS');
+      fetch(`/api/admin/jobs/${selectedJobForView.id}/applications`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('adminToken') || ''}`
+        }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.applications) {
+            setJobApplicants(data.applications);
+          } else {
+            setJobApplicants([]);
+          }
+        })
+        .catch(() => setJobApplicants([]))
+        .finally(() => setLoadingApplicants(false));
+    } else {
+      setJobApplicants([]);
+    }
+  }, [selectedJobForView]);
+
+  const handleUpdateApplicantStatus = async (appId: string, newStatus: string) => {
+    try {
+      const res = await fetch(`/api/admin/applications/${appId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('adminToken') || ''}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        setJobApplicants(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a));
+        showToast(`Applicant status updated to ${newStatus}`);
+      }
+    } catch (e) {
+      showToast('Failed to update status');
+    }
+  };
 
   // Notification Template Editor Modal State
   const [editingTemplate, setEditingTemplate] = useState<{
@@ -125,6 +249,15 @@ export default function AdminDashboardPage() {
   // Category in-app modal
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+
+  // Special Job enterprise companies master data & posting modal
+  const [specialJobCompanies, setSpecialJobCompanies] = useState<SpecialCompanyItem[]>(DEFAULT_SPECIAL_COMPANIES);
+  const [isPostSpecialJobOpen, setIsPostSpecialJobOpen] = useState(false);
+  const [isSpecialCompanyModalOpen, setIsSpecialCompanyModalOpen] = useState(false);
+  const [editingSpecialCompanyIndex, setEditingSpecialCompanyIndex] = useState<number | null>(null);
+  const [companyFormName, setCompanyFormName] = useState('');
+  const [companyFormLogoUrl, setCompanyFormLogoUrl] = useState('');
+  const [companyFormWebsiteUrl, setCompanyFormWebsiteUrl] = useState('');
 
   // Settings tab state
   const [notificationSettings, setNotificationSettings] = useState({
@@ -164,6 +297,7 @@ export default function AdminDashboardPage() {
   const [brandingLogo, setBrandingLogo] = useState('');
   const [featuredContent, setFeaturedContent] = useState('');
   const [legalContent, setLegalContent] = useState('');
+  const [showClosedJobsOnPortal, setShowClosedJobsOnPortal] = useState<boolean>(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   // Admin Profile info
@@ -224,9 +358,19 @@ export default function AdminDashboardPage() {
   // Check login profile and load saved settings
   useEffect(() => {
     try {
+      const token = localStorage.getItem('adminToken');
       const stored = localStorage.getItem('adminUser');
+      if (!token || !stored) {
+        router.replace('/');
+        return;
+      }
+
       if (stored) {
         const u = JSON.parse(stored);
+        if (u.role !== 'ADMIN') {
+          router.replace('/');
+          return;
+        }
         const name = u.name || u.fullName || 'Rahul Kapoor';
         setAdminProfile({
           name,
@@ -259,14 +403,21 @@ export default function AdminDashboardPage() {
         if (parsed.brandingLogo) setBrandingLogo(parsed.brandingLogo);
         if (parsed.featuredContent) setFeaturedContent(parsed.featuredContent);
         if (parsed.legalContent) setLegalContent(parsed.legalContent);
+        if (parsed.showClosedJobsOnPortal !== undefined) setShowClosedJobsOnPortal(Boolean(parsed.showClosedJobsOnPortal));
+        if (parsed.specialJobCompanies && Array.isArray(parsed.specialJobCompanies)) {
+          setSpecialJobCompanies(normalizeSpecialCompanies(parsed.specialJobCompanies));
+        }
       }
     } catch (e) {}
-  }, []);
+  }, [router]);
 
   const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminUser');
-    router.push('/');
+    try { sessionStorage.clear(); } catch (e) {}
+    window.location.href = '/?view=home';
   };
 
   // Fetch real data from backend endpoints with live change detection
@@ -285,14 +436,21 @@ export default function AdminDashboardPage() {
         : '/api';
 
       // Fetch all endpoints concurrently for maximum responsiveness
-      const [statsResult, compResult, seekersResult, jobsResult, analyticsResult, categoriesResult] = await Promise.allSettled([
+      const [statsResult, compResult, seekersResult, jobsResult, analyticsResult, categoriesResult, settingsResult] = await Promise.allSettled([
         fetch(`${apiBase}/admin/stats`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${apiBase}/admin/companies`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${apiBase}/admin/seekers`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${apiBase}/admin/jobs`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${apiBase}/admin/analytics?timeframe=${analyticsTimeframeRef.current || '7D'}`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${apiBase}/admin/categories`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${apiBase}/admin/settings`, { headers }).then(r => r.ok ? r.json() : null),
       ]);
+
+      let pending: any[] = [];
+      let approved: any[] = [];
+      let rejected: any[] = [];
+      let mappedSeekers: any[] = [];
+      let mappedJobs: any[] = [];
 
       // 1. Process Stats
       if (statsResult.status === 'fulfilled' && statsResult.value) {
@@ -321,7 +479,7 @@ export default function AdminDashboardPage() {
         const list = compData.companies || compData || [];
 
         // Pending Companies
-        const pending = list
+        pending = list
           .filter((c: any) => c.status === 'PENDING')
           .map((c: any) => ({
             id: c.id,
@@ -351,7 +509,7 @@ export default function AdminDashboardPage() {
         setPendingCompanies(pending);
 
         // Approved / Active / Blocked
-        const approved = list
+        approved = list
           .filter((c: any) => c.status === 'APPROVED' || c.status === 'BLOCKED' || c.status === 'ACTIVE')
           .map((c: any) => ({
             id: c.id,
@@ -373,7 +531,7 @@ export default function AdminDashboardPage() {
         setApprovedCompanies(approved);
 
         // Rejected
-        const rejected = list
+        rejected = list
           .filter((c: any) => c.status === 'REJECTED')
           .map((c: any) => ({
             id: c.id,
@@ -397,7 +555,7 @@ export default function AdminDashboardPage() {
       if (seekersResult.status === 'fulfilled' && seekersResult.value) {
         const sData = seekersResult.value;
         const list = sData.seekers || sData || [];
-        const mappedSeekers = list.map((s: any) => ({
+        mappedSeekers = list.map((s: any) => ({
           id: s.id,
           fullName: s.fullName || s.user?.email?.split('@')[0] || 'Registered Candidate',
           email: s.user?.email || s.email || 'candidate@domain.in',
@@ -440,7 +598,7 @@ export default function AdminDashboardPage() {
       if (jobsResult.status === 'fulfilled' && jobsResult.value) {
         const jData = jobsResult.value;
         const list = jData.jobs || jData || [];
-        const mappedJobs = list.map((j: any) => ({
+        mappedJobs = list.map((j: any) => ({
           id: j.id,
           title: j.title || 'Position Title',
           company: j.company || (j.company?.companyName) || 'Real Estate Enterprise',
@@ -494,6 +652,14 @@ export default function AdminDashboardPage() {
         const dbCats = categoriesResult.value.categories.map((c: any) => c.name || c).filter(Boolean);
         if (dbCats.length > 0) {
           setCategoriesList(dbCats);
+        }
+      }
+
+      // 7. Process Settings from Server
+      if (settingsResult.status === 'fulfilled' && settingsResult.value?.settings) {
+        const s = settingsResult.value.settings;
+        if (s.specialJobCompanies && Array.isArray(s.specialJobCompanies) && s.specialJobCompanies.length > 0) {
+          setSpecialJobCompanies(normalizeSpecialCompanies(s.specialJobCompanies));
         }
       }
 
@@ -1073,7 +1239,9 @@ export default function AdminDashboardPage() {
         categoriesList,
         brandingLogo,
         featuredContent,
-        legalContent
+        legalContent,
+        showClosedJobsOnPortal,
+        specialJobCompanies
       };
       localStorage.setItem('torbitAdminSettings', JSON.stringify(payload));
       await fetch('/api/admin/settings', {
@@ -1087,6 +1255,91 @@ export default function AdminDashboardPage() {
     } finally {
       setIsSavingSettings(false);
     }
+  };
+
+  const handleSaveSpecialCompany = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanName = companyFormName.trim();
+    if (!cleanName) return;
+
+    const newItem: SpecialCompanyItem = {
+      name: cleanName,
+      logo: cleanName.slice(0, 8).toUpperCase(),
+      logoUrl: companyFormLogoUrl.trim(),
+      websiteUrl: companyFormWebsiteUrl.trim()
+    };
+
+    let updated: SpecialCompanyItem[];
+    if (editingSpecialCompanyIndex !== null && editingSpecialCompanyIndex >= 0 && editingSpecialCompanyIndex < specialJobCompanies.length) {
+      updated = [...specialJobCompanies];
+      updated[editingSpecialCompanyIndex] = newItem;
+      showToast(`Updated "${cleanName}".`);
+    } else {
+      if (specialJobCompanies.some(c => c.name.toLowerCase() === cleanName.toLowerCase())) {
+        showToast('This company name is already in the list.');
+        return;
+      }
+      updated = [...specialJobCompanies, newItem];
+      showToast(`Added "${cleanName}".`);
+    }
+
+    setSpecialJobCompanies(updated);
+    setIsSpecialCompanyModalOpen(false);
+    setEditingSpecialCompanyIndex(null);
+    setCompanyFormName('');
+    setCompanyFormLogoUrl('');
+    setCompanyFormWebsiteUrl('');
+
+    try {
+      localStorage.setItem('torbitAdminSettings', JSON.stringify({
+        subAdmins,
+        notificationSettings,
+        notificationTemplates,
+        categoriesList,
+        brandingLogo,
+        featuredContent,
+        legalContent,
+        showClosedJobsOnPortal,
+        specialJobCompanies: updated
+      }));
+      fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ specialJobCompanies: updated })
+      });
+    } catch (e) {}
+  };
+
+  const handleDeleteSpecialCompany = (target: number | string) => {
+    let updated: SpecialCompanyItem[];
+    let deletedName = '';
+    if (typeof target === 'number') {
+      deletedName = specialJobCompanies[target]?.name || '';
+      updated = specialJobCompanies.filter((_, idx) => idx !== target);
+    } else {
+      deletedName = target;
+      updated = specialJobCompanies.filter(c => c.name !== target);
+    }
+    setSpecialJobCompanies(updated);
+    try {
+      localStorage.setItem('torbitAdminSettings', JSON.stringify({
+        subAdmins,
+        notificationSettings,
+        notificationTemplates,
+        categoriesList,
+        brandingLogo,
+        featuredContent,
+        legalContent,
+        showClosedJobsOnPortal,
+        specialJobCompanies: updated
+      }));
+      fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ specialJobCompanies: updated })
+      });
+    } catch (e) {}
+    if (deletedName) showToast(`Removed "${deletedName}".`);
   };
 
   // Nav items configuration
@@ -1103,7 +1356,7 @@ export default function AdminDashboardPage() {
         {
           id: 'APPROVALS',
           label: 'Company Approvals',
-          icon: <VerifiedUserOutlinedIcon sx={{ fontSize: 20 }} className="text-[#94C322]" />,
+          icon: <VerifiedUserOutlinedIcon sx={{ fontSize: 20 }} className="text-[#b2c359]" />,
           badge: pendingCompanies.length > 0 ? pendingCompanies.length : null
         },
         {
@@ -1161,12 +1414,12 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden flex bg-[#F8FAFC] font-['Helvetica',Arial,sans-serif] text-gray-900 antialiased selection:bg-[#94C322]/20">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden flex bg-[#F8FAFC] font-['Helvetica',Arial,sans-serif] text-gray-900 antialiased selection:bg-[#b2c359]/20">
       
       {/* Toast Notification Banner */}
       {toastMessage && (
         <div className="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-50 bg-[#080809] text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs font-bold border border-gray-700 animate-in fade-in slide-in-from-bottom-3 duration-200">
-          <CheckCircleOutlinedIcon className="text-[#94C322]" sx={{ fontSize: 18 }} />
+          <CheckCircleOutlinedIcon className="text-[#b2c359]" sx={{ fontSize: 18 }} />
           <span>{toastMessage}</span>
         </div>
       )}
@@ -1182,7 +1435,7 @@ export default function AdminDashboardPage() {
           >
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[#080809] text-[#94C322] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-[#080809] text-[#b2c359] flex items-center justify-center">
                   <CorporateFareOutlinedIcon sx={{ fontSize: 18 }} />
                 </div>
                 <div>
@@ -1291,7 +1544,7 @@ export default function AdminDashboardPage() {
                     </button>
                     <button
                       onClick={() => handleApprove(selectedCompanyForView.id)}
-                      className="px-4 py-2 text-xs font-bold text-[#080809] bg-[#94C322] hover:bg-[#84b21d] rounded-xl shadow-xs transition cursor-pointer"
+                      className="px-4 py-2 text-xs font-bold text-[#080809] bg-[#b2c359] hover:bg-[#84b21d] rounded-xl shadow-xs transition cursor-pointer"
                     >
                       Approve &amp; Unlock
                     </button>
@@ -1370,7 +1623,7 @@ export default function AdminDashboardPage() {
                     key={reason}
                     type="button"
                     onClick={() => setRejectionReasonInput(reason)}
-                    className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-[#94C322]/20 hover:text-slate-900 transition border border-slate-200/80 cursor-pointer"
+                    className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-[#b2c359]/20 hover:text-slate-900 transition border border-slate-200/80 cursor-pointer"
                   >
                     {reason}
                   </button>
@@ -1422,7 +1675,7 @@ export default function AdminDashboardPage() {
           >
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-[#080809] text-[#94C322] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-[#080809] text-[#b2c359] flex items-center justify-center">
                   <EditOutlinedIcon sx={{ fontSize: 18 }} />
                 </div>
                 <div>
@@ -1450,7 +1703,7 @@ export default function AdminDashboardPage() {
                   required
                   value={editCompanyForm.companyName}
                   onChange={(e) => setEditCompanyForm(prev => ({ ...prev, companyName: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322]"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359]"
                 />
               </div>
 
@@ -1460,7 +1713,7 @@ export default function AdminDashboardPage() {
                   <select
                     value={editCompanyForm.industry}
                     onChange={(e) => setEditCompanyForm(prev => ({ ...prev, industry: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322]"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359]"
                   >
                     <option value="Real Estate">Real Estate</option>
                     <option value="Construction">Construction</option>
@@ -1475,7 +1728,7 @@ export default function AdminDashboardPage() {
                     type="text"
                     value={editCompanyForm.hqLocation}
                     onChange={(e) => setEditCompanyForm(prev => ({ ...prev, hqLocation: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322]"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359]"
                   />
                 </div>
               </div>
@@ -1486,7 +1739,7 @@ export default function AdminDashboardPage() {
                   type="text"
                   value={editCompanyForm.gstNumber}
                   onChange={(e) => setEditCompanyForm(prev => ({ ...prev, gstNumber: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322]"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359]"
                 />
               </div>
 
@@ -1497,7 +1750,7 @@ export default function AdminDashboardPage() {
                     type="email"
                     value={editCompanyForm.workEmail}
                     onChange={(e) => setEditCompanyForm(prev => ({ ...prev, workEmail: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322]"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359]"
                   />
                 </div>
 
@@ -1507,7 +1760,7 @@ export default function AdminDashboardPage() {
                     type="text"
                     value={editCompanyForm.phone}
                     onChange={(e) => setEditCompanyForm(prev => ({ ...prev, phone: e.target.value }))}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322]"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359]"
                   />
                 </div>
               </div>
@@ -1522,7 +1775,7 @@ export default function AdminDashboardPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 text-xs font-bold text-[#080809] bg-[#94C322] hover:bg-[#84b21d] rounded-xl shadow-xs transition cursor-pointer"
+                  className="px-5 py-2.5 text-xs font-bold text-[#080809] bg-[#b2c359] hover:bg-[#84b21d] rounded-xl shadow-xs transition cursor-pointer"
                 >
                   Save Changes
                 </button>
@@ -1543,7 +1796,7 @@ export default function AdminDashboardPage() {
           >
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[#080809] text-[#94C322] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-[#080809] text-[#b2c359] flex items-center justify-center">
                   <WorkOutlineOutlinedIcon sx={{ fontSize: 18 }} />
                 </div>
                 <div>
@@ -1657,7 +1910,7 @@ export default function AdminDashboardPage() {
           >
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-[#080809] text-[#94C322] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-[#080809] text-[#b2c359] flex items-center justify-center">
                   {editingTemplate.channel === 'EMAIL' ? <EmailOutlinedIcon sx={{ fontSize: 18 }} /> : <SmsOutlinedIcon sx={{ fontSize: 18 }} />}
                 </div>
                 <div>
@@ -1688,7 +1941,7 @@ export default function AdminDashboardPage() {
                     required
                     value={editingTemplate.subject || ''}
                     onChange={(e) => setEditingTemplate(prev => prev ? ({ ...prev, subject: e.target.value }) : null)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322]"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359]"
                   />
                 </div>
               )}
@@ -1707,7 +1960,7 @@ export default function AdminDashboardPage() {
                   rows={6}
                   value={editingTemplate.body}
                   onChange={(e) => setEditingTemplate(prev => prev ? ({ ...prev, body: e.target.value }) : null)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322]"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359]"
                 />
               </div>
 
@@ -1720,7 +1973,7 @@ export default function AdminDashboardPage() {
                       key={variable}
                       type="button"
                       onClick={() => setEditingTemplate(prev => prev ? ({ ...prev, body: prev.body + ' ' + variable }) : null)}
-                      className="px-2 py-0.5 bg-slate-100 hover:bg-[#94C322]/20 text-slate-800 rounded text-[11px] font-mono border border-slate-200 transition cursor-pointer"
+                      className="px-2 py-0.5 bg-slate-100 hover:bg-[#b2c359]/20 text-slate-800 rounded text-[11px] font-mono border border-slate-200 transition cursor-pointer"
                     >
                       {variable}
                     </button>
@@ -1738,7 +1991,7 @@ export default function AdminDashboardPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 text-xs font-bold text-[#080809] bg-[#94C322] hover:bg-[#84b21d] rounded-xl shadow-xs transition cursor-pointer"
+                  className="px-5 py-2.5 text-xs font-bold text-[#080809] bg-[#b2c359] hover:bg-[#84b21d] rounded-xl shadow-xs transition cursor-pointer"
                 >
                   Save Template
                 </button>
@@ -1759,7 +2012,7 @@ export default function AdminDashboardPage() {
           >
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-[#080809] text-[#94C322] flex items-center justify-center shadow-xs">
+                <div className="w-8 h-8 rounded-xl bg-[#080809] text-[#b2c359] flex items-center justify-center shadow-xs">
                   <PersonAddOutlinedIcon sx={{ fontSize: 18 }} />
                 </div>
                 <div>
@@ -1790,7 +2043,7 @@ export default function AdminDashboardPage() {
                   placeholder="e.g. Sana Iyer"
                   value={subAdminForm.name}
                   onChange={(e) => setSubAdminForm(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#94C322]/40 focus:border-[#94C322] transition"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#b2c359]/40 focus:border-[#b2c359] transition"
                 />
               </div>
 
@@ -1809,7 +2062,7 @@ export default function AdminDashboardPage() {
                     if (selectedRole === 'Read-Only Viewer') defaultAccess = 'View only access';
                     setSubAdminForm(prev => ({ ...prev, role: selectedRole, access: defaultAccess }));
                   }}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#94C322]/40 focus:border-[#94C322] transition cursor-pointer"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#b2c359]/40 focus:border-[#b2c359] transition cursor-pointer"
                 >
                   <option value="Super Admin">Super Admin</option>
                   <option value="Approvals-only Admin">Approvals-only Admin</option>
@@ -1828,7 +2081,7 @@ export default function AdminDashboardPage() {
                   placeholder="e.g. Full platform access"
                   value={subAdminForm.access}
                   onChange={(e) => setSubAdminForm(prev => ({ ...prev, access: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#94C322]/40 focus:border-[#94C322] transition"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#b2c359]/40 focus:border-[#b2c359] transition"
                 />
               </div>
 
@@ -1854,7 +2107,7 @@ export default function AdminDashboardPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 text-xs font-bold text-[#080809] bg-[#94C322] hover:bg-[#84b21d] rounded-xl shadow-xs transition cursor-pointer"
+                    className="px-5 py-2.5 text-xs font-bold text-[#080809] bg-[#b2c359] hover:bg-[#84b21d] rounded-xl shadow-xs transition cursor-pointer"
                   >
                     {editingSubAdminId ? 'Save Changes' : 'Add Admin'}
                   </button>
@@ -1876,7 +2129,7 @@ export default function AdminDashboardPage() {
           >
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-[#080809] text-[#94C322] flex items-center justify-center">
+                <div className="w-7 h-7 rounded-lg bg-[#080809] text-[#b2c359] flex items-center justify-center">
                   <AddCircleOutlineOutlinedIcon sx={{ fontSize: 17 }} />
                 </div>
                 <h3 className="font-bold text-sm text-slate-900">Add New Job Category</h3>
@@ -1901,7 +2154,7 @@ export default function AdminDashboardPage() {
                   placeholder="e.g. Legal & Compliance"
                   value={newCategoryName}
                   onChange={(e) => setNewCategoryName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#94C322]/40 focus:border-[#94C322] transition"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#b2c359]/40 focus:border-[#b2c359] transition"
                 />
               </div>
 
@@ -1915,7 +2168,7 @@ export default function AdminDashboardPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-bold text-[#080809] bg-[#94C322] hover:bg-[#84b21d] rounded-xl shadow-xs transition cursor-pointer"
+                  className="px-4 py-2 text-xs font-bold text-[#080809] bg-[#b2c359] hover:bg-[#84b21d] rounded-xl shadow-xs transition cursor-pointer"
                 >
                   Add Category
                 </button>
@@ -1943,7 +2196,7 @@ export default function AdminDashboardPage() {
                     className="h-5 w-auto object-contain max-w-[120px]"
                   />
                 </div>
-                <span className="bg-[#94C322] text-[#080809] text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase shrink-0">
+                <span className="bg-[#b2c359] text-[#080809] text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase shrink-0">
                   ADMIN
                 </span>
               </div>
@@ -1972,7 +2225,7 @@ export default function AdminDashboardPage() {
                       }}
                       className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left ${
                         activeTab === item.id
-                          ? 'bg-[#94C322]/15 text-[#94C322] shadow-xs'
+                          ? 'bg-[#b2c359]/15 text-[#b2c359] shadow-xs'
                           : 'text-[#CBD5E1] hover:text-white hover:bg-white/5'
                       }`}
                     >
@@ -1993,7 +2246,7 @@ export default function AdminDashboardPage() {
 
             <div className="p-4 border-t border-gray-800/80 bg-[#121418] flex items-center justify-between">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-gray-800 border border-gray-700 text-[#94C322] font-black flex items-center justify-center text-xs shadow-xs shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-gray-800 border border-gray-700 text-[#b2c359] font-black flex items-center justify-center text-xs shadow-xs shrink-0">
                   {adminProfile.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'SA'}
                 </div>
                 <div className="min-w-0">
@@ -2024,12 +2277,12 @@ export default function AdminDashboardPage() {
               onClick={() => setActiveTab('DASHBOARD')}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[14px] font-bold transition-all text-left ${
                 activeTab === 'DASHBOARD'
-                  ? 'bg-[#94C322]/15 text-[#94C322] font-black shadow-xs'
+                  ? 'bg-[#b2c359]/15 text-[#b2c359] font-black shadow-xs'
                   : 'text-[#CBD5E1] hover:text-white hover:bg-white/5'
               }`}
             >
               <span className={`w-2.5 h-2.5 rounded-full shrink-0 transition-all ${
-                activeTab === 'DASHBOARD' ? 'bg-[#94C322] shadow-[0_0_8px_#94C322]' : 'bg-gray-500'
+                activeTab === 'DASHBOARD' ? 'bg-[#b2c359] shadow-[0_0_8px_#b2c359]' : 'bg-gray-500'
               }`} />
               <DashboardOutlinedIcon sx={{ fontSize: 20 }} />
               <span>Dashboard</span>
@@ -2048,7 +2301,7 @@ export default function AdminDashboardPage() {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <VerifiedUserOutlinedIcon sx={{ fontSize: 20 }} className="text-[#94C322]" />
+                  <VerifiedUserOutlinedIcon sx={{ fontSize: 20 }} className="text-[#b2c359]" />
                   <span>Company Approvals</span>
                 </div>
                 {pendingCompanies.length > 0 && (
@@ -2142,7 +2395,7 @@ export default function AdminDashboardPage() {
 
         <div className="p-4 border-t border-gray-800/80 bg-[#121418] flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-gray-800 border border-gray-700 text-[#94C322] font-black flex items-center justify-center text-xs shadow-xs shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-gray-800 border border-gray-700 text-[#b2c359] font-black flex items-center justify-center text-xs shadow-xs shrink-0">
               {adminProfile.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'SA'}
             </div>
             <div className="min-w-0">
@@ -2168,7 +2421,7 @@ export default function AdminDashboardPage() {
       {/* ========================================================= */}
       {/* 10. MAIN COLUMN (HEADER + WORKSPACE) */}
       {/* ========================================================= */}
-      <div className="flex-1 flex flex-col min-w-0 w-full max-w-full overflow-x-hidden min-h-screen md:pl-64 lg:pl-72 pb-24 md:pb-6">
+      <div className="flex-1 flex flex-col min-w-0 w-full max-w-full overflow-x-hidden min-h-screen md:pl-64 lg:pl-72">
         
         {/* Top Header */}
         <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/90 py-2.5 px-4 sm:px-6 shrink-0 flex items-center justify-between shadow-2xs sticky top-0 z-30">
@@ -2188,7 +2441,7 @@ export default function AdminDashboardPage() {
               alt="Torbit Realty"
               className="h-6 sm:h-7.5 w-auto object-contain max-w-[150px] sm:max-w-[200px]"
             />
-            <span className="bg-[#94C322] text-[#080809] text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase shrink-0">
+            <span className="bg-[#b2c359] text-[#080809] text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase shrink-0">
               ADMIN
             </span>
           </div>
@@ -2212,13 +2465,13 @@ export default function AdminDashboardPage() {
               className="p-2 rounded-xl text-slate-600 bg-slate-100/80 hover:bg-slate-200/80 active:scale-95 transition cursor-pointer border border-slate-200/60"
               title="Sync Live Data Now"
             >
-              <RefreshOutlinedIcon sx={{ fontSize: 19 }} className={isRefreshing ? 'animate-spin text-[#94C322]' : ''} />
+              <RefreshOutlinedIcon sx={{ fontSize: 19 }} className={isRefreshing ? 'animate-spin text-[#b2c359]' : ''} />
             </button>
           </div>
         </header>
 
         {/* Main Dashboard Tabs Container */}
-        <main className="flex-1 px-3.5 sm:px-7 py-4 space-y-4 overflow-y-auto">
+        <main className="flex-1 px-3.5 sm:px-7 py-4 space-y-4 pb-12">
         
           {/* ========================================================= */}
           {/* 6.1 TAB: DASHBOARD (OVERVIEW) */}
@@ -2386,7 +2639,7 @@ export default function AdminDashboardPage() {
                     </div>
                     <button
                       onClick={() => setActiveTab('APPROVALS')}
-                      className="text-xs font-bold text-[#658A0D] hover:text-[#94C322] cursor-pointer"
+                      className="text-xs font-bold text-[#658A0D] hover:text-[#b2c359] cursor-pointer"
                     >
                       View All →
                     </button>
@@ -2427,7 +2680,7 @@ export default function AdminDashboardPage() {
                     </div>
                     <button
                       onClick={() => setActiveTab('JOBS')}
-                      className="text-xs font-bold text-[#658A0D] hover:text-[#94C322] cursor-pointer"
+                      className="text-xs font-bold text-[#658A0D] hover:text-[#b2c359] cursor-pointer"
                     >
                       View All →
                     </button>
@@ -2615,7 +2868,7 @@ export default function AdminDashboardPage() {
                                   <>
                                     <button
                                       onClick={() => handleApprove(comp.id)}
-                                      className="bg-[#94C322] hover:bg-[#82ad1b] text-[#080809] font-bold text-xs px-3 py-1.5 rounded-lg shadow-2xs transition cursor-pointer"
+                                      className="bg-[#b2c359] hover:bg-[#9eb047] text-[#080809] font-bold text-xs px-3 py-1.5 rounded-lg shadow-2xs transition cursor-pointer"
                                     >
                                       Approve
                                     </button>
@@ -2636,7 +2889,7 @@ export default function AdminDashboardPage() {
                                 ) : (
                                   <button
                                     onClick={() => handleApprove(comp.id)}
-                                    className="bg-[#94C322] hover:bg-[#82ad1b] text-[#080809] font-bold text-xs px-3 py-1.5 rounded-lg transition cursor-pointer shadow-2xs"
+                                    className="bg-[#b2c359] hover:bg-[#9eb047] text-[#080809] font-bold text-xs px-3 py-1.5 rounded-lg transition cursor-pointer shadow-2xs"
                                   >
                                     Re-Approve
                                   </button>
@@ -2713,7 +2966,7 @@ export default function AdminDashboardPage() {
                             <>
                               <button
                                 onClick={() => handleApprove(comp.id)}
-                                className="flex-1 bg-[#94C322] hover:bg-[#82ad1b] active:scale-98 text-[#080809] font-bold text-xs py-2.5 rounded-xl shadow-xs text-center cursor-pointer transition"
+                                className="flex-1 bg-[#b2c359] hover:bg-[#9eb047] active:scale-98 text-[#080809] font-bold text-xs py-2.5 rounded-xl shadow-xs text-center cursor-pointer transition"
                               >
                                 Approve
                               </button>
@@ -2734,7 +2987,7 @@ export default function AdminDashboardPage() {
                           ) : (
                             <button
                               onClick={() => handleApprove(comp.id)}
-                              className="w-full bg-[#94C322] hover:bg-[#82ad1b] text-[#080809] font-bold text-xs py-2.5 rounded-xl transition text-center cursor-pointer shadow-2xs"
+                              className="w-full bg-[#b2c359] hover:bg-[#9eb047] text-[#080809] font-bold text-xs py-2.5 rounded-xl transition text-center cursor-pointer shadow-2xs"
                             >
                               Re-Approve Company
                             </button>
@@ -2750,7 +3003,7 @@ export default function AdminDashboardPage() {
               <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-4 sm:p-5 space-y-3.5">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-[#080809] text-[#94C322] flex items-center justify-center shadow-xs">
+                    <div className="w-8 h-8 rounded-xl bg-[#080809] text-[#b2c359] flex items-center justify-center shadow-xs">
                       <FactCheckOutlinedIcon sx={{ fontSize: 18 }} />
                     </div>
                     <div>
@@ -2770,7 +3023,7 @@ export default function AdminDashboardPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
                   <div className="bg-[#F8FAFC] border border-slate-100 rounded-xl p-3 flex items-start gap-2.5">
-                    <div className="w-5 h-5 rounded-full bg-[#94C322]/20 text-[#658A0D] flex items-center justify-center text-xs font-black shrink-0 mt-0.5">
+                    <div className="w-5 h-5 rounded-full bg-[#b2c359]/20 text-[#658A0D] flex items-center justify-center text-xs font-black shrink-0 mt-0.5">
                       ✓
                     </div>
                     <div>
@@ -2780,7 +3033,7 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="bg-[#F8FAFC] border border-slate-100 rounded-xl p-3 flex items-start gap-2.5">
-                    <div className="w-5 h-5 rounded-full bg-[#94C322]/20 text-[#658A0D] flex items-center justify-center text-xs font-black shrink-0 mt-0.5">
+                    <div className="w-5 h-5 rounded-full bg-[#b2c359]/20 text-[#658A0D] flex items-center justify-center text-xs font-black shrink-0 mt-0.5">
                       ✓
                     </div>
                     <div>
@@ -2790,7 +3043,7 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="bg-[#F8FAFC] border border-slate-100 rounded-xl p-3 flex items-start gap-2.5">
-                    <div className="w-5 h-5 rounded-full bg-[#94C322]/20 text-[#658A0D] flex items-center justify-center text-xs font-black shrink-0 mt-0.5">
+                    <div className="w-5 h-5 rounded-full bg-[#b2c359]/20 text-[#658A0D] flex items-center justify-center text-xs font-black shrink-0 mt-0.5">
                       ✓
                     </div>
                     <div>
@@ -2800,7 +3053,7 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="bg-[#F8FAFC] border border-slate-100 rounded-xl p-3 flex items-start gap-2.5">
-                    <div className="w-5 h-5 rounded-full bg-[#94C322]/20 text-[#658A0D] flex items-center justify-center text-xs font-black shrink-0 mt-0.5">
+                    <div className="w-5 h-5 rounded-full bg-[#b2c359]/20 text-[#658A0D] flex items-center justify-center text-xs font-black shrink-0 mt-0.5">
                       ✓
                     </div>
                     <div>
@@ -2956,7 +3209,7 @@ export default function AdminDashboardPage() {
                                 ) : (
                                   <button
                                     onClick={() => handleToggleBlock(comp.id)}
-                                    className="bg-[#94C322] hover:bg-[#82ad1b] text-[#080809] font-bold text-xs px-3 py-1.5 rounded-lg transition shadow-2xs cursor-pointer"
+                                    className="bg-[#b2c359] hover:bg-[#9eb047] text-[#080809] font-bold text-xs px-3 py-1.5 rounded-lg transition shadow-2xs cursor-pointer"
                                   >
                                     Unblock
                                   </button>
@@ -3040,7 +3293,7 @@ export default function AdminDashboardPage() {
                           ) : (
                             <button
                               onClick={() => handleToggleBlock(comp.id)}
-                              className="bg-[#94C322] hover:bg-[#82ad1b] text-[#080809] font-bold text-xs py-2 rounded-xl transition text-center cursor-pointer shadow-2xs"
+                              className="bg-[#b2c359] hover:bg-[#9eb047] text-[#080809] font-bold text-xs py-2 rounded-xl transition text-center cursor-pointer shadow-2xs"
                             >
                               Unblock
                             </button>
@@ -3114,7 +3367,7 @@ export default function AdminDashboardPage() {
                       value={seekerSearch}
                       onChange={(e) => setSeekerSearch(e.target.value)}
                       placeholder="Search by name, skill, email..."
-                      className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#94C322] focus:border-[#94C322] shadow-2xs"
+                      className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#b2c359] focus:border-[#b2c359] shadow-2xs"
                     />
                   </div>
 
@@ -3122,7 +3375,7 @@ export default function AdminDashboardPage() {
                     <select
                       value={seekerLocationFilter}
                       onChange={(e) => setSeekerLocationFilter(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-[#94C322] focus:border-[#94C322] shadow-2xs cursor-pointer"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-[#b2c359] focus:border-[#b2c359] shadow-2xs cursor-pointer"
                     >
                       <option value="ALL">All Locations</option>
                       <option value="Noida">Noida, UP</option>
@@ -3138,7 +3391,7 @@ export default function AdminDashboardPage() {
                     <select
                       value={seekerStatusFilter}
                       onChange={(e) => setSeekerStatusFilter(e.target.value)}
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-[#94C322] focus:border-[#94C322] shadow-2xs cursor-pointer"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-medium focus:outline-none focus:ring-1 focus:ring-[#b2c359] focus:border-[#b2c359] shadow-2xs cursor-pointer"
                     >
                       <option value="ALL">All Status</option>
                       <option value="Active">Active</option>
@@ -3173,7 +3426,7 @@ export default function AdminDashboardPage() {
                             <tr
                               key={seeker.id}
                               className={`hover:bg-slate-50/70 transition ${
-                                activeSeekerSnapshot?.id === seeker.id ? 'bg-[#94C322]/5' : ''
+                                activeSeekerSnapshot?.id === seeker.id ? 'bg-[#b2c359]/5' : ''
                               }`}
                             >
                               <td className="px-5 py-3.5">
@@ -3205,7 +3458,7 @@ export default function AdminDashboardPage() {
                                   {seeker.status === 'Blocked' ? (
                                     <button
                                       onClick={() => handleToggleBlockSeeker(seeker.id)}
-                                      className="px-3 py-1 text-xs font-bold text-[#080809] bg-[#94C322] hover:bg-[#84b21d] rounded-md transition shadow-2xs cursor-pointer"
+                                      className="px-3 py-1 text-xs font-bold text-[#080809] bg-[#b2c359] hover:bg-[#84b21d] rounded-md transition shadow-2xs cursor-pointer"
                                     >
                                       Unblock
                                     </button>
@@ -3237,7 +3490,7 @@ export default function AdminDashboardPage() {
                         <div
                           key={seeker.id}
                           className={`p-4 space-y-2.5 hover:bg-slate-50/70 transition ${
-                            activeSeekerSnapshot?.id === seeker.id ? 'bg-[#94C322]/5' : ''
+                            activeSeekerSnapshot?.id === seeker.id ? 'bg-[#b2c359]/5' : ''
                           }`}
                         >
                           <div className="flex items-start justify-between gap-2">
@@ -3280,7 +3533,7 @@ export default function AdminDashboardPage() {
                             {seeker.status === 'Blocked' ? (
                               <button
                                 onClick={() => handleToggleBlockSeeker(seeker.id)}
-                                className="flex-1 bg-[#94C322] hover:bg-[#84b21d] text-[#080809] font-bold text-xs py-2.5 rounded-xl transition text-center cursor-pointer shadow-2xs"
+                                className="flex-1 bg-[#b2c359] hover:bg-[#84b21d] text-[#080809] font-bold text-xs py-2.5 rounded-xl transition text-center cursor-pointer shadow-2xs"
                               >
                                 Unblock
                               </button>
@@ -3416,13 +3669,22 @@ export default function AdminDashboardPage() {
 
             return (
               <div className="space-y-4">
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                    Job Listings
-                  </h1>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    Central moderation view of every job posted on the platform, across all companies.
-                  </p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                      Job Listings
+                    </h1>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Central moderation view of every job posted on the platform, across all companies.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setIsPostSpecialJobOpen(true)}
+                    className="self-start sm:self-center px-4 py-2.5 bg-[#b2c359] hover:bg-[#84b21d] text-[#080809] font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-98"
+                  >
+                    <AddCircleOutlineOutlinedIcon sx={{ fontSize: 18 }} />
+                    <span>+ Post Special Job</span>
+                  </button>
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
@@ -3792,7 +4054,7 @@ export default function AdminDashboardPage() {
                             <span>Job Seekers</span>
                           </div>
                           <div className="flex items-center gap-1.5 font-bold text-slate-700">
-                            <span className="w-3.5 h-3.5 rounded-md bg-gradient-to-tr from-[#7CB342] to-[#94C322] shadow-2xs" />
+                            <span className="w-3.5 h-3.5 rounded-md bg-gradient-to-tr from-[#b2c359] to-[#b2c359] shadow-2xs" />
                             <span>Companies</span>
                           </div>
                         </div>
@@ -3826,7 +4088,7 @@ export default function AdminDashboardPage() {
                       </div>
                       <div className="text-left border-l border-slate-200/90 pl-3.5 sm:pl-5">
                         <div className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-[#94C322]" />
+                          <span className="w-2 h-2 rounded-full bg-[#b2c359]" />
                           <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#658A0D] block">
                             Companies
                           </span>
@@ -3848,7 +4110,7 @@ export default function AdminDashboardPage() {
                     }`}>
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
-                          hoveredTrendItem ? 'bg-[#94C322] text-[#080809]' : 'bg-slate-200 text-slate-600'
+                          hoveredTrendItem ? 'bg-[#b2c359] text-[#080809]' : 'bg-slate-200 text-slate-600'
                         }`}>
                           {hoveredTrendItem ? '📍' : '📊'}
                         </div>
@@ -3873,11 +4135,11 @@ export default function AdminDashboardPage() {
                           <div className="flex items-center gap-1.5 text-blue-300 bg-blue-950/80 px-2.5 py-1 rounded-lg border border-blue-800/80">
                             <span>👤 {hoveredTrendItem.seekers || 0} {hoveredTrendItem.seekers === 1 ? 'Seeker' : 'Seekers'}</span>
                           </div>
-                          <div className="flex items-center gap-1.5 text-[#94C322] bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-800/80">
+                          <div className="flex items-center gap-1.5 text-[#b2c359] bg-emerald-950/80 px-2.5 py-1 rounded-lg border border-emerald-800/80">
                             <span>🏢 {hoveredTrendItem.companies || 0} {hoveredTrendItem.companies === 1 ? 'Company' : 'Companies'}</span>
                           </div>
                           <div className="text-white bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-700">
-                            Total: <span className="font-black text-[#94C322]">{hoveredTrendItem.total || ((hoveredTrendItem.seekers || 0) + (hoveredTrendItem.companies || 0))}</span>
+                            Total: <span className="font-black text-[#b2c359]">{hoveredTrendItem.total || ((hoveredTrendItem.seekers || 0) + (hoveredTrendItem.companies || 0))}</span>
                           </div>
                         </div>
                       ) : (
@@ -3968,7 +4230,7 @@ export default function AdminDashboardPage() {
                                         style={{ height: `${companyHeight}px` }} 
                                         className={`w-3.5 sm:w-5.5 transition-all duration-200 ${
                                           cCount > 0 
-                                            ? 'rounded-t-lg bg-gradient-to-t from-[#7CB342] via-[#8BBF30] to-[#94C322] shadow-md shadow-[#94C322]/25' 
+                                            ? 'rounded-t-lg bg-gradient-to-t from-[#b2c359] via-[#8BBF30] to-[#b2c359] shadow-md shadow-[#b2c359]/25' 
                                             : 'rounded-full bg-slate-200/90'
                                         }`}
                                       />
@@ -4073,7 +4335,7 @@ export default function AdminDashboardPage() {
                         {(analyticsData.topCategories || []).map((cat: any, i: number) => (
                           <span key={i} className="px-3 py-1 bg-slate-50 border border-slate-200/80 rounded-lg text-xs font-semibold text-slate-800 flex items-center gap-1.5">
                             <span>{cat.name}</span>
-                            <span className="text-[10px] font-black bg-[#94C322]/20 text-[#658A0D] px-1.5 py-0.2 rounded-full">{cat.count} jobs</span>
+                            <span className="text-[10px] font-black bg-[#b2c359]/20 text-[#658A0D] px-1.5 py-0.2 rounded-full">{cat.count} jobs</span>
                           </span>
                         ))}
                       </div>
@@ -4156,7 +4418,7 @@ export default function AdminDashboardPage() {
                 <button
                   onClick={handleSaveSettings}
                   disabled={isSavingSettings}
-                  className="w-full sm:w-auto px-5 py-2.5 bg-[#94C322] hover:bg-[#84b21d] text-[#080809] font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto px-5 py-2.5 bg-[#b2c359] hover:bg-[#84b21d] text-[#080809] font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center gap-2"
                 >
                   {isSavingSettings ? 'Saving...' : 'Save All Settings'}
                 </button>
@@ -4175,7 +4437,7 @@ export default function AdminDashboardPage() {
                   </div>
                   <button
                     onClick={handleOpenAddSubAdmin}
-                    className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 bg-[#94C322] hover:bg-[#84b21d] text-[#080809] font-bold text-xs rounded-xl shadow-2xs transition cursor-pointer"
+                    className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 bg-[#b2c359] hover:bg-[#84b21d] text-[#080809] font-bold text-xs rounded-xl shadow-2xs transition cursor-pointer"
                   >
                     <PersonAddOutlinedIcon sx={{ fontSize: 15 }} />
                     <span>+ Add Sub-Admin</span>
@@ -4242,7 +4504,7 @@ export default function AdminDashboardPage() {
                 <div className="pt-1">
                   <button
                     onClick={handleOpenAddSubAdmin}
-                    className="w-full sm:w-auto px-4 py-2.5 bg-[#94C322] hover:bg-[#84b21d] text-[#080809] font-bold text-xs rounded-xl shadow-2xs transition cursor-pointer flex items-center justify-center gap-1.5"
+                    className="w-full sm:w-auto px-4 py-2.5 bg-[#b2c359] hover:bg-[#84b21d] text-[#080809] font-bold text-xs rounded-xl shadow-2xs transition cursor-pointer flex items-center justify-center gap-1.5"
                   >
                     <PersonAddOutlinedIcon sx={{ fontSize: 16 }} />
                     <span>+ Add Sub-Admin</span>
@@ -4287,7 +4549,7 @@ export default function AdminDashboardPage() {
                           showToast(`Approval email ${!notificationSettings.companyApprovalEmail ? 'enabled' : 'disabled'}`);
                         }}
                         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          notificationSettings.companyApprovalEmail ? 'bg-[#94C322]' : 'bg-slate-200'
+                          notificationSettings.companyApprovalEmail ? 'bg-[#b2c359]' : 'bg-slate-200'
                         }`}
                       >
                         <span
@@ -4324,7 +4586,7 @@ export default function AdminDashboardPage() {
                           showToast(`Rejection email ${!notificationSettings.companyRejectionEmail ? 'enabled' : 'disabled'}`);
                         }}
                         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          notificationSettings.companyRejectionEmail ? 'bg-[#94C322]' : 'bg-slate-200'
+                          notificationSettings.companyRejectionEmail ? 'bg-[#b2c359]' : 'bg-slate-200'
                         }`}
                       >
                         <span
@@ -4361,7 +4623,7 @@ export default function AdminDashboardPage() {
                           showToast(`SMS alerts ${!notificationSettings.statusChangeSms ? 'enabled' : 'disabled'}`);
                         }}
                         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          notificationSettings.statusChangeSms ? 'bg-[#94C322]' : 'bg-slate-200'
+                          notificationSettings.statusChangeSms ? 'bg-[#b2c359]' : 'bg-slate-200'
                         }`}
                       >
                         <span
@@ -4398,7 +4660,7 @@ export default function AdminDashboardPage() {
                           showToast(`Job digest ${!notificationSettings.newJobAlertDigest ? 'enabled' : 'disabled'}`);
                         }}
                         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          notificationSettings.newJobAlertDigest ? 'bg-[#94C322]' : 'bg-slate-200'
+                          notificationSettings.newJobAlertDigest ? 'bg-[#b2c359]' : 'bg-slate-200'
                         }`}
                       >
                         <span
@@ -4428,7 +4690,7 @@ export default function AdminDashboardPage() {
                       setNewCategoryName('');
                       setIsCategoryModalOpen(true);
                     }}
-                    className="hidden sm:inline-flex items-center gap-1 text-xs font-bold text-[#658A0D] hover:text-[#94C322] cursor-pointer"
+                    className="hidden sm:inline-flex items-center gap-1 text-xs font-bold text-[#658A0D] hover:text-[#b2c359] cursor-pointer"
                   >
                     + Add Category
                   </button>
@@ -4456,14 +4718,201 @@ export default function AdminDashboardPage() {
                       setNewCategoryName('');
                       setIsCategoryModalOpen(true);
                     }}
-                    className="text-xs font-bold text-slate-900 hover:text-[#94C322] px-2.5 py-1 rounded-md transition cursor-pointer inline-flex items-center gap-1"
+                    className="text-xs font-bold text-slate-900 hover:text-[#b2c359] px-2.5 py-1 rounded-md transition cursor-pointer inline-flex items-center gap-1"
                   >
                     + Add Category
                   </button>
                 </div>
               </div>
 
-              {/* 4. General Platform Settings */}
+              {/* 4. Live Portal Job Listings Governance */}
+              <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.05)] space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-xs sm:text-sm text-slate-900">
+                        Live Portal Job Listings Governance
+                      </h4>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-wider ${
+                        showClosedJobsOnPortal 
+                          ? 'bg-amber-100 text-amber-900 border border-amber-300' 
+                          : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                      }`}>
+                        {showClosedJobsOnPortal ? 'Closed Jobs Visible at Bottom' : 'Active Jobs Only'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1 max-w-xl leading-relaxed">
+                      Control whether closed job positions remain visible on the public homepage &amp; job listings as archived vacancies. When enabled, closed jobs are displayed at the very end of the list with a &quot;Closed&quot; badge and applications disabled.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0 self-start sm:self-center">
+                    <span className="text-xs font-bold text-slate-700">
+                      {showClosedJobsOnPortal ? 'Show Closed Jobs: YES' : 'Show Closed Jobs: NO'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newVal = !showClosedJobsOnPortal;
+                        setShowClosedJobsOnPortal(newVal);
+                        showToast(`Closed jobs visibility on portal: ${newVal ? 'ENABLED (Showing at bottom with Apply disabled)' : 'DISABLED (Active jobs only)'}`);
+                      }}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        showClosedJobsOnPortal ? 'bg-[#b2c359]' : 'bg-slate-200'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
+                          showClosedJobsOnPortal ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className={`p-3 rounded-xl border transition ${
+                    !showClosedJobsOnPortal 
+                      ? 'bg-lime-50/60 border-[#b2c359] text-slate-900 font-bold' 
+                      : 'bg-slate-50 border-slate-200 text-slate-500'
+                  }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                      <span className="font-extrabold uppercase text-[11px] tracking-wider">Option A: Active Only (Standard)</span>
+                    </div>
+                    <p className="text-[11px] font-normal text-slate-600 leading-relaxed">
+                      Closed and paused jobs are automatically hidden from homepage, search results, and category feeds.
+                    </p>
+                  </div>
+
+                  <div className={`p-3 rounded-xl border transition ${
+                    showClosedJobsOnPortal 
+                      ? 'bg-lime-50/60 border-[#b2c359] text-slate-900 font-bold' 
+                      : 'bg-slate-50 border-slate-200 text-slate-500'
+                  }`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="w-2 h-2 rounded-full bg-amber-500" />
+                      <span className="font-extrabold uppercase text-[11px] tracking-wider">Option B: Keep Closed Jobs (Archive)</span>
+                    </div>
+                    <p className="text-[11px] font-normal text-slate-600 leading-relaxed">
+                      Closed jobs stay visible on public portal at the very bottom with a &quot;Closed&quot; badge and inactive Apply button.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. Special Job & Top Hiring Companies (Sidebar & Master Data) */}
+              <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.05)] space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
+                  <div>
+                    <h4 className="font-bold text-xs sm:text-sm text-slate-900 flex items-center gap-2">
+                      <span>Top Hiring Companies &amp; Special Job Master Data</span>
+                      <span className="text-[10px] bg-[#b2c359]/20 text-[#546e10] font-black px-2 py-0.5 rounded">
+                        {specialJobCompanies.length} BRANDS
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Companies configured here appear on the common dashboard right sidebar and in the &quot;Post Special Job&quot; dropdown. You can manage developer logos, names, and career links.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingSpecialCompanyIndex(null);
+                      setCompanyFormName('');
+                      setCompanyFormLogoUrl('');
+                      setCompanyFormWebsiteUrl('');
+                      setIsSpecialCompanyModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#b2c359] hover:bg-[#9eb047] text-slate-950 font-bold text-xs rounded-xl shadow-xs transition cursor-pointer shrink-0"
+                  >
+                    <span>+ Add Enterprise Brand</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {specialJobCompanies.map((company, index) => (
+                    <div
+                      key={`${company.name}-${index}`}
+                      className="p-3 bg-slate-50 hover:bg-white rounded-xl border border-slate-200/80 hover:border-slate-300 transition-all flex items-center justify-between gap-3 shadow-2xs group"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 p-1">
+                          {company.logoUrl ? (
+                            <img
+                              src={company.logoUrl}
+                              alt={company.name}
+                              className="max-h-7 max-w-full object-contain"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.parentElement?.querySelector('.fallback-badge');
+                                if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <span
+                            style={{ display: company.logoUrl ? 'none' : 'flex' }}
+                            className="fallback-badge w-full h-full items-center justify-center text-[10px] font-black text-slate-700 bg-slate-100 rounded"
+                          >
+                            {company.logo || (company.name ? company.name.slice(0, 3).toUpperCase() : 'CO')}
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <h5 className="text-xs font-bold text-slate-900 truncate" title={company.name}>
+                            {company.name}
+                          </h5>
+                          {company.websiteUrl ? (
+                            <a
+                              href={company.websiteUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[10px] text-blue-600 hover:underline truncate block max-w-[140px]"
+                              title={company.websiteUrl}
+                            >
+                              Careers Link ↗
+                            </a>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 block">No website set</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-0.5 opacity-80 group-hover:opacity-100 transition shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingSpecialCompanyIndex(index);
+                            setCompanyFormName(company.name);
+                            setCompanyFormLogoUrl(company.logoUrl || '');
+                            setCompanyFormWebsiteUrl(company.websiteUrl || '');
+                            setIsSpecialCompanyModalOpen(true);
+                          }}
+                          className="p-1.5 hover:bg-slate-200 text-slate-600 hover:text-slate-900 rounded-lg transition cursor-pointer"
+                          title={`Edit ${company.name}`}
+                        >
+                          <EditOutlinedIcon sx={{ fontSize: 16 }} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSpecialCompany(index)}
+                          className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition cursor-pointer"
+                          title={`Remove ${company.name}`}
+                        >
+                          <DeleteOutlineOutlinedIcon sx={{ fontSize: 16 }} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {specialJobCompanies.length === 0 && (
+                    <div className="col-span-full py-6 text-center text-xs text-slate-400 italic">
+                      No companies configured yet. Click &quot;+ Add Enterprise Brand&quot; to add one.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 5. General Platform Settings */}
               <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.05)] space-y-3">
                 <div className="border-b border-slate-100 pb-2.5">
                   <h4 className="font-bold text-xs sm:text-sm text-slate-900">
@@ -4484,7 +4933,7 @@ export default function AdminDashboardPage() {
                       value={brandingLogo}
                       onChange={(e) => setBrandingLogo(e.target.value)}
                       placeholder="Enter brand logo URL or custom heading"
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#94C322] focus:border-[#94C322] shadow-2xs"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#b2c359] focus:border-[#b2c359] shadow-2xs"
                     />
                   </div>
 
@@ -4497,7 +4946,7 @@ export default function AdminDashboardPage() {
                       value={featuredContent}
                       onChange={(e) => setFeaturedContent(e.target.value)}
                       placeholder="Connecting top tier real estate talents with verified developers"
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#94C322] focus:border-[#94C322] shadow-2xs"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#b2c359] focus:border-[#b2c359] shadow-2xs"
                     />
                   </div>
 
@@ -4510,7 +4959,7 @@ export default function AdminDashboardPage() {
                       value={legalContent}
                       onChange={(e) => setLegalContent(e.target.value)}
                       placeholder="Compliance legal disclaimer and platform privacy guidelines..."
-                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#94C322] focus:border-[#94C322] shadow-2xs"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#b2c359] focus:border-[#b2c359] shadow-2xs"
                     />
                   </div>
                 </div>
@@ -4521,7 +4970,7 @@ export default function AdminDashboardPage() {
                 <button
                   onClick={handleSaveSettings}
                   disabled={isSavingSettings}
-                  className="w-full sm:w-auto px-6 py-3 bg-[#94C322] hover:bg-[#84b21d] active:scale-98 text-[#080809] font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto px-6 py-3 bg-[#b2c359] hover:bg-[#84b21d] active:scale-98 text-[#080809] font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center gap-2"
                 >
                   {isSavingSettings ? 'Saving Settings...' : 'Save All Platform Settings'}
                 </button>
@@ -4531,6 +4980,8 @@ export default function AdminDashboardPage() {
           )}
 
         </main>
+        {/* Unified Official Footer with Trust Strip */}
+        <Footer />
       </div>
 
       {/* ========================================================= */}
@@ -4542,10 +4993,10 @@ export default function AdminDashboardPage() {
         <button
           onClick={() => setActiveTab('DASHBOARD')}
           className={`flex flex-col items-center gap-1 px-2.5 py-1 rounded-xl transition-all ${
-            activeTab === 'DASHBOARD' ? 'text-[#94C322] font-black' : 'text-slate-400 hover:text-slate-200'
+            activeTab === 'DASHBOARD' ? 'text-[#b2c359] font-black' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          <div className={`p-1 rounded-lg transition-all ${activeTab === 'DASHBOARD' ? 'bg-[#94C322]/15' : ''}`}>
+          <div className={`p-1 rounded-lg transition-all ${activeTab === 'DASHBOARD' ? 'bg-[#b2c359]/15' : ''}`}>
             <DashboardOutlinedIcon sx={{ fontSize: 20 }} />
           </div>
           <span className="text-[10px] tracking-tight">Overview</span>
@@ -4555,10 +5006,10 @@ export default function AdminDashboardPage() {
         <button
           onClick={() => setActiveTab('APPROVALS')}
           className={`flex flex-col items-center gap-1 px-2.5 py-1 rounded-xl transition-all relative ${
-            activeTab === 'APPROVALS' ? 'text-[#94C322] font-black' : 'text-slate-400 hover:text-slate-200'
+            activeTab === 'APPROVALS' ? 'text-[#b2c359] font-black' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          <div className={`p-1 rounded-lg transition-all relative ${activeTab === 'APPROVALS' ? 'bg-[#94C322]/15' : ''}`}>
+          <div className={`p-1 rounded-lg transition-all relative ${activeTab === 'APPROVALS' ? 'bg-[#b2c359]/15' : ''}`}>
             <VerifiedUserOutlinedIcon sx={{ fontSize: 20 }} />
             {pendingCompanies.length > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#DC2626] text-white text-[9px] font-black flex items-center justify-center ring-2 ring-[#16181D]">
@@ -4573,10 +5024,10 @@ export default function AdminDashboardPage() {
         <button
           onClick={() => setActiveTab('COMPANIES')}
           className={`flex flex-col items-center gap-1 px-2.5 py-1 rounded-xl transition-all ${
-            activeTab === 'COMPANIES' ? 'text-[#94C322] font-black' : 'text-slate-400 hover:text-slate-200'
+            activeTab === 'COMPANIES' ? 'text-[#b2c359] font-black' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          <div className={`p-1 rounded-lg transition-all ${activeTab === 'COMPANIES' ? 'bg-[#94C322]/15' : ''}`}>
+          <div className={`p-1 rounded-lg transition-all ${activeTab === 'COMPANIES' ? 'bg-[#b2c359]/15' : ''}`}>
             <CorporateFareOutlinedIcon sx={{ fontSize: 20 }} />
           </div>
           <span className="text-[10px] tracking-tight">Companies</span>
@@ -4586,10 +5037,10 @@ export default function AdminDashboardPage() {
         <button
           onClick={() => setActiveTab('SEEKERS')}
           className={`flex flex-col items-center gap-1 px-2.5 py-1 rounded-xl transition-all ${
-            activeTab === 'SEEKERS' ? 'text-[#94C322] font-black' : 'text-slate-400 hover:text-slate-200'
+            activeTab === 'SEEKERS' ? 'text-[#b2c359] font-black' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          <div className={`p-1 rounded-lg transition-all ${activeTab === 'SEEKERS' ? 'bg-[#94C322]/15' : ''}`}>
+          <div className={`p-1 rounded-lg transition-all ${activeTab === 'SEEKERS' ? 'bg-[#b2c359]/15' : ''}`}>
             <PeopleAltOutlinedIcon sx={{ fontSize: 20 }} />
           </div>
           <span className="text-[10px] tracking-tight">Seekers</span>
@@ -4599,10 +5050,10 @@ export default function AdminDashboardPage() {
         <button
           onClick={() => setIsMobileMenuOpen(true)}
           className={`flex flex-col items-center gap-1 px-2.5 py-1 rounded-xl transition-all ${
-            activeTab === 'JOBS' || activeTab === 'ANALYTICS' || activeTab === 'SETTINGS' ? 'text-[#94C322] font-black' : 'text-slate-400 hover:text-slate-200'
+            activeTab === 'JOBS' || activeTab === 'ANALYTICS' || activeTab === 'SETTINGS' ? 'text-[#b2c359] font-black' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          <div className={`p-1 rounded-lg transition-all ${activeTab === 'JOBS' || activeTab === 'ANALYTICS' || activeTab === 'SETTINGS' ? 'bg-[#94C322]/15' : ''}`}>
+          <div className={`p-1 rounded-lg transition-all ${activeTab === 'JOBS' || activeTab === 'ANALYTICS' || activeTab === 'SETTINGS' ? 'bg-[#b2c359]/15' : ''}`}>
             <MoreHorizOutlinedIcon sx={{ fontSize: 20 }} />
           </div>
           <span className="text-[10px] tracking-tight">More</span>
@@ -4633,11 +5084,11 @@ export default function AdminDashboardPage() {
                       e.target.style.display = 'none';
                       if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
                     }}
-                    className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl object-cover border-2 border-[#94C322] shadow-md shrink-0"
+                    className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl object-cover border-2 border-[#b2c359] shadow-md shrink-0"
                   />
                 ) : null}
                 <div
-                  className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-[#16181D] border-2 border-[#94C322]/60 text-[#94C322] font-black flex items-center justify-center text-lg sm:text-2xl shadow-md shrink-0"
+                  className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-[#16181D] border-2 border-[#b2c359]/60 text-[#b2c359] font-black flex items-center justify-center text-lg sm:text-2xl shadow-md shrink-0"
                   style={{ display: selectedSeekerForModal.avatarUrl ? 'none' : 'flex' }}
                 >
                   {(selectedSeekerForModal.fullName || 'JS')
@@ -4658,7 +5109,7 @@ export default function AdminDashboardPage() {
                       className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
                         selectedSeekerForModal.status === 'Blocked'
                           ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                          : 'bg-[#94C322]/20 text-[#94C322] border border-[#94C322]/30'
+                          : 'bg-[#b2c359]/20 text-[#b2c359] border border-[#b2c359]/30'
                       }`}
                     >
                       {selectedSeekerForModal.status}
@@ -4884,7 +5335,7 @@ export default function AdminDashboardPage() {
                 <button
                   type="button"
                   onClick={() => handleToggleBlockSeeker(selectedSeekerForModal.id)}
-                  className="px-3.5 py-1.5 sm:py-2 bg-[#94C322] hover:bg-[#84b21d] text-[#080809] font-black text-xs rounded-xl shadow-xs transition cursor-pointer"
+                  className="px-3.5 py-1.5 sm:py-2 bg-[#b2c359] hover:bg-[#84b21d] text-[#080809] font-black text-xs rounded-xl shadow-xs transition cursor-pointer"
                 >
                   Unblock Candidate
                 </button>
@@ -4907,6 +5358,440 @@ export default function AdminDashboardPage() {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Job Details & Candidate Applicants Modal */}
+      {selectedJobForView && (
+        <div 
+          className="fixed inset-0 z-[99999] bg-black/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 animate-in fade-in duration-150 overflow-y-auto font-['Helvetica',Arial,sans-serif]"
+          onClick={() => setSelectedJobForView(null)}
+        >
+          <div
+            className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-3xl max-h-[92vh] sm:max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-150 my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="bg-[#080809] text-white p-4 sm:p-5 flex items-start justify-between gap-3 border-b border-neutral-800">
+              <div className="min-w-0 space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-black text-sm sm:text-lg text-white truncate tracking-tight">
+                    {selectedJobForView.title}
+                  </h3>
+                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                    selectedJobForView.status === 'Active'
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                      : 'bg-slate-700 text-slate-300'
+                  }`}>
+                    {selectedJobForView.status}
+                  </span>
+                  {specialJobCompanies.some(c => c.name.toLowerCase() === (selectedJobForView.company || '').toLowerCase()) && (
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#b2c359]/20 text-[#b2c359] border border-[#b2c359]/40 flex items-center gap-1">
+                      <Building2 className="w-3 h-3" />
+                      <span>Enterprise Brand • Admin Managed</span>
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-300">
+                  <span className="font-bold text-white">{selectedJobForView.company}</span>
+                  <span>•</span>
+                  <span>{selectedJobForView.category || 'Sales'}</span>
+                  <span>•</span>
+                  <span>{selectedJobForView.location || 'India'}</span>
+                  <span>•</span>
+                  <span>{selectedJobForView.type || 'Full Time'}</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedJobForView(null)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-neutral-800 transition cursor-pointer shrink-0"
+              >
+                <CloseOutlinedIcon sx={{ fontSize: 20 }} />
+              </button>
+            </div>
+
+            {/* Navigation Tabs inside Modal */}
+            <div className="flex items-center border-b border-slate-200 bg-slate-50 px-4 sm:px-6">
+              <button
+                type="button"
+                onClick={() => setJobModalTab('APPLICANTS')}
+                className={`py-3 px-4 text-xs font-bold border-b-2 transition cursor-pointer flex items-center gap-2 ${
+                  jobModalTab === 'APPLICANTS'
+                    ? 'border-[#b2c359] text-slate-900'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <PeopleAltOutlinedIcon sx={{ fontSize: 16 }} />
+                <span>Candidate Applicants</span>
+                <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-800">
+                  {jobApplicants.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setJobModalTab('DETAILS')}
+                className={`py-3 px-4 text-xs font-bold border-b-2 transition cursor-pointer flex items-center gap-2 ${
+                  jobModalTab === 'DETAILS'
+                    ? 'border-[#b2c359] text-slate-900'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <WorkOutlineOutlinedIcon sx={{ fontSize: 16 }} />
+                <span>Job Description &amp; Details</span>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1 text-slate-800 text-xs">
+              
+              {/* TAB 1: CANDIDATE APPLICANTS */}
+              {jobModalTab === 'APPLICANTS' && (
+                <div className="space-y-4">
+                  {loadingApplicants ? (
+                    <div className="py-12 text-center text-slate-400 text-xs">
+                      Loading candidate applications...
+                    </div>
+                  ) : jobApplicants.length === 0 ? (
+                    <div className="bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-8 text-center space-y-2">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                        <PeopleAltOutlinedIcon sx={{ fontSize: 24 }} />
+                      </div>
+                      <h4 className="font-bold text-sm text-slate-900">No Applications Received Yet</h4>
+                      <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                        Candidates who apply to this job on the portal will appear here with their contact info, resume, and screener answers.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {jobApplicants.map((app) => {
+                        const seeker = app.seeker || {};
+                        const user = seeker.user || {};
+                        const answers = app.customAnswers;
+
+                        return (
+                          <div
+                            key={app.id}
+                            className="bg-slate-50 hover:bg-white rounded-2xl border border-slate-200 p-4 space-y-3 transition shadow-2xs"
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/80 pb-2.5">
+                              <div>
+                                <h4 className="font-black text-sm text-slate-900">
+                                  {seeker.fullName || 'Candidate'}
+                                </h4>
+                                <div className="text-[11px] text-slate-500 flex flex-wrap items-center gap-2 mt-0.5">
+                                  <span>📧 {user.email || 'Email not listed'}</span>
+                                  {user.phone && <span>• 📞 {user.phone}</span>}
+                                  <span>• 🕒 Applied: {new Date(app.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase ${
+                                  app.status === 'SHORTLISTED'
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                    : app.status === 'REJECTED'
+                                    ? 'bg-red-100 text-red-800 border border-red-300'
+                                    : 'bg-amber-100 text-amber-800 border border-amber-300'
+                                }`}>
+                                  {app.status}
+                                </span>
+
+                                {app.status !== 'SHORTLISTED' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateApplicantStatus(app.id, 'SHORTLISTED')}
+                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-lg transition cursor-pointer"
+                                  >
+                                    Shortlist
+                                  </button>
+                                )}
+                                {app.status !== 'REJECTED' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateApplicantStatus(app.id, 'REJECTED')}
+                                    className="px-2.5 py-1 bg-white hover:bg-red-50 text-red-600 border border-red-200 font-bold text-[11px] rounded-lg transition cursor-pointer"
+                                  >
+                                    Reject
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Candidate Metrics */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                              <div className="bg-white p-2 rounded-xl border border-slate-200">
+                                <span className="text-[10px] text-slate-400 block font-bold uppercase">CURRENT CTC</span>
+                                <span className="font-bold text-slate-900">
+                                  {app.currentSalary ? `₹${(app.currentSalary / 100000).toFixed(1)} LPA` : 'Not Disclosed'}
+                                </span>
+                              </div>
+                              <div className="bg-white p-2 rounded-xl border border-slate-200">
+                                <span className="text-[10px] text-slate-400 block font-bold uppercase">EXPECTED CTC</span>
+                                <span className="font-bold text-emerald-700">
+                                  {app.expectedSalary ? `₹${(app.expectedSalary / 100000).toFixed(1)} LPA` : 'Open'}
+                                </span>
+                              </div>
+                              <div className="bg-white p-2 rounded-xl border border-slate-200">
+                                <span className="text-[10px] text-slate-400 block font-bold uppercase">NOTICE PERIOD</span>
+                                <span className="font-bold text-slate-900">
+                                  {app.noticePeriod || 'Immediate'}
+                                </span>
+                              </div>
+                              <div className="bg-white p-2 rounded-xl border border-slate-200 flex items-center justify-between">
+                                <div>
+                                  <span className="text-[10px] text-slate-400 block font-bold uppercase">RESUME</span>
+                                  {app.resumeUrl ? (
+                                    <a
+                                      href={app.resumeUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="font-bold text-blue-600 hover:underline flex items-center gap-1 text-[11px]"
+                                    >
+                                      <span>View PDF</span>
+                                      <OpenInNewOutlinedIcon sx={{ fontSize: 12 }} />
+                                    </a>
+                                  ) : (
+                                    <span className="text-slate-400 text-[11px]">No file</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Candidate Screener Question Answers */}
+                            {answers && (
+                              <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-1.5">
+                                <span className="text-[10px] font-black uppercase text-slate-400 block">
+                                  SCREENER QUESTION RESPONSES
+                                </span>
+                                {Array.isArray(answers) ? (
+                                  <div className="space-y-1 text-xs">
+                                    {answers.map((ans: any, idx: number) => (
+                                      <div key={idx} className="bg-slate-50 p-2 rounded-lg">
+                                        <span className="font-bold text-slate-700 block text-[11px]">
+                                          Q: {ans.question || ans.questionId}
+                                        </span>
+                                        <span className="text-slate-900 font-medium block mt-0.5">
+                                          A: {Array.isArray(ans.answer) ? ans.answer.join(', ') : String(ans.answer || 'No answer')}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : typeof answers === 'object' ? (
+                                  <div className="space-y-1 text-xs">
+                                    {Object.entries(answers).map(([k, v]: [string, any], idx: number) => (
+                                      <div key={idx} className="bg-slate-50 p-2 rounded-lg">
+                                        <span className="font-bold text-slate-700 block text-[11px]">Q: {k}</span>
+                                        <span className="text-slate-900 font-medium block mt-0.5">
+                                          A: {Array.isArray(v) ? v.join(', ') : String(v || 'No answer')}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-600">{String(answers)}</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 2: JOB DETAILS */}
+              {jobModalTab === 'DETAILS' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Category</span>
+                      <span className="font-bold text-slate-900 text-xs sm:text-sm">{selectedJobForView.category || 'Sales'}</span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Location</span>
+                      <span className="font-bold text-slate-900 text-xs sm:text-sm">{selectedJobForView.location || 'India'}</span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Salary Package</span>
+                      <span className="font-bold text-emerald-700 text-xs sm:text-sm">
+                        {selectedJobForView.salaryMin && selectedJobForView.salaryMax
+                          ? `₹${(selectedJobForView.salaryMin / 100000).toFixed(1)} – ₹${(selectedJobForView.salaryMax / 100000).toFixed(1)} LPA`
+                          : 'Competitive / Disclosed'}
+                      </span>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Work Mode</span>
+                      <span className="font-bold text-slate-900 text-xs sm:text-sm">{selectedJobForView.workMode || 'On-site'}</span>
+                    </div>
+                  </div>
+
+                  {selectedJobForView.description && (
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-1.5">
+                      <span className="text-[10px] font-black uppercase text-slate-400 block">Job Description</span>
+                      <p className="text-slate-800 leading-relaxed whitespace-pre-line text-xs">
+                        {selectedJobForView.description}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedJobForView.skills && (
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-1.5">
+                      <span className="text-[10px] font-black uppercase text-slate-400 block">Required Skills</span>
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {String(selectedJobForView.skills)
+                          .replace(/[\[\]"]/g, '')
+                          .split(',')
+                          .map((sk: string, i: number) => sk.trim() && (
+                            <span key={i} className="px-2.5 py-0.5 bg-white border border-slate-200 rounded-md font-semibold text-slate-800 text-[11px]">
+                              {sk.trim()}
+                            </span>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 sm:p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+              <span className="text-[11px] text-slate-500">
+                Job ID: <code className="font-mono text-[10px]">{selectedJobForView.id}</code>
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedJobForView(null)}
+                className="px-5 py-2 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Post Special Job Modal */}
+      <AdminPostSpecialJobModal
+        isOpen={isPostSpecialJobOpen}
+        onClose={() => setIsPostSpecialJobOpen(false)}
+        onJobCreated={() => {
+          fetchAdminData(true);
+          showToast('Special job created and published live on portal!');
+        }}
+        companies={specialJobCompanies}
+      />
+
+      {/* Add / Edit Special Company Modal */}
+      {isSpecialCompanyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs font-['Helvetica',Arial,sans-serif]">
+          <div 
+            className="w-full max-w-md bg-white rounded-2xl p-5 shadow-2xl border border-slate-200 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-[#b2c359]/20 text-[#658A0D] flex items-center justify-center">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <h3 className="font-bold text-sm text-slate-900">
+                  {editingSpecialCompanyIndex !== null ? 'Edit Enterprise Brand' : 'Add Enterprise Brand Company'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSpecialCompanyModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <CloseOutlinedIcon sx={{ fontSize: 18 }} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSpecialCompany} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Company / Developer Brand Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={companyFormName}
+                  onChange={(e) => setCompanyFormName(e.target.value)}
+                  placeholder="e.g. DLF Cybercity / Godrej Properties"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-[#b2c359]"
+                  autoFocus
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  This brand name appears on portal job cards, filters, and in the &quot;Post Special Job&quot; dropdown.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Company Logo URL (Optional)
+                </label>
+                <input
+                  type="url"
+                  value={companyFormLogoUrl}
+                  onChange={(e) => setCompanyFormLogoUrl(e.target.value)}
+                  placeholder="https://.../logo.png or Cloudinary/Imgur direct link"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-[#b2c359]"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Paste a direct image link (PNG, JPG, SVG). This logo will display on the sidebar and job cards.
+                </p>
+                {companyFormLogoUrl.trim() && (
+                  <div className="mt-2 p-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center gap-3">
+                    <span className="text-[10px] font-bold text-slate-500">Logo Preview:</span>
+                    <div className="h-8 w-24 bg-white border border-slate-200 rounded flex items-center justify-center p-1 overflow-hidden">
+                      <img
+                        src={companyFormLogoUrl.trim()}
+                        alt="Logo Preview"
+                        className="max-h-6 max-w-full object-contain"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Careers / Official Website URL (Optional)
+                </label>
+                <input
+                  type="url"
+                  value={companyFormWebsiteUrl}
+                  onChange={(e) => setCompanyFormWebsiteUrl(e.target.value)}
+                  placeholder="https://www.company.com/careers"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:border-[#b2c359]"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsSpecialCompanyModalOpen(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!companyFormName.trim()}
+                  className="px-5 py-2 bg-[#b2c359] hover:bg-[#84b21d] disabled:opacity-50 text-slate-950 text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+                >
+                  {editingSpecialCompanyIndex !== null ? 'Save Changes' : 'Add Company'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

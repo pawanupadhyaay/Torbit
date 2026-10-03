@@ -40,7 +40,7 @@ export default function CategoryMaster({ categories }: CategoryMasterProps) {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-100">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-black text-gray-900">32 Real Estate Specialized Categories</h2>
+            <h2 className="text-base font-black text-gray-900">Industry Specialized Categories</h2>
             <span className="bg-lime-100 text-lime-800 text-xs font-black px-2.5 py-0.5 rounded-full">
               Active Taxonomy
             </span>
@@ -57,7 +57,7 @@ export default function CategoryMaster({ categories }: CategoryMasterProps) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search category..."
-            className="w-full pl-9 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#94C322]"
+            className="w-full pl-9 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#b2c359]"
           />
         </div>
       </div>
@@ -66,7 +66,7 @@ export default function CategoryMaster({ categories }: CategoryMasterProps) {
         {filtered.map((cat: any, idx: number) => (
           <div
             key={cat.id || idx}
-            className="p-3.5 rounded-xl border border-gray-200 bg-gray-50/50 hover:bg-white hover:border-[#94C322] transition shadow-xs flex items-center justify-between gap-2"
+            className="p-3.5 rounded-xl border border-gray-200 bg-gray-50/50 hover:bg-white hover:border-[#b2c359] transition shadow-xs flex items-center justify-between gap-2"
           >
             <div className="min-w-0">
               <div className="text-xs font-bold text-gray-900 truncate">{cat.name}</div>

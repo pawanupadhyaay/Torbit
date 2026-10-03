@@ -15,12 +15,12 @@ export default function TopTicker() {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-1.5 flex items-center justify-between gap-2 overflow-hidden">
         {/* Left Side News Ticker */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-          <span className="bg-[#94C322] text-[#111827] font-extrabold px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] uppercase tracking-wider shrink-0">
+          <span className="bg-[#b2c359] text-[#111827] font-extrabold px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] uppercase tracking-wider shrink-0">
             NEWS :
           </span>
           <div className="text-gray-200 truncate text-[11px] min-w-0 flex-1">
             <span>TAN for TDS from October 1</span>
-            <span className="text-[#94C322] mx-1.5">•</span>
+            <span className="text-[#b2c359] mx-1.5">•</span>
             <span className="text-gray-300">Viksit Bharat 2047 real estate infrastructure surge</span>
           </div>
         </div>
@@ -45,16 +45,16 @@ export default function TopTicker() {
           </div>
 
           <div className="hidden lg:flex items-center gap-2 text-gray-400 pl-2 border-l border-gray-700">
-            <a href="https://facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook" className="hover:text-[#94C322] transition flex items-center">
+            <a href="https://facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook" className="hover:text-[#b2c359] transition flex items-center">
               <FacebookIcon sx={{ fontSize: 14 }} />
             </a>
-            <a href="https://linkedin.com" target="_blank" rel="noreferrer" aria-label="LinkedIn" className="hover:text-[#94C322] transition flex items-center">
+            <a href="https://linkedin.com" target="_blank" rel="noreferrer" aria-label="LinkedIn" className="hover:text-[#b2c359] transition flex items-center">
               <LinkedInIcon sx={{ fontSize: 14 }} />
             </a>
-            <a href="https://twitter.com" target="_blank" rel="noreferrer" aria-label="Twitter" className="hover:text-[#94C322] transition flex items-center">
+            <a href="https://twitter.com" target="_blank" rel="noreferrer" aria-label="Twitter" className="hover:text-[#b2c359] transition flex items-center">
               <TwitterIcon sx={{ fontSize: 14 }} />
             </a>
-            <a href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram" className="hover:text-[#94C322] transition flex items-center">
+            <a href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram" className="hover:text-[#b2c359] transition flex items-center">
               <InstagramIcon sx={{ fontSize: 14 }} />
             </a>
           </div>

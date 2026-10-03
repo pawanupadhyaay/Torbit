@@ -15,8 +15,8 @@ module.exports = {
       },
       colors: {
         torbit: {
-          green: "#94C322",
-          greenHover: "#82ad1b",
+          green: "#b2c359",
+          greenHover: "#9eb047",
           dark: "#111827",
           darker: "#0B0F19",
           ink: "#080809"

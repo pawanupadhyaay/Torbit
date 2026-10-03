@@ -1,9 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import TopTicker from '@/common/TopTicker';
 import Header from '@/common/Header';
-import Navbar from '@/common/Navbar';
 import Footer from '@/common/Footer';
 import HeroSection from '@/common/HeroSection';
 import PopularCategories from '@/common/PopularCategories';
@@ -124,9 +122,7 @@ export default function RecruiterPortalRootPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC] pb-16 lg:pb-0">
-      <TopTicker />
       <Header onOpenAuth={handleOpenAuth} />
-      <Navbar />
 
       <HeroSection
         categories={categories}

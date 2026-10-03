@@ -162,7 +162,7 @@ export default function AdminOverview({
               </div>
               <button
                 onClick={() => setActiveTab('APPROVALS')}
-                className="text-xs font-bold text-[#94C322] hover:text-[#82ad1b] transition flex items-center gap-1"
+                className="text-xs font-bold text-[#b2c359] hover:text-[#9eb047] transition flex items-center gap-1"
               >
                 <span>View All ({pendingCompanies.length})</span>
                 <ArrowForwardOutlinedIcon sx={{ fontSize: 14 }} />
@@ -205,7 +205,7 @@ export default function AdminOverview({
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         onClick={() => onApprove(comp.id)}
-                        className="bg-[#94C322] hover:bg-[#82ad1b] text-white font-bold text-xs px-3.5 py-1.5 rounded-lg transition shadow-2xs flex items-center gap-1"
+                        className="bg-[#b2c359] hover:bg-[#9eb047] text-white font-bold text-xs px-3.5 py-1.5 rounded-lg transition shadow-2xs flex items-center gap-1"
                       >
                         <CheckOutlinedIcon sx={{ fontSize: 14 }} />
                         <span>Approve</span>
@@ -247,7 +247,7 @@ export default function AdminOverview({
               {recentJobs && recentJobs.length > 0 ? (
                 recentJobs.slice(0, 4).map((job: any, idx: number) => (
                   <div key={idx} className="flex items-start gap-2.5 text-xs p-2.5 rounded-xl hover:bg-gray-50 transition border border-gray-100">
-                    <div className="w-2 h-2 rounded-full bg-[#94C322] mt-1.5 shrink-0" />
+                    <div className="w-2 h-2 rounded-full bg-[#b2c359] mt-1.5 shrink-0" />
                     <div className="min-w-0 flex-1">
                       <p className="text-gray-900 font-bold truncate">
                         {job.title}
@@ -270,7 +270,7 @@ export default function AdminOverview({
           <div className="mt-4 pt-3.5 border-t border-gray-100">
             <button
               onClick={() => setActiveTab('JOBS')}
-              className="w-full text-center text-xs font-bold text-[#080809] hover:text-[#94C322] transition flex items-center justify-center gap-1"
+              className="w-full text-center text-xs font-bold text-[#080809] hover:text-[#b2c359] transition flex items-center justify-center gap-1"
             >
               <span>Manage All Active Vacancies</span>
               <ArrowForwardOutlinedIcon sx={{ fontSize: 14 }} />

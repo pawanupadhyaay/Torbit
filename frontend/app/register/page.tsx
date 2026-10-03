@@ -1,9 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import TopTicker from '@/common/TopTicker';
 import Header from '@/common/Header';
-import Navbar from '@/common/Navbar';
 import Footer from '@/common/Footer';
 import AuthModal from '@/common/AuthModal';
 import SeekerSignUpCard from '@/job-seeker/SeekerSignUpCard';
@@ -34,9 +32,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC] font-['Helvetica',Arial,sans-serif]">
-      <TopTicker />
       <Header onOpenAuth={(role, tab) => { setAuthModalTab(tab || 'LOGIN'); setAuthModalOpen(true); }} />
-      <Navbar />
 
       <main className="flex-1 max-w-7xl mx-auto px-4 py-4 sm:py-6 w-full">
         {/* Page Heading & Clean Role Toggle */}
@@ -61,7 +57,7 @@ export default function RegisterPage() {
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              <User className="w-3.5 h-3.5 text-[#94C322]" />
+              <User className="w-3.5 h-3.5 text-[#b2c359]" />
               <span>Job Seeker</span>
             </button>
             <button
@@ -113,10 +109,10 @@ export default function RegisterPage() {
       {verifiedGst && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 text-center shadow-2xl border border-lime-200 animate-in fade-in zoom-in-95 duration-200">
-            <div className="w-14 h-14 bg-lime-100 text-[#94C322] rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <Clock className="w-7 h-7 text-[#94C322]" />
+            <div className="w-14 h-14 bg-lime-100 text-[#b2c359] rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <Clock className="w-7 h-7 text-[#b2c359]" />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#94C322] block mb-1">
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#b2c359] block mb-1">
               APPLICATION SUBMITTED
             </span>
             <h3 className="text-xl font-black text-gray-900 mb-2">Account Under Verification</h3>
@@ -126,7 +122,7 @@ export default function RegisterPage() {
               <div className="bg-[#181C20] text-white p-3 rounded-2xl mb-4 text-left flex items-center justify-between border border-slate-700">
                 <div>
                   <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block">Reference ID</span>
-                  <span className="font-mono text-sm font-black text-[#94C322] tracking-wider">{verifiedRef}</span>
+                  <span className="font-mono text-sm font-black text-[#b2c359] tracking-wider">{verifiedRef}</span>
                 </div>
                 <button
                   type="button"
@@ -161,7 +157,7 @@ export default function RegisterPage() {
                 setVerifiedGst(null);
                 window.location.href = '/';
               }}
-              className="w-full bg-[#94C322] hover:bg-[#82ad1b] text-gray-900 font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider transition shadow-xs cursor-pointer"
+              className="w-full bg-[#b2c359] hover:bg-[#9eb047] text-gray-900 font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider transition shadow-xs cursor-pointer"
             >
               Done / Back to Home
             </button>

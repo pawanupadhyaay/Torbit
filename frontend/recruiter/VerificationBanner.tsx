@@ -17,7 +17,7 @@ export default function VerificationBanner({ status, rejectionReason }: Verifica
         <div>
           <h4 className="text-xs font-bold text-emerald-950">Company Verified & Active</h4>
           <p className="text-[11px] text-emerald-800 mt-0.5">
-            Your recruiter credentials and GSTIN have been validated by Torbit Admin. You have full access to publish jobs across all 32 real estate categories.
+            Your recruiter credentials and GSTIN have been validated by Torbit Admin. You have full access to publish jobs across all industry categories.
           </p>
         </div>
       </div>

@@ -71,7 +71,7 @@ async function cleanDatabase() {
         data: {
           name: cat,
           slug,
-          iconColor: "#94C322",
+          iconColor: "#b2c359",
           jobCount: 0,
           isPopular: false
         }

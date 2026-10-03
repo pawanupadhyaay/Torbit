@@ -11,15 +11,15 @@ module.exports = {
     extend: {
       colors: {
         torbit: {
-          green: "#94C322",
-          greenHover: "#82ad1b",
+          green: "#b2c359",
+          greenHover: "#9eb047",
           dark: "#111827",
           darker: "#0B0F19",
           ink: "#080809"
         },
         brand: {
-          primary: '#94C322',
-          hover: '#82ad1b',
+          primary: '#b2c359',
+          hover: '#9eb047',
           dark: '#080809',
           slate: '#0F172A',
         }

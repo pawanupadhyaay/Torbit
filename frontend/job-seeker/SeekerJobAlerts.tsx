@@ -21,6 +21,8 @@ import {
   AlertCircle
 } from 'lucide-react';
 import ApplyJobModal from './ApplyJobModal';
+import JobDetailsModal from '@/common/JobDetailsModal';
+import JobApplicationView from './JobApplicationView';
 
 interface JobAlertItem {
   id: string;
@@ -118,6 +120,10 @@ export default function SeekerJobAlerts() {
   const [matchingJobs, setMatchingJobs] = useState<any[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(false);
   const [sendingDigestId, setSendingDigestId] = useState<string | null>(null);
+
+  // Details Modal state
+  const [selectedJobForDetails, setSelectedJobForDetails] = useState<any | null>(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
 
   // Apply Modal state
   const [selectedJobToApply, setSelectedJobToApply] = useState<any | null>(null);
@@ -328,6 +334,19 @@ export default function SeekerJobAlerts() {
     }
   };
 
+  if (selectedJobToApply) {
+    return (
+      <JobApplicationView
+        job={selectedJobToApply}
+        onBack={() => setSelectedJobToApply(null)}
+        onApplicationSubmitted={() => {
+          setSelectedJobToApply(null);
+          showToast('success', `Application submitted successfully for ${selectedJobToApply.title}!`);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6 font-['Helvetica',Arial,sans-serif] max-w-5xl mx-auto pb-12">
       
@@ -345,7 +364,7 @@ export default function SeekerJobAlerts() {
           <div className="flex items-center gap-2.5">
             {notification.type === 'success' && <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />}
             {notification.type === 'error' && <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />}
-            {notification.type === 'info' && <Bell className="w-4 h-4 text-[#94C322] shrink-0" />}
+            {notification.type === 'info' && <Bell className="w-4 h-4 text-[#b2c359] shrink-0" />}
             <span>{notification.message}</span>
           </div>
           <button
@@ -363,7 +382,7 @@ export default function SeekerJobAlerts() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-gray-100">
           <div>
             <h2 className="text-base sm:text-lg font-black text-gray-900 flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-[#94C322]/15 text-[#7ea81b]">
+              <span className="p-1.5 rounded-lg bg-[#b2c359]/15 text-[#7ea81b]">
                 <Bell className="w-4 h-4" />
               </span>
               <span>Enterprise Job Alerts &amp; Notifications</span>
@@ -388,7 +407,7 @@ export default function SeekerJobAlerts() {
         {/* Quick Suggestion Chips */}
         <div>
           <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-[#94C322]" />
+            <Sparkles className="w-3 h-3 text-[#b2c359]" />
             <span>Popular Roles in Real Estate:</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -399,7 +418,7 @@ export default function SeekerJobAlerts() {
                 onClick={() => setTitle(preset)}
                 className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition cursor-pointer ${
                   title === preset
-                    ? 'bg-[#94C322] text-slate-950 border-[#94C322] shadow-xs'
+                    ? 'bg-[#b2c359] text-slate-950 border-[#b2c359] shadow-xs'
                     : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
@@ -426,7 +445,7 @@ export default function SeekerJobAlerts() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Sales Director, Channel Partner Lead..."
-                  className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-[13px] font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] focus:bg-white focus:ring-1 focus:ring-[#94C322] transition"
+                  className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-[13px] font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] focus:bg-white focus:ring-1 focus:ring-[#b2c359] transition"
                 />
               </div>
             </div>
@@ -439,7 +458,7 @@ export default function SeekerJobAlerts() {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-[#94C322] focus:bg-white transition cursor-pointer"
+                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-[#b2c359] focus:bg-white transition cursor-pointer"
               >
                 {categoriesList.map((dept) => (
                   <option key={dept} value={dept}>
@@ -457,7 +476,7 @@ export default function SeekerJobAlerts() {
               <select
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-[#94C322] focus:bg-white transition cursor-pointer"
+                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-[#b2c359] focus:bg-white transition cursor-pointer"
               >
                 {LOCATIONS_LIST.map((loc) => (
                   <option key={loc} value={loc}>
@@ -475,7 +494,7 @@ export default function SeekerJobAlerts() {
               <select
                 value={frequency}
                 onChange={(e) => setFrequency(e.target.value)}
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-[#94C322] focus:bg-white transition cursor-pointer"
+                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-[#b2c359] focus:bg-white transition cursor-pointer"
               >
                 <option value="Daily Instant Alert">⚡ Daily Instant</option>
                 <option value="Weekly Digest">📅 Weekly Digest</option>
@@ -491,7 +510,7 @@ export default function SeekerJobAlerts() {
               <select
                 value={minSalary}
                 onChange={(e) => setMinSalary(e.target.value)}
-                className="bg-gray-100 border border-gray-200 text-gray-800 font-bold text-xs rounded-lg px-2.5 py-1 focus:outline-none focus:border-[#94C322] cursor-pointer"
+                className="bg-gray-100 border border-gray-200 text-gray-800 font-bold text-xs rounded-lg px-2.5 py-1 focus:outline-none focus:border-[#b2c359] cursor-pointer"
               >
                 <option value="Competitive">Competitive / Any</option>
                 <option value="₹6 - ₹10 LPA">₹6 - ₹10 LPA</option>
@@ -504,7 +523,7 @@ export default function SeekerJobAlerts() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full sm:w-auto bg-[#94C322] hover:bg-[#82ad1b] disabled:opacity-60 text-slate-950 font-black text-xs sm:text-[13px] py-2.5 px-6 rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+              className="w-full sm:w-auto bg-[#b2c359] hover:bg-[#9eb047] disabled:opacity-60 text-slate-950 font-black text-xs sm:text-[13px] py-2.5 px-6 rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
             >
               {submitting ? (
                 <>
@@ -541,7 +560,7 @@ export default function SeekerJobAlerts() {
         {/* Loading State */}
         {loading && (
           <div className="py-12 text-center space-y-3">
-            <Loader2 className="w-8 h-8 animate-spin text-[#94C322] mx-auto" />
+            <Loader2 className="w-8 h-8 animate-spin text-[#b2c359] mx-auto" />
             <p className="text-xs font-semibold text-gray-500">Loading your subscribed job alerts...</p>
           </div>
         )}
@@ -549,7 +568,7 @@ export default function SeekerJobAlerts() {
         {/* Empty State */}
         {!loading && alerts.length === 0 && (
           <div className="py-12 text-center space-y-3 bg-gray-50/70 rounded-2xl border border-dashed border-gray-200 p-6">
-            <div className="w-12 h-12 rounded-2xl bg-[#94C322]/15 text-[#7ea81b] flex items-center justify-center mx-auto shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-[#b2c359]/15 text-[#7ea81b] flex items-center justify-center mx-auto shadow-xs">
               <Bell className="w-6 h-6" />
             </div>
             <div className="space-y-1 max-w-md mx-auto">
@@ -573,7 +592,7 @@ export default function SeekerJobAlerts() {
                   key={alert.id}
                   className={`p-4 sm:p-5 rounded-2xl border transition-all ${
                     alert.emailActive
-                      ? 'bg-white border-gray-200 hover:border-[#94C322]/60 hover:shadow-sm'
+                      ? 'bg-white border-gray-200 hover:border-[#b2c359]/60 hover:shadow-sm'
                       : 'bg-gray-50/80 border-gray-200/80 opacity-75'
                   }`}
                 >
@@ -649,7 +668,7 @@ export default function SeekerJobAlerts() {
                         title="Send matching jobs digest to registered email right now"
                       >
                         {isSendingDigest ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin text-[#94C322]" />
+                          <Loader2 className="w-3.5 h-3.5 animate-spin text-[#b2c359]" />
                         ) : (
                           <Send className="w-3.5 h-3.5 text-gray-500" />
                         )}
@@ -673,7 +692,7 @@ export default function SeekerJobAlerts() {
                         className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition cursor-pointer ${
                           alert.emailActive
                             ? 'border-gray-200 text-gray-700 hover:bg-gray-100'
-                            : 'border-[#94C322] bg-[#94C322]/20 text-slate-950 font-black'
+                            : 'border-[#b2c359] bg-[#b2c359]/20 text-slate-950 font-black'
                         }`}
                       >
                         {alert.emailActive ? 'Pause' : 'Resume'}
@@ -709,7 +728,7 @@ export default function SeekerJobAlerts() {
             <div className="p-4 sm:p-6 bg-[#080809] text-white flex items-center justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[#94C322]" />
+                  <Sparkles className="w-4 h-4 text-[#b2c359]" />
                   <h3 className="font-black text-sm sm:text-base text-white">
                     Live Openings for &ldquo;{selectedAlertForMatches.title}&rdquo;
                   </h3>
@@ -731,7 +750,7 @@ export default function SeekerJobAlerts() {
             <div className="p-4 sm:p-6 overflow-y-auto space-y-3 flex-1">
               {loadingMatches && (
                 <div className="py-12 text-center space-y-3">
-                  <Loader2 className="w-7 h-7 animate-spin text-[#94C322] mx-auto" />
+                  <Loader2 className="w-7 h-7 animate-spin text-[#b2c359] mx-auto" />
                   <p className="text-xs text-gray-500 font-bold">Scanning active enterprise vacancies...</p>
                 </div>
               )}
@@ -753,11 +772,15 @@ export default function SeekerJobAlerts() {
                   {matchingJobs.map((job) => (
                     <div
                       key={job.id}
-                      className="p-4 rounded-2xl border border-gray-200 hover:border-[#94C322] bg-white transition-all space-y-2.5 shadow-2xs"
+                      onClick={() => {
+                        setSelectedJobForDetails(job);
+                        setDetailsModalOpen(true);
+                      }}
+                      className="p-4 rounded-2xl border border-gray-200 hover:border-[#b2c359] bg-white transition-all space-y-2.5 shadow-2xs cursor-pointer group text-left"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <h4 className="font-black text-sm text-gray-900">{job.title}</h4>
+                          <h4 className="font-black text-sm text-gray-900 group-hover:text-[#647a16] transition">{job.title}</h4>
                           <div className="text-xs font-semibold text-gray-600 flex items-center gap-1.5 mt-0.5">
                             <Building2 className="w-3.5 h-3.5 text-gray-400" />
                             <span>{job.company?.companyName || 'Torbit Verified Partner'}</span>
@@ -789,15 +812,29 @@ export default function SeekerJobAlerts() {
                         <span className="text-[11px] text-gray-400">
                           Posted on {new Date(job.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedJobToApply(job);
-                          }}
-                          className="px-4 py-1.5 rounded-xl bg-[#94C322] hover:bg-[#82ad1b] text-slate-950 font-black text-xs transition cursor-pointer shadow-xs"
-                        >
-                          1-Click Apply
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedJobForDetails(job);
+                              setDetailsModalOpen(true);
+                            }}
+                            className="px-3 py-1.5 rounded-xl border border-gray-200 hover:bg-gray-100 text-gray-700 font-bold text-xs transition cursor-pointer"
+                          >
+                            View Details
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedJobToApply(job);
+                            }}
+                            className="px-4 py-1.5 rounded-xl bg-[#b2c359] hover:bg-[#9eb047] text-slate-950 font-black text-xs transition cursor-pointer shadow-xs"
+                          >
+                            Apply →
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -824,8 +861,20 @@ export default function SeekerJobAlerts() {
       )}
 
       {/* ========================================================= */}
-      {/* 4. APPLY JOB MODAL INTEGRATION */}
+      {/* 4. JOB DETAILS & APPLY MODAL INTEGRATION */}
       {/* ========================================================= */}
+      {selectedJobForDetails && (
+        <JobDetailsModal
+          isOpen={detailsModalOpen}
+          job={selectedJobForDetails}
+          onClose={() => setDetailsModalOpen(false)}
+          onApply={(job) => {
+            setDetailsModalOpen(false);
+            setSelectedJobToApply(job);
+          }}
+        />
+      )}
+
       {selectedJobToApply && (
         <ApplyJobModal
           isOpen={Boolean(selectedJobToApply)}

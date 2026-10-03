@@ -1,7 +1,8 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { X, Eye, EyeOff, AlertCircle, Clock, ShieldCheck, User, Building2, ArrowRight, ArrowLeft, CheckCircle2, Mail, RefreshCw, Lock, KeyRound, FileText, Upload, Check, Copy } from 'lucide-react';
+import { X, Eye, EyeOff, AlertCircle, Clock, ShieldCheck, User, Building2, ArrowRight, ArrowLeft, CheckCircle2, Mail, RefreshCw, Lock, KeyRound, FileText, Upload, Check, Copy, Loader2 } from 'lucide-react';
 import { QUALIFICATIONS, QUALIFICATION_CATEGORIES, EXPERIENCE_RANGES } from '@/lib/constants';
+import GoogleAuthButton from '@/common/GoogleAuthButton';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export default function AuthModal({
   const [seekerPassword, setSeekerPassword] = useState('');
   const [seekerConfirmPassword, setSeekerConfirmPassword] = useState('');
   const [seekerQualification, setSeekerQualification] = useState('Graduate (B.Tech / B.E / B.Sc / B.Com / BBA)');
+  const [seekerCustomQualification, setSeekerCustomQualification] = useState('');
   const [seekerExperience, setSeekerExperience] = useState('1–3 years');
   const [seekerAgree, setSeekerAgree] = useState(true);
   const [showSeekerPass, setShowSeekerPass] = useState(false);
@@ -85,6 +87,7 @@ export default function AuthModal({
   const [forgotError, setForgotError] = useState<string | null>(null);
   const [forgotNotice, setForgotNotice] = useState<string | null>(null);
   const [forgotResendCooldown, setForgotResendCooldown] = useState(0);
+  const [forgotRoleLabel, setForgotRoleLabel] = useState<string | null>(null);
 
   // Force Password Reset State (First-time Recruiter login with temporary password)
   const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
@@ -130,10 +133,15 @@ export default function AuthModal({
         setLoginRole('JOB_SEEKER');
       }
       setForgotStep('CLOSED');
+      setShowVerificationPopup(false);
+      setRegistrationRefId(null);
+      setShowPasswordChangeModal(false);
       setError(null);
       setSeekerOtpNotice(null);
       document.body.style.overflow = 'hidden';
     } else {
+      setShowVerificationPopup(false);
+      setRegistrationRefId(null);
       document.body.style.overflow = 'unset';
     }
 
@@ -220,13 +228,43 @@ export default function AuthModal({
     e.preventDefault();
     setError(null);
 
-    if (!seekerName || !seekerEmail || !seekerPhone || !seekerPassword) {
+    const cleanName = seekerName.trim();
+    if (!cleanName || !seekerEmail || !seekerPhone || !seekerPassword) {
       setError('Please fill in all mandatory fields.');
+      return;
+    }
+
+    // Strict alphabet and space validation for Full Name
+    const nameRegex = /^[a-zA-Z\s\.\']+$/;
+    if (!nameRegex.test(cleanName)) {
+      setError('Full Name must only contain alphabetical characters (letters and spaces only).');
+      return;
+    }
+    if (cleanName.length < 2) {
+      setError('Full Name must be at least 2 characters long.');
+      return;
+    }
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(seekerEmail.trim())) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    const cleanPhone = seekerPhone.trim().replace(/[\s\-]/g, '');
+    const phoneRegex = /^(\+91|0)?[6-9]\d{9}$/;
+    if (!phoneRegex.test(cleanPhone)) {
+      setError('Please enter a valid 10-digit mobile number (e.g. 9811002233).');
       return;
     }
 
     if (!isSeekerEmailVerified) {
       setError('Please verify your email address via OTP before creating your account.');
+      return;
+    }
+
+    if (seekerPassword.length < 6) {
+      setError('Password must be at least 6 characters long.');
       return;
     }
 
@@ -239,17 +277,27 @@ export default function AuthModal({
       return;
     }
 
+    if (seekerQualification === 'Others' && !seekerCustomQualification.trim()) {
+      setError('Please specify your qualification.');
+      return;
+    }
+
+    const finalQualification = seekerQualification === 'Others'
+      ? seekerCustomQualification.trim()
+      : seekerQualification;
+
     setSeekerLoading(true);
     try {
       const res = await fetch(getApiEndpoint('/auth/register-seeker'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullName: seekerName,
-          email: seekerEmail,
-          phone: seekerPhone,
-          location: seekerLocation || 'India',
-          qualification: seekerQualification,
+          fullName: cleanName,
+          email: seekerEmail.trim().toLowerCase(),
+          phone: cleanPhone,
+          location: seekerLocation ? seekerLocation.trim() : 'India',
+          dob: seekerDob || null,
+          qualification: finalQualification,
           experience: seekerExperience,
           password: seekerPassword
         })
@@ -263,7 +311,13 @@ export default function AuthModal({
       }
 
       if (onSuccess) onSuccess(data.user);
-      window.location.href = '/seeker/dashboard';
+      const pendingJobId = typeof window !== 'undefined' ? (sessionStorage.getItem('torbit_pending_apply_job_id') || localStorage.getItem('torbit_pending_apply_job_id')) : null;
+      const seekerId = data.user?.seekerProfile?.id || (data.user?.id ? `TOR-JS-${data.user.id.slice(-6).toUpperCase()}` : 'TOR-JS-ME');
+      if (pendingJobId) {
+        window.location.href = `/seeker/dashboard/${seekerId}?applyJobId=${encodeURIComponent(pendingJobId)}`;
+      } else {
+        window.location.href = `/seeker/dashboard/${seekerId}`;
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -390,16 +444,21 @@ export default function AuthModal({
         throw new Error(data.error || 'Registration failed. Please try again.');
       }
 
-      if (data.token) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-      }
-
+      // Note: Recruiter is in PENDING state awaiting Admin approval.
+      // Do NOT set active session token so they are not auto-redirected to recruiter dashboard.
       if (data.referenceId) {
         setRegistrationRefId(data.referenceId);
       }
 
       setShowVerificationPopup(true);
+      // Clean up form inputs for clean subsequent forms
+      setCompanyName('');
+      setWorkEmail('');
+      setCompanyPhone('');
+      setGstNumber('');
+      setGstDocUrl('');
+      setGstDocName('');
+      setHqLocation('');
     } catch (err: any) {
       setError(err.message || 'Registration failed.');
     } finally {
@@ -423,7 +482,8 @@ export default function AuthModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           identifier: loginIdentifier.trim(),
-          password: loginPassword
+          password: loginPassword,
+          rememberMe
         })
       });
 
@@ -447,6 +507,32 @@ export default function AuthModal({
       if (data.token) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('torbit_remember_me', rememberMe ? 'true' : 'false');
+        localStorage.setItem('torbit_last_active_role', data.user?.role || '');
+        localStorage.setItem('torbit_session_saved_at', Date.now().toString());
+
+        if (data.user?.role === 'JOB_SEEKER') {
+          try {
+            sessionStorage.setItem('torbitSeekerSnapshot', JSON.stringify({
+              user: data.user,
+              applications: [],
+              recommendedJobs: []
+            }));
+          } catch (e) {}
+        }
+        if (data.user?.role === 'RECRUITER' || data.user?.role === 'COMPANY') {
+          try {
+            sessionStorage.setItem('torbitRecruiterSnapshot', JSON.stringify({
+              user: data.user,
+              applications: [],
+              jobs: []
+            }));
+          } catch (e) {}
+        }
+        if (data.user?.role === 'ADMIN') {
+          localStorage.setItem('adminToken', data.token);
+          localStorage.setItem('adminUser', JSON.stringify(data.user));
+        }
       }
 
       // Check if this is a first-time recruiter login with a temporary password
@@ -458,15 +544,23 @@ export default function AuthModal({
       if (onSuccess) onSuccess(data.user);
       let destination = data.redirectUrl;
       if (!destination) {
-        if (data.user?.role === 'RECRUITER') {
-          destination = typeof window !== 'undefined' && window.location.port === '3001' ? '/dashboard' : '/recruiter/dashboard';
-        } else if (data.user?.role === 'ADMIN') {
+        if (data.user?.role === 'ADMIN') {
           destination = '/admin/dashboard';
+        } else if (data.user?.role === 'RECRUITER' || data.user?.role === 'COMPANY') {
+          const recId = data.user?.companyProfile?.gstNumber || data.user?.companyProfile?.id || data.user?.id;
+          const basePath = typeof window !== 'undefined' && window.location.port === '3001' ? '/dashboard' : '/recruiter/dashboard';
+          destination = recId ? `${basePath}/${recId}` : basePath;
         } else {
-          destination = '/seeker/dashboard';
+          const pendingJobId = typeof window !== 'undefined' ? (sessionStorage.getItem('torbit_pending_apply_job_id') || localStorage.getItem('torbit_pending_apply_job_id')) : null;
+          const seekerId = data.user?.seekerProfile?.id || (data.user?.id ? `TOR-JS-${data.user.id.slice(-6).toUpperCase()}` : 'TOR-JS-ME');
+          if (pendingJobId) {
+            destination = `/seeker/dashboard/${seekerId}?applyJobId=${encodeURIComponent(pendingJobId)}`;
+          } else {
+            destination = `/seeker/dashboard/${seekerId}`;
+          }
         }
       }
-      if (data.user?.role === 'RECRUITER' && typeof window !== 'undefined' && window.location.port === '3001' && destination.startsWith('/recruiter')) {
+      if ((data.user?.role === 'RECRUITER' || data.user?.role === 'COMPANY') && typeof window !== 'undefined' && window.location.port === '3001' && destination.startsWith('/recruiter')) {
         destination = destination.replace('/recruiter', '') || '/dashboard';
       }
       window.location.href = destination;
@@ -567,6 +661,7 @@ export default function AuthModal({
         throw new Error(data.error || 'Failed to dispatch reset code.');
       }
 
+      setForgotRoleLabel(data.roleLabel || (data.role === 'JOB_SEEKER' ? 'Job Seeker' : (data.role === 'RECRUITER' ? 'Recruiter / Employer' : 'Administrator')));
       setForgotStep('VERIFY_OTP');
       setForgotResendCooldown(30);
       setForgotNotice(`A 6-digit password reset OTP has been emailed to ${forgotEmail.trim().toLowerCase()}.`);
@@ -577,7 +672,7 @@ export default function AuthModal({
     }
   };
 
-  // 6. Handle Forgot Password - Verify OTP & Set New Password
+  // 6. Handle Forgot Password - Verify OTP & Set New Password & Direct Auto-Login
   const handleResetPasswordWithOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setForgotError(null);
@@ -613,6 +708,67 @@ export default function AuthModal({
         throw new Error(data.error || 'Failed to reset password.');
       }
 
+      // Automatically store session and direct redirect to role panel
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('torbit_remember_me', 'true');
+        localStorage.setItem('torbit_last_active_role', data.user?.role || '');
+        localStorage.setItem('torbit_session_saved_at', Date.now().toString());
+
+        if (data.user?.role === 'JOB_SEEKER') {
+          try {
+            sessionStorage.setItem('torbitSeekerSnapshot', JSON.stringify({
+              user: data.user,
+              applications: [],
+              recommendedJobs: []
+            }));
+          } catch (e) {}
+        }
+        if (data.user?.role === 'RECRUITER' || data.user?.role === 'COMPANY') {
+          try {
+            sessionStorage.setItem('torbitRecruiterSnapshot', JSON.stringify({
+              user: data.user,
+              applications: [],
+              jobs: []
+            }));
+          } catch (e) {}
+        }
+        if (data.user?.role === 'ADMIN') {
+          localStorage.setItem('adminToken', data.token);
+          localStorage.setItem('adminUser', JSON.stringify(data.user));
+        }
+
+        let destination = data.redirectUrl;
+        if (!destination) {
+          if (data.user?.role === 'ADMIN') {
+            destination = '/admin/dashboard';
+          } else if (data.user?.role === 'RECRUITER') {
+            destination = typeof window !== 'undefined' && window.location.port === '3001' ? '/dashboard' : '/recruiter/dashboard';
+          } else {
+            const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+            const pendingJobId = urlParams.get('jobId') || 
+              (typeof window !== 'undefined' ? (sessionStorage.getItem('torbit_pending_apply_job_id') || localStorage.getItem('torbit_pending_apply_job_id')) : null);
+            const seekerId = data.user?.seekerProfile?.id || (data.user?.id ? `TOR-JS-${data.user.id.slice(-6).toUpperCase()}` : 'TOR-JS-ME');
+            if (pendingJobId) {
+              destination = `/seeker/dashboard/${seekerId}?applyJobId=${encodeURIComponent(pendingJobId)}`;
+            } else {
+              destination = `/seeker/dashboard/${seekerId}`;
+            }
+          }
+        }
+
+        if (data.user?.role === 'RECRUITER' && typeof window !== 'undefined' && window.location.port === '3001' && destination.startsWith('/recruiter')) {
+          destination = destination.replace('/recruiter', '') || '/dashboard';
+        }
+
+        setForgotNotice('Password reset successful! Logging you in...');
+        setTimeout(() => {
+          window.location.href = destination;
+        }, 500);
+        return;
+      }
+
       setForgotStep('SUCCESS');
     } catch (err: any) {
       setForgotError(err.message || 'Error updating password.');
@@ -634,10 +790,10 @@ export default function AuthModal({
             >
               <X className="w-5 h-5" />
             </button>
-            <div className="w-12 h-12 bg-[#94C322] text-[#080809] rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xs">
+            <div className="w-12 h-12 bg-[#b2c359] text-[#080809] rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xs">
               <KeyRound className="w-6 h-6 text-[#080809]" />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#94C322] block mb-1">
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#b2c359] block mb-1">
               ACCOUNT SECURITY
             </span>
             <h3 className="text-xl font-black text-white tracking-tight">
@@ -675,14 +831,14 @@ export default function AuthModal({
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                     placeholder="e.g. hr@company.com or candidate@gmail.com"
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition"
+                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={forgotLoading || !forgotEmail}
-                  className="w-full bg-[#94C322] hover:bg-[#85b21c] text-[#080809] font-bold text-xs uppercase tracking-wider py-3.5 rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className="w-full bg-[#b2c359] hover:bg-[#85b21c] text-[#080809] font-bold text-xs uppercase tracking-wider py-3.5 rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   <span>{forgotLoading ? 'Sending Reset OTP...' : 'Send OTP Reset Code →'}</span>
                 </button>
@@ -701,6 +857,15 @@ export default function AuthModal({
 
             {forgotStep === 'VERIFY_OTP' && (
               <form onSubmit={handleResetPasswordWithOtp} className="space-y-3.5">
+                {forgotRoleLabel && (
+                  <div className="flex items-center justify-between bg-lime-50/70 border border-lime-200/80 px-3 py-2 rounded-xl text-[11px]">
+                    <span className="text-gray-600 font-medium">Account: <strong className="text-gray-950 font-bold">{forgotEmail}</strong></span>
+                    <span className="bg-[#b2c359] text-[#080809] font-black px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">
+                      {forgotRoleLabel}
+                    </span>
+                  </div>
+                )}
+
                 <div>
                   <div className="flex justify-between items-center mb-1">
                     <label className="font-bold text-gray-800">6-Digit Verification OTP *</label>
@@ -708,7 +873,7 @@ export default function AuthModal({
                       type="button"
                       disabled={forgotResendCooldown > 0 || forgotLoading}
                       onClick={() => handleSendForgotOtp()}
-                      className="text-[11px] text-[#94C322] font-bold hover:underline disabled:opacity-50"
+                      className="text-[11px] text-[#b2c359] font-bold hover:underline disabled:opacity-50"
                     >
                       {forgotResendCooldown > 0 ? `Resend in ${forgotResendCooldown}s` : 'Resend Code'}
                     </button>
@@ -720,7 +885,7 @@ export default function AuthModal({
                     value={forgotOtp}
                     onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, ''))}
                     placeholder="123456"
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-center text-sm font-mono tracking-widest font-bold text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-[#94C322] bg-white transition"
+                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-center text-sm font-mono tracking-widest font-bold text-gray-900 placeholder:text-gray-300 focus:outline-none focus:border-[#b2c359] bg-white transition"
                   />
                 </div>
 
@@ -733,7 +898,7 @@ export default function AuthModal({
                       value={forgotNewPassword}
                       onChange={(e) => setForgotNewPassword(e.target.value)}
                       placeholder="At least 6 characters"
-                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white pr-9 transition"
+                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white pr-9 transition"
                     />
                     <button
                       type="button"
@@ -754,7 +919,7 @@ export default function AuthModal({
                       value={forgotConfirmPassword}
                       onChange={(e) => setForgotConfirmPassword(e.target.value)}
                       placeholder="Re-enter password"
-                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white pr-9 transition"
+                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white pr-9 transition"
                     />
                     <button
                       type="button"
@@ -770,9 +935,9 @@ export default function AuthModal({
                   <button
                     type="submit"
                     disabled={forgotLoading}
-                    className="w-full bg-[#94C322] hover:bg-[#85b21c] text-[#080809] font-bold text-xs uppercase tracking-wider py-3.5 rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="w-full bg-[#b2c359] hover:bg-[#85b21c] text-[#080809] font-bold text-xs uppercase tracking-wider py-3.5 rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
-                    <span>{forgotLoading ? 'Resetting Password...' : 'Reset Password & Proceed →'}</span>
+                    <span>{forgotLoading ? 'Verifying & Logging In...' : 'Save Password & Sign In →'}</span>
                   </button>
                 </div>
               </form>
@@ -790,7 +955,7 @@ export default function AuthModal({
                     setLoginIdentifier(forgotEmail);
                     setLoginPassword('');
                   }}
-                  className="w-full bg-[#94C322] hover:bg-[#85b21c] text-[#080809] font-bold text-xs uppercase tracking-wider py-3.5 rounded-xl transition shadow-xs cursor-pointer"
+                  className="w-full bg-[#b2c359] hover:bg-[#85b21c] text-[#080809] font-bold text-xs uppercase tracking-wider py-3.5 rounded-xl transition shadow-xs cursor-pointer"
                 >
                   Proceed to Sign In →
                 </button>
@@ -802,10 +967,10 @@ export default function AuthModal({
         <div className="bg-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-gray-200 animate-in fade-in zoom-in-95 duration-200 font-['Helvetica',Arial,sans-serif]">
           {/* Header Banner */}
           <div className="bg-[#181C20] px-6 py-6 text-white text-center relative">
-            <div className="w-12 h-12 bg-[#94C322] text-[#080809] rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xs">
+            <div className="w-12 h-12 bg-[#b2c359] text-[#080809] rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xs">
               <KeyRound className="w-6 h-6 text-[#080809]" />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#94C322] block mb-1">
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#b2c359] block mb-1">
               FIRST TIME RECRUITER LOGIN
             </span>
             <h3 className="text-xl font-black text-white tracking-tight">
@@ -827,7 +992,7 @@ export default function AuthModal({
 
             <div className="bg-lime-50/70 border border-lime-200 p-3.5 rounded-xl text-xs text-lime-950 space-y-1">
               <p className="font-bold flex items-center gap-1.5 text-gray-950">
-                <ShieldCheck className="w-4 h-4 text-[#94C322]" />
+                <ShieldCheck className="w-4 h-4 text-[#b2c359]" />
                 <span>Account Verified via Admin</span>
               </p>
               <p className="text-gray-700 text-[11px] leading-relaxed">
@@ -845,7 +1010,7 @@ export default function AuthModal({
                   value={newPasswordInput}
                   onChange={(e) => setNewPasswordInput(e.target.value)}
                   placeholder="At least 6 characters"
-                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white pr-9 transition"
+                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white pr-9 transition"
                 />
                 <button
                   type="button"
@@ -867,7 +1032,7 @@ export default function AuthModal({
                   value={confirmNewPasswordInput}
                   onChange={(e) => setConfirmNewPasswordInput(e.target.value)}
                   placeholder="Re-enter permanent password"
-                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white pr-9 transition"
+                  className="w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white pr-9 transition"
                 />
                 <button
                   type="button"
@@ -883,7 +1048,7 @@ export default function AuthModal({
               <button
                 type="submit"
                 disabled={newPasswordLoading}
-                className="w-full bg-[#94C322] hover:bg-[#85b21c] text-[#080809] font-bold text-xs uppercase tracking-wider py-3.5 rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="w-full bg-[#b2c359] hover:bg-[#85b21c] text-[#080809] font-bold text-xs uppercase tracking-wider py-3.5 rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
                 <span>{newPasswordLoading ? 'Updating Password...' : 'Save Password & Open Dashboard →'}</span>
               </button>
@@ -892,10 +1057,10 @@ export default function AuthModal({
         </div>
       ) : showVerificationPopup ? (
         <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 text-center shadow-2xl border border-lime-200 animate-in fade-in zoom-in-95 duration-200 font-['Helvetica',Arial,sans-serif]">
-          <div className="w-14 h-14 bg-lime-100 text-[#94C322] rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xs">
-            <Clock className="w-7 h-7 text-[#94C322]" />
+          <div className="w-14 h-14 bg-lime-100 text-[#b2c359] rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xs">
+            <Clock className="w-7 h-7 text-[#b2c359]" />
           </div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-[#94C322] block mb-1">
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#b2c359] block mb-1">
             APPLICATION SUBMITTED SUCCESSFULLY
           </span>
           <h3 className="text-xl font-black text-gray-900 mb-2">Account Under Verification</h3>
@@ -905,7 +1070,7 @@ export default function AuthModal({
             <div className="bg-[#181C20] text-white p-3.5 rounded-2xl mb-4 text-left flex items-center justify-between border border-slate-700 shadow-xs">
               <div>
                 <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider block">Application Reference ID</span>
-                <span className="font-mono text-sm sm:text-base font-black text-[#94C322] tracking-wider">{registrationRefId}</span>
+                <span className="font-mono text-sm sm:text-base font-black text-[#b2c359] tracking-wider">{registrationRefId}</span>
               </div>
               <button
                 type="button"
@@ -918,7 +1083,7 @@ export default function AuthModal({
                 }}
                 className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer"
               >
-                {copiedRef ? <Check className="w-3.5 h-3.5 text-[#94C322]" /> : <Copy className="w-3.5 h-3.5" />}
+                {copiedRef ? <Check className="w-3.5 h-3.5 text-[#b2c359]" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copiedRef ? 'Copied!' : 'Copy ID'}</span>
               </button>
             </div>
@@ -926,7 +1091,7 @@ export default function AuthModal({
 
           <div className="bg-lime-50/80 text-lime-950 border border-lime-200/80 p-4 rounded-2xl text-xs mb-5 text-left space-y-2">
             <p className="font-bold text-gray-950 flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-[#94C322]" />
+              <ShieldCheck className="w-4 h-4 text-[#b2c359]" />
               <span>Thank you for showing your interest!</span>
             </p>
             <p className="text-gray-700 leading-relaxed text-[11px]">
@@ -940,8 +1105,12 @@ export default function AuthModal({
 
           <button
             type="button"
-            onClick={onClose}
-            className="w-full bg-[#94C322] hover:bg-[#82ad1b] text-[#111827] font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider transition shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
+            onClick={() => {
+              setShowVerificationPopup(false);
+              setRegistrationRefId(null);
+              onClose();
+            }}
+            className="w-full bg-[#b2c359] hover:bg-[#9eb047] text-[#111827] font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider transition shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
           >
             <span>Done / Back to Home</span>
           </button>
@@ -969,10 +1138,10 @@ export default function AuthModal({
 
               {/* Header Banner */}
               <div className="bg-[#181C20] px-6 py-6 sm:px-8 sm:py-7 text-white text-center pr-12 sm:pr-8">
-                <div className="w-10 h-10 rounded-xl bg-[#94C322] text-[#080809] flex items-center justify-center font-black mx-auto mb-3 shadow-xs">
+                <div className="w-10 h-10 rounded-xl bg-[#b2c359] text-[#080809] flex items-center justify-center font-black mx-auto mb-3 shadow-xs">
                   <User className="w-6 h-6 text-[#080809]" />
                 </div>
-                <span className="text-[11px] font-black uppercase tracking-widest text-[#94C322] block mb-1">
+                <span className="text-[11px] font-black uppercase tracking-widest text-[#b2c359] block mb-1">
                   TORBIT REALTY REGISTRATION
                 </span>
                 <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-snug">
@@ -989,9 +1158,9 @@ export default function AuthModal({
                 <button
                   type="button"
                   onClick={() => { setRole('JOB_SEEKER'); setError(null); }}
-                  className="w-full text-left p-4 sm:p-5 rounded-2xl border-2 border-gray-200 hover:border-[#94C322] bg-gray-50/70 hover:bg-lime-50/50 transition-all duration-200 group cursor-pointer flex items-center gap-4 shadow-2xs hover:shadow-md"
+                  className="w-full text-left p-4 sm:p-5 rounded-2xl border-2 border-gray-200 hover:border-[#b2c359] bg-gray-50/70 hover:bg-lime-50/50 transition-all duration-200 group cursor-pointer flex items-center gap-4 shadow-2xs hover:shadow-md"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-lime-100 group-hover:bg-[#94C322] text-[#080809] flex items-center justify-center flex-shrink-0 transition">
+                  <div className="w-12 h-12 rounded-xl bg-lime-100 group-hover:bg-[#b2c359] text-[#080809] flex items-center justify-center flex-shrink-0 transition">
                     <User className="w-6 h-6" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -999,7 +1168,7 @@ export default function AuthModal({
                       <h3 className="text-sm sm:text-base font-extrabold text-gray-950 group-hover:text-black">
                         Are you a Job Seeker?
                       </h3>
-                      <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-[#94C322] group-hover:translate-x-1 transition flex-shrink-0 ml-2" />
+                      <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-[#b2c359] group-hover:translate-x-1 transition flex-shrink-0 ml-2" />
                     </div>
                     <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
                       Find &amp; apply directly for top real estate, construction, architectural &amp; sales jobs.
@@ -1013,7 +1182,7 @@ export default function AuthModal({
                   onClick={() => { setRole('RECRUITER'); setError(null); }}
                   className="w-full text-left p-4 sm:p-5 rounded-2xl border-2 border-gray-200 hover:border-slate-800 bg-gray-50/70 hover:bg-slate-50 transition-all duration-200 group cursor-pointer flex items-center gap-4 shadow-2xs hover:shadow-md"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-slate-900 group-hover:bg-black text-[#94C322] flex items-center justify-center flex-shrink-0 transition">
+                  <div className="w-12 h-12 rounded-xl bg-slate-900 group-hover:bg-black text-[#b2c359] flex items-center justify-center flex-shrink-0 transition">
                     <Building2 className="w-6 h-6" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -1029,13 +1198,34 @@ export default function AuthModal({
                   </div>
                 </button>
 
+                {/* Google Quick Sign Up */}
+                <div className="pt-2">
+                  <div className="relative my-3">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-200" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white px-2.5 text-gray-400 font-bold text-[10px] tracking-wider">Or sign up with Google</span>
+                    </div>
+                  </div>
+                  <GoogleAuthButton
+                    text="signup"
+                    onSwitchToLogin={(email) => {
+                      setTab('LOGIN');
+                      setLoginIdentifier(email);
+                      setLoginPassword('');
+                      setError(null);
+                    }}
+                  />
+                </div>
+
                 {/* Footer login link */}
                 <div className="text-center pt-3 border-t border-gray-100 text-xs text-gray-600 font-medium">
                   <span>Already have an account? </span>
                   <button
                     type="button"
                     onClick={() => { setTab('LOGIN'); setError(null); }}
-                    className="text-[#94C322] font-bold hover:underline cursor-pointer ml-1"
+                    className="text-[#b2c359] font-bold hover:underline cursor-pointer ml-1"
                   >
                     Sign In here →
                   </button>
@@ -1064,12 +1254,12 @@ export default function AuthModal({
                 <button
                   type="button"
                   onClick={() => { setRole(null); setError(null); }}
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#94C322] hover:text-white mb-1 transition cursor-pointer"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#b2c359] hover:text-white mb-1 transition cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Change Account Type</span>
                 </button>
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#94C322] block mb-0.5">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#b2c359] block mb-0.5">
                   JOB SEEKER SIGN UP
                 </span>
                 <h2 className="text-base sm:text-lg font-bold text-white tracking-tight leading-snug">
@@ -1077,8 +1267,30 @@ export default function AuthModal({
                 </h2>
               </div>
 
+              {/* Google Quick Sign Up */}
+              <div className="px-6 sm:px-7 pt-4 pb-0">
+                <GoogleAuthButton
+                  role="JOB_SEEKER"
+                  text="signup"
+                  onSwitchToLogin={(email) => {
+                    setTab('LOGIN');
+                    setLoginIdentifier(email);
+                    setLoginPassword('');
+                    setError(null);
+                  }}
+                />
+                <div className="relative my-3">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2.5 text-gray-400 font-bold text-[10px] tracking-wider">Or register with email &amp; OTP</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Form Body */}
-              <form onSubmit={handleSeekerSubmit} className="p-6 sm:p-7 space-y-4 text-xs text-gray-800">
+              <form onSubmit={handleSeekerSubmit} className="p-6 sm:p-7 pt-2 space-y-4 text-xs text-gray-800">
                 {error && (
                   <div className="bg-red-50 text-red-700 p-3 rounded-lg flex items-center gap-2 border border-red-200 text-xs animate-in fade-in duration-200">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -1088,7 +1300,7 @@ export default function AuthModal({
 
                 {seekerOtpNotice && (
                   <div className="bg-lime-50 text-lime-900 p-3 rounded-lg flex items-center gap-2 border border-lime-200 text-xs animate-in fade-in duration-200">
-                    <ShieldCheck className="w-4 h-4 text-[#94C322] flex-shrink-0" />
+                    <ShieldCheck className="w-4 h-4 text-[#b2c359] flex-shrink-0" />
                     <span>{seekerOtpNotice}</span>
                   </div>
                 )}
@@ -1101,9 +1313,9 @@ export default function AuthModal({
                       type="text"
                       required
                       value={seekerName}
-                      onChange={(e) => setSeekerName(e.target.value)}
-                      placeholder="Full name"
-                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition"
+                      onChange={(e) => setSeekerName(e.target.value.replace(/[^a-zA-Z\s\.\']/g, ''))}
+                      placeholder="e.g. John Doe"
+                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition"
                     />
                   </div>
                   <div>
@@ -1116,7 +1328,7 @@ export default function AuthModal({
                         onClick={(e) => (e.target as any).showPicker?.()}
                         min="1950-01-01"
                         max={new Date().toISOString().split('T')[0]}
-                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-[#94C322] bg-white transition cursor-pointer"
+                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-[#b2c359] bg-white transition cursor-pointer"
                       />
                     </div>
                   </div>
@@ -1154,7 +1366,7 @@ export default function AuthModal({
                         className={`w-full px-3.5 py-2.5 border rounded-lg text-xs transition placeholder:text-gray-400 focus:outline-none ${
                           isSeekerEmailVerified
                             ? 'border-emerald-300 bg-emerald-50/40 text-gray-900 font-medium cursor-not-allowed'
-                            : 'border-gray-200 bg-white text-gray-800 focus:border-[#94C322]'
+                            : 'border-gray-200 bg-white text-gray-800 focus:border-[#b2c359]'
                         }`}
                       />
                     </div>
@@ -1177,7 +1389,7 @@ export default function AuthModal({
                           </>
                         ) : (
                           <>
-                            <Mail className="w-3.5 h-3.5 text-[#94C322]" />
+                            <Mail className="w-3.5 h-3.5 text-[#b2c359]" />
                             <span>Verify OTP</span>
                           </>
                         )}
@@ -1190,7 +1402,7 @@ export default function AuthModal({
                     <div className="mt-2.5 p-3.5 bg-slate-50 border border-lime-200/90 rounded-xl space-y-2 animate-in fade-in duration-200">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                          <Mail className="w-3.5 h-3.5 text-[#94C322]" />
+                          <Mail className="w-3.5 h-3.5 text-[#b2c359]" />
                           <span>Enter 6-Digit OTP received on {seekerEmail}</span>
                         </span>
                         <span className="text-[10px] text-slate-500 font-medium">Valid for 10 mins</span>
@@ -1203,13 +1415,13 @@ export default function AuthModal({
                           value={seekerOtpInput}
                           onChange={(e) => setSeekerOtpInput(e.target.value.replace(/\D/g, ''))}
                           placeholder="• • • • • •"
-                          className="w-36 tracking-[6px] text-center font-mono font-bold text-sm px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-slate-900 focus:outline-none focus:border-[#94C322] shadow-2xs"
+                          className="w-36 tracking-[6px] text-center font-mono font-bold text-sm px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-slate-900 focus:outline-none focus:border-[#b2c359] shadow-2xs"
                         />
                         <button
                           type="button"
                           onClick={handleVerifySeekerOtp}
                           disabled={seekerOtpVerifying || seekerOtpInput.length !== 6}
-                          className="flex-1 bg-[#94C322] hover:bg-[#82ad1b] text-slate-950 font-bold text-xs py-2.5 px-4 rounded-lg transition disabled:opacity-50 shadow-2xs cursor-pointer flex items-center justify-center gap-1"
+                          className="flex-1 bg-[#b2c359] hover:bg-[#9eb047] text-slate-950 font-bold text-xs py-2.5 px-4 rounded-lg transition disabled:opacity-50 shadow-2xs cursor-pointer flex items-center justify-center gap-1"
                         >
                           {seekerOtpVerifying ? 'Verifying...' : 'Confirm OTP ✓'}
                         </button>
@@ -1228,7 +1440,7 @@ export default function AuthModal({
                       value={seekerPhone}
                       onChange={(e) => setSeekerPhone(e.target.value)}
                       placeholder="+91 98XXXXXXXX"
-                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition"
+                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition"
                     />
                   </div>
                   <div>
@@ -1238,7 +1450,7 @@ export default function AuthModal({
                       value={seekerLocation}
                       onChange={(e) => setSeekerLocation(e.target.value)}
                       placeholder="City, State"
-                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition"
+                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition"
                     />
                   </div>
                 </div>
@@ -1254,7 +1466,7 @@ export default function AuthModal({
                         value={seekerPassword}
                         onChange={(e) => setSeekerPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white pr-8 transition"
+                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white pr-8 transition"
                       />
                       <button
                         type="button"
@@ -1274,7 +1486,7 @@ export default function AuthModal({
                         value={seekerConfirmPassword}
                         onChange={(e) => setSeekerConfirmPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white pr-8 transition"
+                        className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white pr-8 transition"
                       />
                       <button
                         type="button"
@@ -1293,12 +1505,12 @@ export default function AuthModal({
                   <div className="relative">
                     <select
                       value={seekerQualification}
-                      onChange={(e) => setSeekerQualification(e.target.value)}
-                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-[#94C322] bg-white cursor-pointer appearance-none transition"
+                      onChange={(e) => {
+                        setSeekerQualification(e.target.value);
+                        if (e.target.value !== 'Others') setSeekerCustomQualification('');
+                      }}
+                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-[#b2c359] bg-white cursor-pointer appearance-none transition"
                     >
-                      {seekerQualification && !QUALIFICATION_CATEGORIES.some(g => g.options.includes(seekerQualification)) && (
-                        <option value={seekerQualification}>{seekerQualification}</option>
-                      )}
                       {QUALIFICATION_CATEGORIES.map((group) => (
                         <optgroup key={group.category} label={group.category} className="font-bold text-gray-900">
                           {group.options.map((opt) => (
@@ -1315,6 +1527,23 @@ export default function AuthModal({
                       </svg>
                     </div>
                   </div>
+
+                  {/* Custom Qualification input when Others is selected */}
+                  {seekerQualification === 'Others' && (
+                    <div className="mt-2.5 animate-in fade-in duration-200">
+                      <label className="font-bold text-gray-800 block mb-1 text-[11px]">
+                        Specify Qualification <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={seekerCustomQualification}
+                        onChange={(e) => setSeekerCustomQualification(e.target.value)}
+                        placeholder="e.g. Diploma in Interior Architecture"
+                        className="w-full px-3.5 py-2.5 border border-lime-300 bg-lime-50/30 rounded-lg text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] transition shadow-2xs"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Row 6: Total Experience Dropdown */}
@@ -1324,7 +1553,7 @@ export default function AuthModal({
                     <select
                       value={seekerExperience}
                       onChange={(e) => setSeekerExperience(e.target.value)}
-                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-[#94C322] bg-white cursor-pointer appearance-none transition"
+                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-[#b2c359] bg-white cursor-pointer appearance-none transition"
                     >
                       {EXPERIENCE_RANGES.map((exp) => (
                         <option key={exp} value={exp}>{exp}</option>
@@ -1345,10 +1574,10 @@ export default function AuthModal({
                     id="seeker-modal-agree"
                     checked={seekerAgree}
                     onChange={(e) => setSeekerAgree(e.target.checked)}
-                    className="rounded border-gray-300 text-[#94C322] focus:ring-[#94C322] w-4 h-4 cursor-pointer"
+                    className="rounded border-gray-300 text-[#b2c359] focus:ring-[#b2c359] w-4 h-4 cursor-pointer"
                   />
                   <label htmlFor="seeker-modal-agree" className="text-gray-600 text-xs font-medium cursor-pointer">
-                    I agree to the <a href="#terms" className="text-[#94C322] underline font-semibold">Terms &amp; Conditions</a> and <a href="#privacy" className="text-[#94C322] underline font-semibold">Privacy Policy</a>
+                    I agree to the <a href="#terms" className="text-[#b2c359] underline font-semibold">Terms &amp; Conditions</a> and <a href="#privacy" className="text-[#b2c359] underline font-semibold">Privacy Policy</a>
                   </label>
                 </div>
 
@@ -1357,7 +1586,7 @@ export default function AuthModal({
                   <button
                     type="submit"
                     disabled={seekerLoading}
-                    className="w-full bg-[#94C322] hover:bg-[#85b21c] text-[#111827] font-['Helvetica',Arial,sans-serif] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-3.5 px-6 rounded-lg transition shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    className="w-full bg-[#b2c359] hover:bg-[#85b21c] text-[#111827] font-['Helvetica',Arial,sans-serif] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-3.5 px-6 rounded-lg transition shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
                   >
                     <span>{seekerLoading ? 'Creating Job Seeker Account...' : 'Create Job Seeker Account →'}</span>
                   </button>
@@ -1407,12 +1636,12 @@ export default function AuthModal({
                 <button
                   type="button"
                   onClick={() => { setRole(null); setError(null); }}
-                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#94C322] hover:text-white mb-1 transition cursor-pointer"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-[#b2c359] hover:text-white mb-1 transition cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
                   <span>Change Account Type</span>
                 </button>
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#94C322] block mb-0.5">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#b2c359] block mb-0.5">
                   COMPANY SIGN UP
                 </span>
                 <h2 className="text-base sm:text-lg font-bold text-white tracking-tight leading-snug">
@@ -1420,8 +1649,30 @@ export default function AuthModal({
                 </h2>
               </div>
 
+              {/* Google Quick Recruiter Sign Up */}
+              <div className="px-6 sm:px-7 pt-4 pb-0">
+                <GoogleAuthButton
+                  role="RECRUITER"
+                  text="signup"
+                  onSwitchToLogin={(email) => {
+                    setTab('LOGIN');
+                    setLoginIdentifier(email);
+                    setLoginPassword('');
+                    setError(null);
+                  }}
+                />
+                <div className="relative my-3">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2.5 text-gray-400 font-bold text-[10px] tracking-wider">Or register company with GST Certificate</span>
+                  </div>
+                </div>
+              </div>
+
               {/* Form Body */}
-              <form onSubmit={handleRecruiterSubmit} className="p-6 sm:p-7 space-y-4 text-xs text-gray-800">
+              <form onSubmit={handleRecruiterSubmit} className="p-6 sm:p-7 pt-2 space-y-4 text-xs text-gray-800">
                 {error && (
                   <div className="bg-red-50 text-red-700 p-3 rounded-lg flex items-center gap-2 border border-red-200 text-xs">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -1439,7 +1690,7 @@ export default function AuthModal({
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
                       placeholder="e.g. DLF Limited"
-                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition"
+                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition"
                     />
                   </div>
                   <div>
@@ -1449,7 +1700,7 @@ export default function AuthModal({
                       value={industry}
                       onChange={(e) => setIndustry(e.target.value)}
                       placeholder="e.g. Real Estate"
-                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition"
+                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition"
                     />
                   </div>
                 </div>
@@ -1463,7 +1714,7 @@ export default function AuthModal({
                     value={workEmail}
                     onChange={(e) => setWorkEmail(e.target.value)}
                     placeholder="e.g. hr@dlf.in or careers@company.com"
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition"
+                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition"
                   />
                   <span className="text-[11px] text-gray-400 font-medium mt-1 block">
                     Must be a valid corporate/work email address
@@ -1481,7 +1732,7 @@ export default function AuthModal({
                       value={companyPhone}
                       onChange={(e) => setCompanyPhone(e.target.value)}
                       placeholder="e.g. 9811002233 (10 digits)"
-                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition"
+                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition"
                     />
                   </div>
                   <div>
@@ -1493,7 +1744,7 @@ export default function AuthModal({
                       value={gstNumber}
                       onChange={(e) => setGstNumber(e.target.value.toUpperCase())}
                       placeholder="e.g. 06AAACD1234F1Z5 (15 digits)"
-                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 uppercase focus:outline-none focus:border-[#94C322] bg-white font-mono transition"
+                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 uppercase focus:outline-none focus:border-[#b2c359] bg-white font-mono transition"
                     />
                   </div>
                 </div>
@@ -1502,7 +1753,7 @@ export default function AuthModal({
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="font-bold text-gray-800 text-xs flex items-center gap-1.5">
-                      <FileText className="w-3.5 h-3.5 text-[#94C322]" />
+                      <FileText className="w-3.5 h-3.5 text-[#b2c359]" />
                       <span>GST Registration Certificate (PDF, Max 1 MB) *</span>
                     </label>
                     {gstDocUrl ? (
@@ -1532,7 +1783,7 @@ export default function AuthModal({
                           ? 'border-emerald-300 bg-emerald-50/40 text-gray-900'
                           : gstDocError
                           ? 'border-red-300 bg-red-50/40 text-red-900'
-                          : 'border-gray-200 hover:border-[#94C322] bg-gray-50/60 hover:bg-lime-50/30 text-gray-700'
+                          : 'border-gray-200 hover:border-[#b2c359] bg-gray-50/60 hover:bg-lime-50/30 text-gray-700'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 truncate">
@@ -1575,7 +1826,7 @@ export default function AuthModal({
 
                 {/* Credentials Notice: Admin will issue temporary password upon approval */}
                 <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-start gap-2.5 text-xs text-slate-700">
-                  <ShieldCheck className="w-4 h-4 text-[#94C322] shrink-0 mt-0.5" />
+                  <ShieldCheck className="w-4 h-4 text-[#b2c359] shrink-0 mt-0.5" />
                   <div className="leading-relaxed">
                     <span className="font-bold text-gray-900 block text-[11px]">Admin Approval &amp; Password Setup</span>
                     <span className="text-[11px] text-gray-500">
@@ -1592,7 +1843,7 @@ export default function AuthModal({
                     value={hqLocation}
                     onChange={(e) => setHqLocation(e.target.value)}
                     placeholder="City, State, Country"
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition"
+                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition"
                   />
                 </div>
 
@@ -1603,10 +1854,10 @@ export default function AuthModal({
                     id="recruiter-modal-agree"
                     checked={recruiterAgree}
                     onChange={(e) => setRecruiterAgree(e.target.checked)}
-                    className="rounded border-gray-300 text-[#94C322] focus:ring-[#94C322] w-4 h-4 cursor-pointer"
+                    className="rounded border-gray-300 text-[#b2c359] focus:ring-[#b2c359] w-4 h-4 cursor-pointer"
                   />
                   <label htmlFor="recruiter-modal-agree" className="text-gray-600 text-xs font-medium cursor-pointer">
-                    I agree to the <a href="#terms" className="text-[#94C322] underline font-semibold">Terms &amp; Conditions</a> and confirm the details are accurate
+                    I agree to the <a href="#terms" className="text-[#b2c359] underline font-semibold">Terms &amp; Conditions</a> and confirm the details are accurate
                   </label>
                 </div>
 
@@ -1615,7 +1866,7 @@ export default function AuthModal({
                   <button
                     type="submit"
                     disabled={recruiterLoading}
-                    className="w-full bg-[#94C322] hover:bg-[#85b21c] text-[#111827] font-['Helvetica',Arial,sans-serif] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-3.5 px-6 rounded-lg transition shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    className="w-full bg-[#b2c359] hover:bg-[#85b21c] text-[#111827] font-['Helvetica',Arial,sans-serif] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-3.5 px-6 rounded-lg transition shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
                   >
                     <span>{recruiterLoading ? 'Submitting for Verification...' : 'Submit for Admin Approval →'}</span>
                   </button>
@@ -1660,39 +1911,36 @@ export default function AuthModal({
                 <X className="w-5 h-5" />
               </button>
 
-              {/* Dark Top Banner with Role Toggle */}
+              {/* Dark Top Banner */}
               <div className="bg-[#181C20] px-6 sm:px-7 py-4.5 text-white pr-14">
-                <div className="flex items-center gap-2 mb-2">
-                  <button
-                    type="button"
-                    onClick={() => { setLoginRole('JOB_SEEKER'); setError(null); }}
-                    className={`px-3 py-1 rounded-lg text-[11px] font-extrabold uppercase tracking-wider transition cursor-pointer ${
-                      loginRole === 'JOB_SEEKER'
-                        ? 'bg-[#94C322] text-[#080809]'
-                        : 'bg-white/10 text-gray-300 hover:bg-white/20'
-                    }`}
-                  >
-                    Candidate Login
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setLoginRole('RECRUITER'); setError(null); }}
-                    className={`px-3 py-1 rounded-lg text-[11px] font-extrabold uppercase tracking-wider transition cursor-pointer ${
-                      loginRole === 'RECRUITER'
-                        ? 'bg-[#94C322] text-[#080809]'
-                        : 'bg-white/10 text-gray-300 hover:bg-white/20'
-                    }`}
-                  >
-                    Company / Employer Login
-                  </button>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="bg-[#b2c359] text-[#080809] text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    Universal Secure Sign In
+                  </span>
                 </div>
                 <h2 className="text-base sm:text-lg font-bold text-white tracking-tight leading-snug">
-                  {loginRole === 'RECRUITER' ? '3.2 Login — Company / Employer' : 'Welcome back to Torbit Realty'}
+                  Sign In to Torbit Realty
                 </h2>
+                <p className="text-[11px] text-gray-400 mt-0.5">
+                  Single portal for Candidates, Recruiters &amp; Administrators
+                </p>
+              </div>
+
+              {/* Google Sign In */}
+              <div className="px-6 sm:px-7 pt-5 pb-0">
+                <GoogleAuthButton text="continue" />
+                <div className="relative my-3.5">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-white px-2.5 text-gray-400 font-bold text-[10px] tracking-wider">Or continue with credentials</span>
+                  </div>
+                </div>
               </div>
 
               {/* Form Body */}
-              <form onSubmit={handleCommonLogin} className="p-6 sm:p-7 space-y-4 text-xs text-gray-800">
+              <form onSubmit={handleCommonLogin} className="p-6 sm:p-7 pt-2 space-y-4 text-xs text-gray-800">
                 {error && (
                   <div className="bg-red-50 text-red-700 p-3 rounded-lg flex items-center gap-2 border border-red-200 text-xs">
                     <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -1702,20 +1950,15 @@ export default function AuthModal({
 
                 <div>
                   <label className="font-bold text-gray-800 block mb-1">
-                    {loginRole === 'RECRUITER' ? 'Work Email Address *' : 'Email Address / Mobile Number *'}
+                    Email Address / Mobile Number *
                   </label>
-                  {loginRole === 'RECRUITER' && (
-                    <span className="text-[11px] text-gray-400 block mb-1.5 font-medium">
-                      Company-registered email used as the identifier
-                    </span>
-                  )}
                   <input
                     type="text"
                     required
                     value={loginIdentifier}
                     onChange={(e) => setLoginIdentifier(e.target.value)}
-                    placeholder={loginRole === 'RECRUITER' ? 'e.g. hr@company.com' : 'Candidate email, work email or phone'}
-                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition"
+                    placeholder="Enter email or registered mobile number"
+                    className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition"
                   />
                 </div>
 
@@ -1742,7 +1985,7 @@ export default function AuthModal({
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white pr-8 transition"
+                      className="w-full px-3.5 py-2.5 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white pr-8 transition"
                     />
                     <button
                       type="button"
@@ -1761,7 +2004,7 @@ export default function AuthModal({
                     id="login-remember-me-spec"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded border-gray-300 text-[#94C322] focus:ring-[#94C322] w-4 h-4 cursor-pointer"
+                    className="rounded border-gray-300 text-[#b2c359] focus:ring-[#b2c359] w-4 h-4 cursor-pointer"
                   />
                   <label htmlFor="login-remember-me-spec" className="text-gray-600 text-xs font-medium cursor-pointer">
                     Remember Me (Optional, keeps session active on trusted devices)
@@ -1772,50 +2015,38 @@ export default function AuthModal({
                   <button
                     type="submit"
                     disabled={loginLoading}
-                    className="w-full bg-[#94C322] hover:bg-[#85b21c] text-[#111827] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-3.5 px-6 rounded-lg transition shadow-xs disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
+                    className="w-full bg-[#b2c359] hover:bg-[#85b21c] text-[#111827] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-3.5 px-6 rounded-lg transition shadow-xs disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
                   >
-                    <span>
-                      {loginLoading
-                        ? 'Authenticating...'
-                        : loginRole === 'RECRUITER'
-                        ? 'Login as Company'
-                        : 'Sign In as Job Seeker'}
-                    </span>
+                    {loginLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Authenticating Session...</span>
+                      </>
+                    ) : (
+                      <span>Sign In to Account</span>
+                    )}
                   </button>
                 </div>
 
                 <div className="text-center pt-2 text-xs text-gray-600 font-medium">
-                  {loginRole === 'RECRUITER' ? (
-                    <div>
-                      <span>New company? </span>
-                      <button
-                        type="button"
-                        onClick={() => { setTab('REGISTER'); setRole('RECRUITER'); setError(null); }}
-                        className="text-emerald-700 font-bold hover:underline cursor-pointer"
-                      >
-                        Register your company
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <span>Don&apos;t have an account? </span>
-                      <button
-                        type="button"
-                        onClick={() => { setTab('REGISTER'); setRole('JOB_SEEKER'); setError(null); }}
-                        className="text-emerald-700 font-bold hover:underline cursor-pointer"
-                      >
-                        Register as Job Seeker
-                      </button>
-                      <span className="mx-1.5 text-gray-400">|</span>
-                      <button
-                        type="button"
-                        onClick={() => { setTab('REGISTER'); setRole('RECRUITER'); setError(null); }}
-                        className="text-emerald-700 font-bold hover:underline cursor-pointer"
-                      >
-                        Register your company
-                      </button>
-                    </div>
-                  )}
+                  <div>
+                    <span>Don&apos;t have an account? </span>
+                    <button
+                      type="button"
+                      onClick={() => { setTab('REGISTER'); setRole('JOB_SEEKER'); setError(null); }}
+                      className="text-emerald-700 font-bold hover:underline cursor-pointer"
+                    >
+                      Register as Job Seeker
+                    </button>
+                    <span className="mx-1.5 text-gray-400">|</span>
+                    <button
+                      type="button"
+                      onClick={() => { setTab('REGISTER'); setRole('RECRUITER'); setError(null); }}
+                      className="text-emerald-700 font-bold hover:underline cursor-pointer"
+                    >
+                      Register your company
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>

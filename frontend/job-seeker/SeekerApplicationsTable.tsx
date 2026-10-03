@@ -48,7 +48,7 @@ export default function SeekerApplicationsTable({ applications }: SeekerApplicat
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="w-full sm:w-auto text-xs font-bold bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 sm:py-1.5 focus:outline-none focus:border-[#94C322] cursor-pointer"
+            className="w-full sm:w-auto text-xs font-bold bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 sm:py-1.5 focus:outline-none focus:border-[#b2c359] cursor-pointer"
           >
             <option value="ALL">All Applications ({applications.length})</option>
             <option value="APPLIED">Applied</option>

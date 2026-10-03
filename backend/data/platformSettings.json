@@ -1,0 +1,64 @@
+{
+  "brandingLogo": "",
+  "featuredContent": "",
+  "legalContent": "",
+  "showClosedJobsOnPortal": false,
+  "notifications": {
+    "companyApprovalEmail": true,
+    "companyRejectionEmail": true,
+    "statusChangeSms": true,
+    "newJobAlertDigest": false
+  },
+  "subAdmins": [
+    {
+      "id": "admin-1",
+      "name": "Rahul Kapoor",
+      "role": "Super Admin",
+      "access": "Full access"
+    },
+    {
+      "id": "admin-2",
+      "name": "Sana Iyer",
+      "role": "Approvals-only Admin",
+      "access": "Company Approvals only"
+    }
+  ],
+  "specialJobCompanies": [
+    {
+      "name": "DLF Limited",
+      "logo": "DLF",
+      "logoUrl": "https://res.cloudinary.com/dcpqrvjh0/image/upload/e_trim/v1783861188/DLF_LOGO_uvd2ry.jpg",
+      "websiteUrl": "https://www.dlf.in/career-page"
+    },
+    {
+      "name": "Godrej Properties",
+      "logo": "GODREJ",
+      "logoUrl": "https://res.cloudinary.com/dcpqrvjh0/image/upload/e_trim/v1783863242/godrej_propertiess_pbywng.jpg",
+      "websiteUrl": "https://careers.godrejindustries.com/in/en/godrejproperties"
+    },
+    {
+      "name": "SOBHA Realty",
+      "logo": "SOBHA",
+      "logoUrl": "https://varanyam.vercel.app/sobha_logo.png",
+      "websiteUrl": "https://www.sobha.com/careers/"
+    },
+    {
+      "name": "EMAAR India",
+      "logo": "EMAAR",
+      "logoUrl": "https://res.cloudinary.com/dcpqrvjh0/image/upload/e_trim/v1783865314/emaar_ak4iw2.jpg",
+      "websiteUrl": "https://www.emaar.com/en/careers"
+    },
+    {
+      "name": "Prestige Group",
+      "logo": "PRESTIGE",
+      "logoUrl": "",
+      "websiteUrl": "https://jobs.prestigeconstructions.com/"
+    },
+    {
+      "name": "Puravankara",
+      "logo": "PURVA",
+      "logoUrl": "",
+      "websiteUrl": "https://www.puravankara.com/careers"
+    }
+  ]
+}

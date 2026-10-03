@@ -19,6 +19,7 @@ import ApplicantReviewPipeline from '../../ApplicantReviewPipeline';
 import CompanyProfileSettings from '../../CompanyProfileSettings';
 import CreateJobModal from '../../CreateJobModal';
 import CreateJobView from '../../CreateJobView';
+import Footer from '@/common/Footer';
 
 export default function RecruiterDashboardPage() {
   const router = useRouter();
@@ -26,13 +27,49 @@ export default function RecruiterDashboardPage() {
   const [user, setUser] = useState<any>(null);
   const [jobs, setJobs] = useState<any[]>([]);
   const [applications, setApplications] = useState<any[]>([]);
+  const [editingJob, setEditingJob] = useState<any>(null);
   const [createJobModalOpen, setCreateJobModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const [seenApplicantCount, setSeenApplicantCount] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('torbit_recruiter_seen_apps');
+      return stored ? parseInt(stored, 10) : 0;
+    }
+    return 0;
+  });
+
   const isFetchingRef = useRef(false);
   const lastFetchedAtRef = useRef<number>(Date.now());
+
+  // Calculate unread/unseen applications count
+  const unreadApplicantCount = Math.max(0, applications.length - seenApplicantCount);
+
+  // Clear badge when recruiter views APPLICANTS tab
+  useEffect(() => {
+    if (activeTab === 'APPLICANTS' && applications.length > 0) {
+      setSeenApplicantCount(applications.length);
+      try {
+        localStorage.setItem('torbit_recruiter_seen_apps', String(applications.length));
+      } catch (e) {}
+    }
+  }, [activeTab, applications.length]);
+
+  const handleTabChange = useCallback((tab: string) => {
+    if (tab === 'CREATE_JOB') {
+      setEditingJob(null);
+    }
+    if (tab === 'APPLICANTS') {
+      setSeenApplicantCount(applications.length);
+      try {
+        localStorage.setItem('torbit_recruiter_seen_apps', String(applications.length));
+      } catch (e) {}
+    }
+    setActiveTab(tab);
+    setIsMobileMenuOpen(false);
+  }, [applications.length]);
 
   // ⚡ Instant Cache Hydration on Mount (0ms visual render)
   useEffect(() => {
@@ -177,21 +214,19 @@ export default function RecruiterDashboardPage() {
       loadData(false);
     }
   };
-    }
-  };
 
   const mobileNavGroups = [
     {
       group: '',
       items: [
         { id: 'OVERVIEW', label: 'Dashboard', icon: <DashboardOutlinedIcon sx={{ fontSize: 20 }} /> },
-        { id: 'CREATE_JOB', label: '+ Create Job', icon: <AddCircleOutlineOutlinedIcon sx={{ fontSize: 20 }} className="text-[#94C322]" /> },
+        { id: 'CREATE_JOB', label: '+ Create Job', icon: <AddCircleOutlineOutlinedIcon sx={{ fontSize: 20 }} className="text-[#b2c359]" /> },
         { id: 'JOBS', label: 'My Job Listings', icon: <WorkOutlineOutlinedIcon sx={{ fontSize: 20 }} /> },
         {
           id: 'APPLICANTS',
           label: 'Applications',
           icon: <PeopleAltOutlinedIcon sx={{ fontSize: 20 }} className="text-amber-500" />,
-          badge: applications.length > 0 ? applications.length : null
+          badge: unreadApplicantCount > 0 ? unreadApplicantCount : null
         },
         { id: 'PROFILE', label: 'Company Profile', icon: <CorporateFareOutlinedIcon sx={{ fontSize: 20 }} /> },
         { id: 'SETTINGS', label: 'Settings', icon: <SettingsOutlinedIcon sx={{ fontSize: 20 }} className="text-cyan-400" /> },
@@ -207,7 +242,7 @@ export default function RecruiterDashboardPage() {
     .toUpperCase();
 
   return (
-    <div className="min-h-screen flex bg-[#F8FAFC] font-['Helvetica',Arial,sans-serif] text-slate-900 antialiased selection:bg-[#94C322]/20">
+    <div className="min-h-screen flex bg-[#F8FAFC] font-['Helvetica',Arial,sans-serif] text-slate-900 antialiased selection:bg-[#b2c359]/20">
       
       {/* ========================================================= */}
       {/* 1. MOBILE SLIDE-OUT DRAWER OVERLAY (Exact Admin Panel Match) */}
@@ -228,7 +263,7 @@ export default function RecruiterDashboardPage() {
                     className="h-5 w-auto object-contain max-w-[120px]"
                   />
                 </div>
-                <span className="bg-[#94C322] text-[#080809] text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase shrink-0">
+                <span className="bg-[#b2c359] text-[#080809] text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase shrink-0">
                   RECRUITER
                 </span>
               </div>
@@ -252,13 +287,10 @@ export default function RecruiterDashboardPage() {
                   {group.items.map((item) => (
                     <button
                       key={item.id}
-                      onClick={() => {
-                        setActiveTab(item.id);
-                        setIsMobileMenuOpen(false);
-                      }}
+                      onClick={() => handleTabChange(item.id)}
                       className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left ${
                         activeTab === item.id
-                          ? 'bg-[#94C322]/15 text-[#94C322] shadow-xs'
+                          ? 'bg-[#b2c359]/15 text-[#b2c359] shadow-xs'
                           : 'text-[#CBD5E1] hover:text-white hover:bg-white/5'
                       }`}
                     >
@@ -280,7 +312,7 @@ export default function RecruiterDashboardPage() {
             {/* Bottom Profile & Logout */}
             <div className="p-4 border-t border-gray-800/80 bg-[#121418] flex items-center justify-between">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-gray-800 border border-gray-700 text-[#94C322] font-black flex items-center justify-center text-xs shadow-xs shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-gray-800 border border-gray-700 text-[#b2c359] font-black flex items-center justify-center text-xs shadow-xs shrink-0">
                   {userInitials}
                 </div>
                 <div className="min-w-0">
@@ -303,35 +335,35 @@ export default function RecruiterDashboardPage() {
       {/* 2. Desktop Left Sidebar */}
       <RecruiterSidebar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         isApproved={isApproved}
         companyName={company.companyName}
         workEmail={company.workEmail}
-        applicantCount={applications.length}
+        applicantCount={unreadApplicantCount}
       />
 
       {/* 3. Main Workspace with Exact Admin Responsive Padding */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen pb-24 md:pb-6">
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         {/* Exact Admin Panel Top Header */}
         <RecruiterTopbar
           activeTab={activeTab}
           isApproved={isApproved}
           companyName={company.companyName}
-          onOpenCreateJob={() => setCreateJobModalOpen(true)}
+          onOpenCreateJob={() => handleTabChange('CREATE_JOB')}
           onRefresh={() => loadData(true)}
           isRefreshing={isRefreshing}
           onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
 
         {/* Content Area */}
-        <main className="flex-1 p-3 sm:p-6 lg:p-8 overflow-y-auto max-w-7xl w-full mx-auto space-y-4 sm:space-y-6">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-4 sm:space-y-6 pb-12">
           {activeTab === 'OVERVIEW' && (
             <RecruiterOverview
               company={company}
               jobs={jobs}
               applications={applications}
-              onOpenCreateJob={() => setActiveTab('CREATE_JOB')}
-              setActiveTab={setActiveTab}
+              onOpenCreateJob={() => handleTabChange('CREATE_JOB')}
+              setActiveTab={handleTabChange}
             />
           )}
 
@@ -339,20 +371,32 @@ export default function RecruiterDashboardPage() {
             <CreateJobView
               isApproved={isApproved}
               companyStatus={company.status}
+              initialJob={editingJob}
               onJobCreated={() => {
+                setEditingJob(null);
                 loadData(true);
                 setActiveTab('JOBS');
               }}
-              onCancel={() => setActiveTab('JOBS')}
+              onCancel={() => {
+                setEditingJob(null);
+                setActiveTab('JOBS');
+              }}
             />
           )}
 
           {activeTab === 'JOBS' && (
             <RecruiterJobsTable
               jobs={jobs}
-              onOpenCreateJob={() => setActiveTab('CREATE_JOB')}
+              onOpenCreateJob={() => {
+                setEditingJob(null);
+                setActiveTab('CREATE_JOB');
+              }}
               isApproved={isApproved}
               onJobUpdated={() => loadData(true)}
+              onEditJob={(job) => {
+                setEditingJob(job);
+                setActiveTab('CREATE_JOB');
+              }}
             />
           )}
 
@@ -371,10 +415,8 @@ export default function RecruiterDashboardPage() {
           )}
         </main>
 
-        {/* Exact Admin Panel Footer */}
-        <footer className="w-full bg-[#080809] text-white py-3.5 border-t border-neutral-900 text-center text-xs text-neutral-400 font-medium shrink-0 mt-auto">
-          <span>© 2026 Torbit Realty Pvt. Ltd. Enterprise Recruiter &amp; Employer Portal.</span>
-        </footer>
+        {/* Unified Official Footer with Trust Strip */}
+        <Footer />
       </div>
 
       {/* ========================================================= */}
@@ -385,40 +427,40 @@ export default function RecruiterDashboardPage() {
         {/* 1. Home */}
         <button
           type="button"
-          onClick={() => setActiveTab('OVERVIEW')}
+          onClick={() => handleTabChange('OVERVIEW')}
           className={`flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all cursor-pointer ${
-            activeTab === 'OVERVIEW' ? 'text-[#82ad1b] font-bold' : 'text-slate-400 hover:text-slate-700'
+            activeTab === 'OVERVIEW' ? 'text-[#9eb047] font-bold' : 'text-slate-400 hover:text-slate-700'
           }`}
         >
-          <HomeOutlinedIcon sx={{ fontSize: 20 }} className={activeTab === 'OVERVIEW' ? 'text-[#82ad1b]' : 'text-slate-400'} />
+          <HomeOutlinedIcon sx={{ fontSize: 20 }} className={activeTab === 'OVERVIEW' ? 'text-[#9eb047]' : 'text-slate-400'} />
           <span className="text-[10px] tracking-tight font-bold">Home</span>
         </button>
 
         {/* 2. Post Job */}
         <button
           type="button"
-          onClick={() => setActiveTab('CREATE_JOB')}
+          onClick={() => handleTabChange('CREATE_JOB')}
           className={`flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all cursor-pointer ${
-            activeTab === 'CREATE_JOB' ? 'text-[#82ad1b] font-bold' : 'text-slate-400 hover:text-slate-700'
+            activeTab === 'CREATE_JOB' ? 'text-[#9eb047] font-bold' : 'text-slate-400 hover:text-slate-700'
           }`}
         >
-          <AddCircleOutlineOutlinedIcon sx={{ fontSize: 20 }} className={activeTab === 'CREATE_JOB' ? 'text-[#82ad1b]' : 'text-slate-400'} />
+          <AddCircleOutlineOutlinedIcon sx={{ fontSize: 20 }} className={activeTab === 'CREATE_JOB' ? 'text-[#9eb047]' : 'text-slate-400'} />
           <span className="text-[10px] tracking-tight font-bold">Post Job</span>
         </button>
 
         {/* 3. Applications */}
         <button
           type="button"
-          onClick={() => setActiveTab('APPLICANTS')}
+          onClick={() => handleTabChange('APPLICANTS')}
           className={`flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all relative cursor-pointer ${
-            activeTab === 'APPLICANTS' ? 'text-[#82ad1b] font-bold' : 'text-slate-400 hover:text-slate-700'
+            activeTab === 'APPLICANTS' ? 'text-[#9eb047] font-bold' : 'text-slate-400 hover:text-slate-700'
           }`}
         >
           <div className="relative">
-            <PeopleAltOutlinedIcon sx={{ fontSize: 20 }} className={activeTab === 'APPLICANTS' ? 'text-[#82ad1b]' : 'text-slate-400'} />
-            {applications.length > 0 && (
+            <PeopleAltOutlinedIcon sx={{ fontSize: 20 }} className={activeTab === 'APPLICANTS' ? 'text-[#9eb047]' : 'text-slate-400'} />
+            {unreadApplicantCount > 0 && (
               <span className="absolute -top-1 -right-2 w-4 h-4 rounded-full bg-[#DC2626] text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white shadow-xs">
-                {applications.length}
+                {unreadApplicantCount}
               </span>
             )}
           </div>
@@ -430,10 +472,10 @@ export default function RecruiterDashboardPage() {
           type="button"
           onClick={() => setActiveTab('PROFILE')}
           className={`flex flex-col items-center gap-1 px-3 py-1 rounded-xl transition-all cursor-pointer ${
-            activeTab === 'PROFILE' ? 'text-[#82ad1b] font-bold' : 'text-slate-400 hover:text-slate-700'
+            activeTab === 'PROFILE' ? 'text-[#9eb047] font-bold' : 'text-slate-400 hover:text-slate-700'
           }`}
         >
-          <CorporateFareOutlinedIcon sx={{ fontSize: 20 }} className={activeTab === 'PROFILE' ? 'text-[#82ad1b]' : 'text-slate-400'} />
+          <CorporateFareOutlinedIcon sx={{ fontSize: 20 }} className={activeTab === 'PROFILE' ? 'text-[#9eb047]' : 'text-slate-400'} />
           <span className="text-[10px] tracking-tight font-bold">Profile</span>
         </button>
       </nav>

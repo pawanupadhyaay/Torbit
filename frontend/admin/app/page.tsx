@@ -17,6 +17,11 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Pre-fetch /dashboard in background so navigation is 0ms instant
+  React.useEffect(() => {
+    router.prefetch('/dashboard');
+  }, [router]);
+
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!identifier || !password) {
@@ -28,64 +33,49 @@ export default function AdminLoginPage() {
     setError(null);
 
     try {
-      let res: Response | null = null;
       const apiEndpoint = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
         ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')}/auth/login`
         : '/api/auth/login';
 
+      let res: Response;
       try {
         res = await fetch(apiEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ identifier, password })
+          body: JSON.stringify({ identifier: identifier.trim(), password })
         });
       } catch (fetchErr) {
-        console.warn('Backend API fetch error:', fetchErr);
+        throw new Error('Unable to connect to authentication service. Please try again.');
       }
 
-      let data: any = null;
-      if (res) {
-        const contentType = res.headers.get('content-type') || '';
-        if (contentType.includes('application/json')) {
-          try {
-            data = await res.json();
-          } catch (jsonErr) {
-            data = null;
-          }
+      let data: any = {};
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        try {
+          data = await res.json();
+        } catch (jsonErr) {
+          data = { error: 'Invalid response from backend server.' };
         }
+      } else {
+        const text = await res.text().catch(() => '');
+        data = { error: text || `Server error (${res.status})` };
       }
 
-      if (res && res.ok && data?.token) {
-        localStorage.setItem('adminToken', data.token);
-        localStorage.setItem('adminUser', JSON.stringify(data.user || { name: 'Super Admin', email: identifier, role: 'ADMIN' }));
-        router.push('/dashboard');
-        return;
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Invalid administrator credentials. Access denied.');
       }
 
-      // Seamless Demo Admin authentication fallback
-      const isDemoAdmin = identifier.trim().toLowerCase() === 'admin@torbit.in' && password === 'Admin@123';
-      if (isDemoAdmin) {
-        localStorage.setItem('adminToken', data?.token || 'demo-admin-session-token');
-        localStorage.setItem('adminUser', JSON.stringify({
-          id: 'admin-1',
-          name: 'Super Admin',
-          fullName: 'Super Admin',
-          email: 'admin@torbit.in',
-          role: 'ADMIN'
-        }));
-        router.push('/dashboard');
-        return;
+      if (!data.token) {
+        throw new Error('Authentication failed: No session token received from server.');
       }
 
-      if (data?.error) {
-        throw new Error(data.error);
+      if (data.user?.role !== 'ADMIN') {
+        throw new Error('Access denied. This account does not have administrator privileges.');
       }
 
-      if (!res || !res.ok) {
-        throw new Error('Invalid administrator credentials. Please check your email and password.');
-      }
-
-      router.push('/dashboard');
+      localStorage.setItem('adminToken', data.token);
+      localStorage.setItem('adminUser', JSON.stringify(data.user));
+      router.replace('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Authentication failed. Please check your credentials.');
     } finally {
@@ -105,13 +95,13 @@ export default function AdminLoginPage() {
               className="h-6 sm:h-7 w-auto object-contain max-w-[140px] sm:max-w-[180px]"
             />
           </div>
-          <span className="bg-[#94C322] text-[#080809] text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded tracking-wider uppercase">
+          <span className="bg-[#b2c359] text-[#080809] text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded tracking-wider uppercase">
             ADMIN PORTAL
           </span>
         </div>
 
         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs text-gray-300 font-medium">
-          <ShieldOutlinedIcon sx={{ fontSize: 16 }} className="text-[#94C322]" />
+          <ShieldOutlinedIcon sx={{ fontSize: 16 }} className="text-[#b2c359]" />
           <span className="hidden sm:inline">Secure Enterprise Gateway</span>
         </div>
       </header>
@@ -124,7 +114,7 @@ export default function AdminLoginPage() {
           <div className="flex items-center gap-6 border-b border-gray-200 pb-3 mb-6">
             <div className="relative font-bold text-sm text-gray-900 cursor-pointer">
               <span>Login</span>
-              <div className="absolute -bottom-3 left-0 right-0 h-1 bg-[#94C322] rounded-full" />
+              <div className="absolute -bottom-3 left-0 right-0 h-1 bg-[#b2c359] rounded-full" />
             </div>
           </div>
 
@@ -149,7 +139,7 @@ export default function AdminLoginPage() {
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 placeholder="you@example.com or +91 98XXXXXXXX"
-                className="w-full px-4 py-3 sm:py-3.5 rounded-xl border border-gray-200 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition shadow-2xs"
+                className="w-full px-4 py-3 sm:py-3.5 rounded-xl border border-gray-200 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition shadow-2xs"
               />
             </div>
 
@@ -165,7 +155,7 @@ export default function AdminLoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 sm:py-3.5 rounded-xl border border-gray-200 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white pr-10 transition shadow-2xs"
+                  className="w-full px-4 py-3 sm:py-3.5 rounded-xl border border-gray-200 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white pr-10 transition shadow-2xs"
                 />
                 <button
                   type="button"
@@ -189,7 +179,7 @@ export default function AdminLoginPage() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-[#94C322] focus:ring-[#94C322]"
+                  className="w-4 h-4 rounded border-gray-300 text-[#b2c359] focus:ring-[#b2c359]"
                 />
                 <span>Remember me</span>
               </label>
@@ -207,7 +197,7 @@ export default function AdminLoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#94C322] hover:bg-[#82ad1b] active:scale-[0.99] text-[#080809] font-['Helvetica',Arial,sans-serif] font-bold text-sm py-3.5 sm:py-4 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                className="w-full bg-[#b2c359] hover:bg-[#9eb047] active:scale-[0.99] text-[#080809] font-['Helvetica',Arial,sans-serif] font-bold text-sm py-3.5 sm:py-4 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 <span>{loading ? 'Authenticating...' : 'Login as Admin →'}</span>
               </button>

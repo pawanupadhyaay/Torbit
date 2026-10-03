@@ -5,6 +5,20 @@ const nextConfig = {
   images: {
     domains: ["images.unsplash.com", "via.placeholder.com", "localhost", "127.0.0.1", "pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev"],
   },
+  experimental: {
+    optimizePackageImports: ['@mui/icons-material', '@mui/material', 'lucide-react'],
+  },
+  modularizeImports: {
+    '@mui/icons-material': {
+      transform: '@mui/icons-material/{{member}}',
+    },
+    '@mui/material': {
+      transform: '@mui/material/{{member}}',
+    },
+    'lucide-react': {
+      transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
+    },
+  },
   async rewrites() {
     return [
       {

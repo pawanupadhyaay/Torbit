@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { AlertCircle, ShieldCheck, Upload, FileText, CheckCircle2 } from 'lucide-react';
+import GoogleAuthButton from '@/common/GoogleAuthButton';
 
 interface CompanySignUpCardProps {
   onSuccess?: (user: any) => void;
@@ -143,6 +144,16 @@ export default function CompanySignUpCard({ onSuccess, onSwitchToLogin, onShowVe
       if (onShowVerification) {
         onShowVerification(cleanGst, data.referenceId, cleanEmail);
       }
+
+      // Reset form fields
+      setCompanyName('');
+      setWorkEmail('');
+      setCompanyPhone('');
+      setGstNumber('');
+      setGstDocUrl('');
+      setGstDocName('');
+      setGstDocSize(null);
+      setHqLocation('');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -154,7 +165,7 @@ export default function CompanySignUpCard({ onSuccess, onSwitchToLogin, onShowVe
     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden w-full max-w-2xl mx-auto font-['Helvetica',Arial,sans-serif]">
       {/* Dark Top Header Banner */}
       <div className="bg-[#181C20] px-5 py-3 sm:px-6 sm:py-3 text-white">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-[#94C322] block mb-0.5">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-[#b2c359] block mb-0.5">
           COMPANY SIGN UP
         </span>
         <h2 className="text-sm sm:text-base font-bold text-white tracking-tight leading-snug">
@@ -162,8 +173,27 @@ export default function CompanySignUpCard({ onSuccess, onSwitchToLogin, onShowVe
         </h2>
       </div>
 
+      {/* Google Quick Recruiter Sign Up */}
+      <div className="p-4 sm:p-5 pb-0 text-xs text-gray-800">
+        <GoogleAuthButton
+          role="RECRUITER"
+          text="signup"
+          onSwitchToLogin={(email) => {
+            window.location.href = `/login?identifier=${encodeURIComponent(email)}`;
+          }}
+        />
+        <div className="relative my-3">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white px-2.5 text-gray-400 font-bold text-[10px] tracking-wider">Or register company with GST Certificate</span>
+          </div>
+        </div>
+      </div>
+
       {/* Form Content */}
-      <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-2.5 sm:space-y-3 text-xs text-gray-800">
+      <form onSubmit={handleSubmit} className="p-4 sm:p-5 pt-1 space-y-2.5 sm:space-y-3 text-xs text-gray-800">
         {error && (
           <div className="bg-red-50 text-red-700 p-2.5 rounded-lg flex items-center gap-2 border border-red-200 text-xs">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -181,7 +211,7 @@ export default function CompanySignUpCard({ onSuccess, onSwitchToLogin, onShowVe
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               placeholder="e.g. DLF Limited"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition"
             />
           </div>
           <div>
@@ -190,8 +220,8 @@ export default function CompanySignUpCard({ onSuccess, onSwitchToLogin, onShowVe
               type="text"
               value={industry}
               onChange={(e) => setIndustry(e.target.value)}
-              placeholder="e.g. Real Estate"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition"
+              placeholder="e.g. Technology, Finance, Healthcare"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition"
             />
           </div>
         </div>
@@ -208,7 +238,7 @@ export default function CompanySignUpCard({ onSuccess, onSwitchToLogin, onShowVe
             value={workEmail}
             onChange={(e) => setWorkEmail(e.target.value)}
             placeholder="e.g. hr@dlf.in or careers@company.com"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition"
           />
         </div>
 
@@ -223,7 +253,7 @@ export default function CompanySignUpCard({ onSuccess, onSwitchToLogin, onShowVe
               value={companyPhone}
               onChange={(e) => setCompanyPhone(e.target.value)}
               placeholder="e.g. 9811002233 (10 digits)"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition"
             />
           </div>
           <div>
@@ -235,7 +265,7 @@ export default function CompanySignUpCard({ onSuccess, onSwitchToLogin, onShowVe
               value={gstNumber}
               onChange={(e) => setGstNumber(e.target.value.toUpperCase())}
               placeholder="e.g. 06AAACD1234F1Z5 (15 digits)"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 uppercase focus:outline-none focus:border-[#94C322] bg-white font-mono transition"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 uppercase focus:outline-none focus:border-[#b2c359] bg-white font-mono transition"
             />
           </div>
         </div>
@@ -244,7 +274,7 @@ export default function CompanySignUpCard({ onSuccess, onSwitchToLogin, onShowVe
         <div>
           <div className="flex items-center justify-between mb-1">
             <label className="font-bold text-gray-800 text-[11px] sm:text-xs flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-[#94C322]" />
+              <FileText className="w-3.5 h-3.5 text-[#b2c359]" />
               <span>GST Registration Certificate (PDF, Max 1 MB) *</span>
             </label>
             {gstDocUrl ? (
@@ -274,7 +304,7 @@ export default function CompanySignUpCard({ onSuccess, onSwitchToLogin, onShowVe
                   ? 'border-emerald-300 bg-emerald-50/40 text-gray-900'
                   : gstDocError
                   ? 'border-red-300 bg-red-50/40 text-red-900'
-                  : 'border-gray-200 hover:border-[#94C322] bg-gray-50/60 hover:bg-lime-50/30 text-gray-700'
+                  : 'border-gray-200 hover:border-[#b2c359] bg-gray-50/60 hover:bg-lime-50/30 text-gray-700'
               }`}
             >
               <div className="flex items-center gap-2 truncate">
@@ -317,7 +347,7 @@ export default function CompanySignUpCard({ onSuccess, onSwitchToLogin, onShowVe
 
         {/* Row 5: Credentials Notice: Admin will issue temporary password upon approval */}
         <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-xl flex items-start gap-2 text-xs text-slate-700">
-          <ShieldCheck className="w-4 h-4 text-[#94C322] shrink-0 mt-0.5" />
+          <ShieldCheck className="w-4 h-4 text-[#b2c359] shrink-0 mt-0.5" />
           <div className="leading-relaxed">
             <span className="font-bold text-gray-900 block text-[11px]">Admin Approval &amp; Password Setup</span>
             <span className="text-[10px] sm:text-[11px] text-gray-500">
@@ -334,7 +364,7 @@ export default function CompanySignUpCard({ onSuccess, onSwitchToLogin, onShowVe
             value={hqLocation}
             onChange={(e) => setHqLocation(e.target.value)}
             placeholder="City, State, Country"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition"
           />
         </div>
 
@@ -345,10 +375,10 @@ export default function CompanySignUpCard({ onSuccess, onSwitchToLogin, onShowVe
             id="company-terms-check"
             checked={agree}
             onChange={(e) => setAgree(e.target.checked)}
-            className="rounded border-gray-300 text-[#94C322] focus:ring-[#94C322] w-3.5 h-3.5 cursor-pointer"
+            className="rounded border-gray-300 text-[#b2c359] focus:ring-[#b2c359] w-3.5 h-3.5 cursor-pointer"
           />
           <label htmlFor="company-terms-check" className="text-gray-600 text-[11px] sm:text-xs font-medium cursor-pointer">
-            I agree to the <a href="#terms" className="text-[#94C322] underline font-semibold">Terms &amp; Conditions</a> and confirm the details are accurate
+            I agree to the <a href="#terms" className="text-[#b2c359] underline font-semibold">Terms &amp; Conditions</a> and confirm the details are accurate
           </label>
         </div>
 
@@ -357,7 +387,7 @@ export default function CompanySignUpCard({ onSuccess, onSwitchToLogin, onShowVe
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#94C322] hover:bg-[#85b21c] text-white font-['Helvetica',Arial,sans-serif] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-3.5 px-5 rounded-lg transition shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
+            className="w-full bg-[#b2c359] hover:bg-[#85b21c] text-white font-['Helvetica',Arial,sans-serif] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-3.5 px-5 rounded-lg transition shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
           >
             <span>{loading ? 'Submitting for Verification...' : 'Submit for Admin Approval →'}</span>
           </button>

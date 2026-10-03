@@ -1,9 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import TopTicker from '@/common/TopTicker';
 import Header from '@/common/Header';
-import Navbar from '@/common/Navbar';
 import Footer from '@/common/Footer';
 import AuthModal from '@/common/AuthModal';
 import SeekerSignUpCard from '@/job-seeker/SeekerSignUpCard';
@@ -28,9 +26,7 @@ export default function SeekerPortalPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC] font-['Helvetica',Arial,sans-serif]">
-      <TopTicker />
       <Header onOpenAuth={(role, tab) => { setAuthModalTab(tab || 'LOGIN'); setAuthModalOpen(true); }} />
-      <Navbar />
 
       <main className="flex-1 max-w-7xl mx-auto px-4 py-4 sm:py-6 w-full">
         <div className="max-w-2xl mx-auto mb-4 text-center">

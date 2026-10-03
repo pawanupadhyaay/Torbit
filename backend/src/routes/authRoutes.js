@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { authenticateToken } = require("../middleware/authMiddleware");
-const { sendOtpEmail, sendCompanyRegistrationAckEmail } = require("../services/emailService");
+const { sendOtpEmail, sendPasswordResetOtpEmail, sendCompanyRegistrationAckEmail } = require("../services/emailService");
 
 const JWT_SECRET = process.env.JWT_SECRET || "torbit-realty-super-secret-key-2026";
 
@@ -121,13 +121,18 @@ router.post("/forgot-password-otp", async (req, res) => {
     });
 
     if (!user) {
-      return res.status(404).json({ error: "No account found registered with this email address." });
+      return res.status(404).json({ error: "No account found registered with this email address. Please check your spelling or sign up." });
+    }
+
+    if (user.companyProfile?.status === "BLOCKED") {
+      return res.status(403).json({ error: "This enterprise account has been suspended by Administrator. Please contact support." });
     }
 
     // Rate limiter: 15s between OTP requests
     const existingOtp = otpStore.get(cleanEmail);
     if (existingOtp && Date.now() - existingOtp.createdAt < 15000) {
-      return res.status(429).json({ error: "Please wait 15 seconds before requesting another code." });
+      const waitSeconds = Math.ceil((15000 - (Date.now() - existingOtp.createdAt)) / 1000);
+      return res.status(429).json({ error: `Please wait ${waitSeconds} seconds before requesting another code.` });
     }
 
     const otp = generateOtp();
@@ -142,13 +147,23 @@ router.post("/forgot-password-otp", async (req, res) => {
     });
 
     const displayName = user.seekerProfile?.fullName || user.companyProfile?.companyName || "User";
-    sendOtpEmail(cleanEmail, otp, displayName)
-      .then(() => console.log(`🔐 [RESET OTP SENT] Sent password reset OTP to ${cleanEmail}`))
-      .catch((mailErr) => console.error("⚠️ Error sending reset OTP email in background:", mailErr));
+    const roleLabel = user.role === "JOB_SEEKER" 
+      ? "Job Seeker / Candidate" 
+      : (user.role === "RECRUITER" ? "Enterprise Recruiter" : "Administrator");
+
+    sendPasswordResetOtpEmail(cleanEmail, otp, displayName, roleLabel)
+      .then(() => console.log(`🔐 [RESET OTP SENT] Sent password reset OTP to ${cleanEmail} (${user.role})`))
+      .catch((mailErr) => {
+        console.error("⚠️ Error sending reset OTP email in background, falling back to standard sendOtpEmail:", mailErr);
+        sendOtpEmail(cleanEmail, otp, displayName).catch((e) => console.error("Fallback mail error:", e));
+      });
 
     res.json({
       success: true,
-      message: `Password reset OTP has been dispatched to ${cleanEmail}`
+      message: `A 6-digit password reset code has been dispatched to ${cleanEmail}`,
+      role: user.role,
+      roleLabel,
+      email: cleanEmail
     });
   } catch (err) {
     console.error("Error sending reset OTP:", err);
@@ -156,12 +171,12 @@ router.post("/forgot-password-otp", async (req, res) => {
   }
 });
 
-// 0d. Reset Password using OTP
+// 0d. Reset Password using OTP & Auto-Authenticate to Role Dashboard
 router.post("/reset-password", async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
     if (!email || !otp || !newPassword) {
-      return res.status(400).json({ error: "Email, OTP code, and new password are required." });
+      return res.status(400).json({ error: "Email, OTP verification code, and new password are required." });
     }
 
     if (newPassword.length < 6) {
@@ -172,37 +187,85 @@ router.post("/reset-password", async (req, res) => {
     const record = otpStore.get(cleanEmail);
 
     if (!record) {
-      return res.status(400).json({ error: "No active reset request found. Please request a new code." });
+      return res.status(400).json({ error: "No active password reset request found for this email. Please request a new code." });
     }
 
     if (Date.now() > record.expiresAt) {
       otpStore.delete(cleanEmail);
-      return res.status(400).json({ error: "This OTP code has expired. Please request a new one." });
+      return res.status(400).json({ error: "This verification code has expired (10 minutes limit). Please request a new one." });
     }
 
     if (record.attempts >= 5) {
       otpStore.delete(cleanEmail);
-      return res.status(400).json({ error: "Too many failed attempts. Please request a new code." });
+      return res.status(400).json({ error: "Too many failed attempts. Please request a fresh OTP code." });
     }
 
     if (record.otp.trim() !== otp.toString().trim()) {
       record.attempts += 1;
-      return res.status(400).json({ error: "Invalid OTP code. Please check your email." });
+      return res.status(400).json({ error: "Invalid OTP code. Please check your email inbox and enter the 6-digit code." });
     }
 
-    // Hash and update password
+    // 1. Hash and securely update password
     const passwordHash = await bcrypt.hash(newPassword, 10);
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { email: cleanEmail },
-      data: { passwordHash, mustChangePassword: false }
+      data: { passwordHash },
+      include: { seekerProfile: true, companyProfile: true }
     });
 
     otpStore.delete(cleanEmail);
-    console.log(`✅ [PASSWORD RESET] Password successfully reset for ${cleanEmail}`);
+    console.log(`✅ [PASSWORD RESET] Password successfully reset for ${cleanEmail} (${updatedUser.role})`);
+
+    // 2. Clear temp pass flag if recruiter
+    if (updatedUser.companyProfile && updatedUser.companyProfile.rejectionReason === "TEMP_PASS_ISSUED") {
+      try {
+        await prisma.companyProfile.update({
+          where: { id: updatedUser.companyProfile.id },
+          data: { rejectionReason: null }
+        });
+      } catch (e) {}
+    }
+
+    // 3. Issue active JWT Session for instant auto-login
+    let name = updatedUser.role === "JOB_SEEKER" 
+      ? updatedUser.seekerProfile?.fullName 
+      : (updatedUser.companyProfile?.companyName || "User");
+    if (updatedUser.role === "ADMIN") name = "Torbit Admin";
+
+    const token = jwt.sign({
+      id: updatedUser.id,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      name,
+      companyStatus: updatedUser.companyProfile?.status,
+      mustChangePassword: false
+    }, JWT_SECRET, { expiresIn: "30d" });
+
+    // 4. Resolve canonical dashboard redirect
+    const origin = req.headers["origin"] || req.headers["referer"] || "";
+    let redirectUrl = "/seeker/dashboard";
+    if (updatedUser.role === "RECRUITER") {
+      redirectUrl = origin.includes(":3001") ? "/dashboard" : "/recruiter/dashboard";
+    } else if (updatedUser.role === "ADMIN") {
+      redirectUrl = "/admin/dashboard";
+    }
 
     res.json({
       success: true,
-      message: "Password reset successfully! You can now log in with your new password."
+      message: "Password reset successfully! Logging you in...",
+      token,
+      redirectUrl,
+      mustChangePassword: false,
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        name,
+        mustChangePassword: false,
+        companyStatus: updatedUser.companyProfile?.status,
+        seekerProfile: updatedUser.seekerProfile,
+        companyProfile: updatedUser.companyProfile
+      }
     });
   } catch (err) {
     console.error("Error resetting password:", err);
@@ -238,18 +301,49 @@ router.post("/register-seeker", async (req, res) => {
     const { fullName, email, phone, password, location, dob, qualification, experience } = req.body;
 
     if (!fullName || !email || !phone || !password) {
-      return res.status(400).json({ error: "Please fill in all mandatory fields" });
+      return res.status(400).json({ error: "Please fill in all mandatory fields." });
+    }
+
+    const cleanFullName = typeof fullName === "string" ? fullName.trim() : "";
+    const nameRegex = /^[a-zA-Z\s\.\']+$/;
+    if (!cleanFullName || !nameRegex.test(cleanFullName) || cleanFullName.length < 2) {
+      return res.status(400).json({ error: "Full Name must contain only alphabetical characters and spaces." });
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
-    if (existing) {
-      return res.status(400).json({ error: "An account with this email already exists." });
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).json({ error: "Please enter a valid email address." });
+    }
+
+    const cleanPhone = phone.trim().replace(/[\s\-]/g, "").replace(/^(\+91|0)/, "");
+    if (!/^[6-9]\d{9}$/.test(cleanPhone.slice(-10))) {
+      return res.status(400).json({ error: "Please enter a valid 10-digit mobile number." });
+    }
+
+    if (typeof password !== "string" || password.length < 6) {
+      return res.status(400).json({ error: "Password must be at least 6 characters long." });
+    }
+
+    // 1. Check if email already exists
+    const existingEmail = await prisma.user.findUnique({ where: { email: cleanEmail } });
+    if (existingEmail) {
+      return res.status(400).json({ error: "An account with this email address is already registered. Please proceed to login." });
+    }
+
+    // 2. Check if mobile number already exists in seeker profiles
+    if (cleanPhone.length >= 10) {
+      const existingPhone = await prisma.seekerProfile.findFirst({
+        where: { phone: { contains: cleanPhone.slice(-10) } }
+      });
+      if (existingPhone) {
+        return res.status(400).json({ error: "An account with this mobile number is already registered. Please login with your credentials." });
+      }
     }
 
     const initialProfile = {
-      fullName,
-      phone,
+      fullName: cleanFullName,
+      phone: cleanPhone,
       location: location || "India",
       dob: dob || null,
       qualification: qualification || "Graduate",
@@ -261,7 +355,7 @@ router.post("/register-seeker", async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: {
-        email: email.toLowerCase(),
+        email: cleanEmail,
         passwordHash,
         role: "JOB_SEEKER",
         seekerProfile: {
@@ -303,7 +397,7 @@ router.post("/register-recruiter", async (req, res) => {
     }
 
     const cleanEmail = workEmail.toLowerCase().trim();
-    const cleanPhone = phone.trim().replace(/[\s\-]/g, "");
+    const cleanPhone = phone.trim().replace(/[\s\-]/g, "").replace(/^(\+91|0)/, "");
     const cleanGst = gstNumber.toUpperCase().trim();
 
     // 1. Email format check
@@ -312,9 +406,9 @@ router.post("/register-recruiter", async (req, res) => {
       return res.status(400).json({ error: "Please provide a valid work email address (e.g. hr@company.com)." });
     }
 
-    // 2. Mobile number check (10 digits, optional +91 or 0 prefix)
+    // 2. Mobile number check (10 digits)
     const phoneRegex = /^(\+91|0)?[6-9]\d{9}$/;
-    if (!phoneRegex.test(cleanPhone)) {
+    if (!phoneRegex.test(phone.trim().replace(/[\s\-]/g, ""))) {
       return res.status(400).json({ error: "Please provide a valid 10-digit mobile number." });
     }
 
@@ -324,9 +418,40 @@ router.post("/register-recruiter", async (req, res) => {
       return res.status(400).json({ error: "Please provide a valid 15-character GSTIN number (e.g. 06AAACD1234F1Z5)." });
     }
 
-    const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
-    if (existing) {
-      return res.status(400).json({ error: "A company with this work email already exists." });
+    // Comprehensive Duplicate Checks: Email, Phone, GSTIN
+    const existingCompany = await prisma.companyProfile.findFirst({
+      where: {
+        OR: [
+          { workEmail: cleanEmail },
+          { gstNumber: cleanGst },
+          ...(cleanPhone.length >= 10 ? [{ phone: { contains: cleanPhone } }] : [])
+        ]
+      },
+      include: { user: true }
+    });
+
+    const existingUserEmail = await prisma.user.findUnique({ where: { email: cleanEmail } });
+
+    if (existingCompany || existingUserEmail) {
+      const comp = existingCompany;
+      const status = comp?.status || "PENDING";
+      const refId = comp?.rejectionReason?.startsWith('REF:') ? comp.rejectionReason.replace('REF:', '') : null;
+
+      if (status === "PENDING" || status === "UNDER_REVIEW") {
+        return res.status(400).json({
+          error: `An application with this email, phone number, or GSTIN is already UNDER VERIFICATION by Admin${refId ? ` (Ref ID: #${refId})` : ''}. Please check your email or wait for approval.`
+        });
+      }
+
+      if (status === "APPROVED") {
+        return res.status(400).json({
+          error: "A verified company account already exists with this email, mobile, or GSTIN. Please log in with your credentials."
+        });
+      }
+
+      return res.status(400).json({
+        error: "An account with these details already exists. Please sign in or contact support at torbitinsights@gmail.com."
+      });
     }
 
     // Generate unique Registration / Reference ID
@@ -362,14 +487,11 @@ router.post("/register-recruiter", async (req, res) => {
       console.error("⚠️ Error sending registration acknowledgment email:", mailErr.message);
     });
 
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role, name: companyName, companyStatus: "PENDING" }, JWT_SECRET, { expiresIn: "7d" });
-
     res.json({
       success: true,
       status: "PENDING",
       referenceId,
       message: "Thank you for showing your interest! Your details & GST certificate are under verification. We will get back in 24-48 hours.",
-      token,
       user: { id: user.id, email: user.email, role: user.role, companyName, companyStatus: "PENDING", companyProfile: user.companyProfile }
     });
   } catch (err) {
@@ -417,6 +539,7 @@ router.post("/login", async (req, res) => {
 
     const mustChangePassword = user.role === "RECRUITER" && user.companyProfile?.rejectionReason === "TEMP_PASS_ISSUED";
 
+    const expiresIn = req.body.rememberMe ? "30d" : "7d";
     const token = jwt.sign({
       id: user.id,
       email: user.email,
@@ -424,7 +547,7 @@ router.post("/login", async (req, res) => {
       name,
       companyStatus: user.companyProfile?.status,
       mustChangePassword
-    }, JWT_SECRET, { expiresIn: "7d" });
+    }, JWT_SECRET, { expiresIn });
 
     const origin = req.headers["origin"] || req.headers["referer"] || "";
     let redirectUrl = "/seeker/dashboard";
@@ -452,6 +575,269 @@ router.post("/login", async (req, res) => {
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ error: "Login process encountered an error. Please try again." });
+  }
+});
+
+// 3c. Google OAuth Authentication (Sign-in & Sign-up)
+router.post("/google", async (req, res) => {
+  try {
+    const { credential, accessToken, userInfo, role, companyDetails } = req.body;
+    if (!credential && !accessToken && !userInfo) {
+      return res.status(400).json({ error: "Google authentication token or credentials required." });
+    }
+
+    // 1. Verify credential token with Google tokeninfo endpoint or userinfo
+    let googlePayload = null;
+    if (credential) {
+      try {
+        const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
+        if (verifyRes.ok) {
+          googlePayload = await verifyRes.json();
+        }
+      } catch (netErr) {
+        console.warn("Tokeninfo check error:", netErr);
+      }
+    }
+
+    if (!googlePayload && accessToken) {
+      try {
+        const userRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        if (userRes.ok) {
+          googlePayload = await userRes.json();
+        }
+      } catch (netErr) {
+        console.warn("Userinfo check error:", netErr);
+      }
+    }
+
+    if (!googlePayload && userInfo && userInfo.email) {
+      googlePayload = userInfo;
+    }
+
+    if (!googlePayload || !googlePayload.email) {
+      return res.status(401).json({ error: "Google authentication could not be verified. Please try again." });
+    }
+
+    const cleanEmail = googlePayload.email.toLowerCase().trim();
+    const fullName = googlePayload.name || [googlePayload.given_name, googlePayload.family_name].filter(Boolean).join(" ") || "User";
+    const avatarUrl = googlePayload.picture || null;
+
+    // 2. Check if user already exists
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: cleanEmail },
+          { companyProfile: { workEmail: cleanEmail } }
+        ]
+      },
+      include: { seekerProfile: true, companyProfile: true }
+    });
+
+    if (user) {
+      // Existing User Sign In
+      if (user.companyProfile?.status === "BLOCKED") {
+        return res.status(403).json({ error: "Your company account has been blocked by Administrator. Please contact support." });
+      }
+
+      // Update avatar if not present
+      if (user.role === "JOB_SEEKER" && user.seekerProfile && !user.seekerProfile.avatarUrl && avatarUrl) {
+        try {
+          await prisma.seekerProfile.update({
+            where: { id: user.seekerProfile.id },
+            data: { avatarUrl }
+          });
+          user.seekerProfile.avatarUrl = avatarUrl;
+        } catch (e) {}
+      }
+
+      let name = user.role === "JOB_SEEKER" ? user.seekerProfile?.fullName : user.companyProfile?.companyName;
+      if (user.role === "ADMIN") name = "Torbit Admin";
+
+      const token = jwt.sign({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        name,
+        companyStatus: user.companyProfile?.status
+      }, JWT_SECRET, { expiresIn: "30d" });
+
+      const origin = req.headers["origin"] || req.headers["referer"] || "";
+      let redirectUrl = "/seeker/dashboard";
+      if (user.role === "RECRUITER") {
+        redirectUrl = origin.includes(":3001") ? "/dashboard" : "/recruiter/dashboard";
+      } else if (user.role === "ADMIN") {
+        redirectUrl = "/admin/dashboard";
+      }
+
+      return res.json({
+        success: true,
+        isNewUser: false,
+        token,
+        redirectUrl,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          name,
+          companyStatus: user.companyProfile?.status,
+          seekerProfile: user.seekerProfile,
+          companyProfile: user.companyProfile
+        }
+      });
+    }
+
+    // 3. New User Registration Flow
+    // If no role was specified, prompt frontend to show role selection modal
+    if (!role) {
+      return res.json({
+        success: true,
+        isNewUser: true,
+        needsRoleSelection: true,
+        email: cleanEmail,
+        fullName,
+        avatarUrl
+      });
+    }
+
+    // New User as JOB_SEEKER
+    if (role === "JOB_SEEKER") {
+      const placeholderSecret = crypto.randomBytes(32).toString("hex");
+      const passwordHash = await bcrypt.hash(placeholderSecret, 10);
+
+      const newUser = await prisma.user.create({
+        data: {
+          email: cleanEmail,
+          passwordHash,
+          role: "JOB_SEEKER",
+          seekerProfile: {
+            create: {
+              fullName,
+              phone: "",
+              avatarUrl,
+              profileCompleted: 70
+            }
+          }
+        },
+        include: { seekerProfile: true }
+      });
+
+      const token = jwt.sign({
+        id: newUser.id,
+        email: newUser.email,
+        role: newUser.role,
+        name: fullName
+      }, JWT_SECRET, { expiresIn: "30d" });
+
+      return res.json({
+        success: true,
+        isNewUser: true,
+        token,
+        redirectUrl: "/seeker/dashboard",
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          role: newUser.role,
+          name: fullName,
+          seekerProfile: newUser.seekerProfile
+        }
+      });
+    }
+
+    // New User as RECRUITER
+    if (role === "RECRUITER") {
+      const { companyName, gstNumber, phone, hqLocation, industry, docUrl } = companyDetails || {};
+
+      if (!companyName || !gstNumber) {
+        return res.json({
+          success: true,
+          isNewUser: true,
+          needsCompanyDetails: true,
+          email: cleanEmail,
+          fullName,
+          avatarUrl
+        });
+      }
+
+      const cleanGst = gstNumber.toUpperCase().trim();
+      const cleanPhone = (phone || "").trim().replace(/[\s\-\+]/g, '').replace(/^91/, '').replace(/^0/, '');
+
+      const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+      if (!gstRegex.test(cleanGst)) {
+        return res.status(400).json({ error: "Please provide a valid 15-character GSTIN number (e.g. 06AAACD1234F1Z5)." });
+      }
+
+      // Check duplicate GST
+      const existingGst = await prisma.companyProfile.findFirst({
+        where: { gstNumber: cleanGst }
+      });
+      if (existingGst) {
+        return res.status(400).json({ error: "A company account with this GSTIN already exists." });
+      }
+
+      const referenceId = `TR-REC-${Math.floor(100000 + Math.random() * 900000)}`;
+      const placeholderSecret = crypto.randomBytes(32).toString("hex");
+      const passwordHash = await bcrypt.hash(placeholderSecret, 10);
+
+      const newUser = await prisma.user.create({
+        data: {
+          email: cleanEmail,
+          passwordHash,
+          role: "RECRUITER",
+          companyProfile: {
+            create: {
+              companyName: companyName.trim(),
+              industry: industry ? industry.trim() : "Real Estate & Construction",
+              workEmail: cleanEmail,
+              phone: cleanPhone || "9800000000",
+              gstNumber: cleanGst,
+              docUrl: docUrl ? docUrl.trim() : null,
+              hqLocation: hqLocation ? hqLocation.trim() : "India",
+              logoUrl: avatarUrl,
+              status: "PENDING",
+              rejectionReason: `REF:${referenceId}`
+            }
+          }
+        },
+        include: { companyProfile: true }
+      });
+
+      sendCompanyRegistrationAckEmail(cleanEmail, companyName.trim(), cleanGst, referenceId).catch(() => {});
+
+      const token = jwt.sign({
+        id: newUser.id,
+        email: newUser.email,
+        role: newUser.role,
+        name: companyName.trim(),
+        companyStatus: "PENDING"
+      }, JWT_SECRET, { expiresIn: "30d" });
+
+      const origin = req.headers["origin"] || req.headers["referer"] || "";
+      const redirectUrl = origin.includes(":3001") ? "/dashboard" : "/recruiter/dashboard";
+
+      return res.json({
+        success: true,
+        isNewUser: true,
+        status: "PENDING",
+        referenceId,
+        token,
+        redirectUrl,
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          role: newUser.role,
+          name: companyName.trim(),
+          companyStatus: "PENDING",
+          companyProfile: newUser.companyProfile
+        }
+      });
+    }
+
+    return res.status(400).json({ error: "Invalid role specified." });
+  } catch (err) {
+    console.error("Google authentication error:", err);
+    res.status(500).json({ error: "Google authentication failed. Please try again." });
   }
 });
 

@@ -3,6 +3,7 @@ import React from 'react';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import RefreshOutlinedIcon from '@mui/icons-material/RefreshOutlined';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
+import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
 
 interface AdminTopbarProps {
   searchQuery: string;
@@ -38,7 +39,7 @@ export default function AdminTopbar({
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-base font-bold text-gray-900 tracking-tight">{getTabTitle()}</h1>
-            <span className="bg-lime-50 text-[#82ad1b] text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-lime-200">
+            <span className="bg-lime-50 text-[#9eb047] text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-lime-200">
               PROD
             </span>
           </div>
@@ -54,7 +55,7 @@ export default function AdminTopbar({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search company, GSTIN, candidate, job..."
-            className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] focus:bg-white transition"
+            className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] focus:bg-white transition"
           />
         </div>
 
@@ -81,13 +82,27 @@ export default function AdminTopbar({
         </div>
 
         <div className="flex items-center gap-2.5 pl-3 border-l border-gray-200">
-          <div className="w-8 h-8 rounded-xl bg-[#080809] text-[#94C322] flex items-center justify-center text-xs font-bold shadow-xs">
+          <div className="w-8 h-8 rounded-xl bg-[#080809] text-[#b2c359] flex items-center justify-center text-xs font-bold shadow-xs">
             SA
           </div>
           <div className="hidden md:block text-left">
             <div className="text-xs font-bold text-gray-900 leading-none">Super Admin</div>
             <div className="text-[10px] text-emerald-600 font-bold leading-none mt-0.5">Authorized</div>
           </div>
+          <button
+            onClick={() => {
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              localStorage.removeItem('adminToken');
+              localStorage.removeItem('adminUser');
+              try { sessionStorage.clear(); } catch (e) {}
+              window.location.href = '/?view=home';
+            }}
+            title="Sign Out"
+            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition ml-1 cursor-pointer"
+          >
+            <LogoutOutlinedIcon sx={{ fontSize: 18 }} />
+          </button>
         </div>
       </div>
     </header>

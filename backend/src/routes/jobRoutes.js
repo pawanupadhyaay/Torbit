@@ -3,12 +3,20 @@ const router = express.Router();
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { authenticateToken } = require("../middleware/authMiddleware");
+const settingsService = require("../services/settingsService");
 
 // GET all jobs
 router.get("/", async (req, res) => {
   try {
-    const { q, category, location, jobType, featured } = req.query;
-    const where = { status: "ACTIVE" };
+    const { q, category, location, jobType, featured, company } = req.query;
+
+    // Check if admin has enabled showing closed jobs on public live portal
+    const platformSettings = settingsService.getSettings();
+    const showClosed = Boolean(platformSettings.showClosedJobsOnPortal);
+
+    const where = showClosed
+      ? { status: { in: ["ACTIVE", "CLOSED"] } }
+      : { status: "ACTIVE" };
 
     if (q) {
       where.OR = [
@@ -22,8 +30,11 @@ router.get("/", async (req, res) => {
     if (location && location !== "All Locations") where.location = { contains: location, mode: "insensitive" };
     if (jobType && jobType !== "All Job Types") where.jobType = jobType;
     if (featured === "true") where.isFeatured = true;
+    if (company && company !== "All Companies") {
+      where.company = { companyName: { contains: company.trim(), mode: "insensitive" } };
+    }
 
-    const jobs = await prisma.job.findMany({
+    const rawJobs = await prisma.job.findMany({
       where,
       include: {
         company: { select: { id: true, companyName: true, industry: true, logoUrl: true, hqLocation: true, status: true } },
@@ -32,9 +43,18 @@ router.get("/", async (req, res) => {
       orderBy: { createdAt: "desc" }
     });
 
+    // If closed jobs are shown, guarantee that ALL ACTIVE jobs appear first and ALL CLOSED jobs appear at the very bottom
+    let jobs = rawJobs;
+    if (showClosed) {
+      const activeJobs = rawJobs.filter(j => j.status === "ACTIVE");
+      const closedJobs = rawJobs.filter(j => j.status === "CLOSED");
+      const otherJobs = rawJobs.filter(j => j.status !== "ACTIVE" && j.status !== "CLOSED");
+      jobs = [...activeJobs, ...otherJobs, ...closedJobs];
+    }
+
     const categories = await prisma.category.findMany({ orderBy: { jobCount: "desc" } });
 
-    res.json({ jobs, categories });
+    res.json({ jobs, categories, showClosedJobsOnPortal: showClosed });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch jobs" });
   }
@@ -65,7 +85,28 @@ router.post("/", authenticateToken, async (req, res) => {
       return res.status(403).json({ error: "Company account is under verification. Job creation is locked." });
     }
 
-    const { title, department, customDepartment, jobType, workMode, location, expMin, expMax, salaryMin, salaryMax, hideSalary, description, skills, openings } = req.body;
+    const {
+      title,
+      department,
+      customDepartment,
+      jobType,
+      workMode,
+      location,
+      expMin,
+      expMax,
+      salaryMin,
+      salaryMax,
+      hideSalary,
+      description,
+      skills,
+      openings,
+      customQuestions
+    } = req.body;
+
+    let parsedQuestions = null;
+    if (customQuestions) {
+      parsedQuestions = typeof customQuestions === "string" ? JSON.parse(customQuestions) : customQuestions;
+    }
 
     const job = await prisma.job.create({
       data: {
@@ -84,6 +125,7 @@ router.post("/", authenticateToken, async (req, res) => {
         description,
         skills: typeof skills === "string" ? skills : JSON.stringify(skills || []),
         openings: Number(openings) || 1,
+        customQuestions: parsedQuestions,
         status: "ACTIVE"
       }
     });
@@ -171,6 +213,7 @@ router.put("/:id", authenticateToken, async (req, res) => {
       description,
       skills,
       openings,
+      customQuestions,
       status
     } = req.body;
 
@@ -189,6 +232,9 @@ router.put("/:id", authenticateToken, async (req, res) => {
     if (description !== undefined) data.description = description.trim();
     if (skills !== undefined) data.skills = typeof skills === "string" ? skills : JSON.stringify(skills || []);
     if (openings !== undefined) data.openings = Number(openings) || 1;
+    if (customQuestions !== undefined) {
+      data.customQuestions = customQuestions ? (typeof customQuestions === "string" ? JSON.parse(customQuestions) : customQuestions) : null;
+    }
     if (status !== undefined) data.status = status;
 
     const updated = await prisma.job.update({

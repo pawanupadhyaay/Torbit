@@ -68,7 +68,7 @@ async function main() {
       data: {
         name: cat,
         slug: slug,
-        iconColor: pop ? pop.color : "#94C322",
+        iconColor: pop ? pop.color : "#b2c359",
         jobCount: pop ? pop.count : Math.floor(Math.random() * 20) + 5,
         isPopular: !!pop,
       }

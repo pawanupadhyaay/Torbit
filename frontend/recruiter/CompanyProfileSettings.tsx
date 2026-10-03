@@ -108,7 +108,7 @@ export default function CompanyProfileSettings({ company, onProfileUpdated }: Co
               required
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322] transition"
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition"
             />
           </div>
 
@@ -139,7 +139,7 @@ export default function CompanyProfileSettings({ company, onProfileUpdated }: Co
               required
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322] transition"
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition"
             />
           </div>
 
@@ -150,7 +150,7 @@ export default function CompanyProfileSettings({ company, onProfileUpdated }: Co
               required
               value={hqLocation}
               onChange={(e) => setHqLocation(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322] transition"
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition"
             />
           </div>
 
@@ -161,7 +161,7 @@ export default function CompanyProfileSettings({ company, onProfileUpdated }: Co
               required
               value={industry}
               onChange={(e) => setIndustry(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#94C322] transition"
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition"
             />
           </div>
         </div>
@@ -170,9 +170,16 @@ export default function CompanyProfileSettings({ company, onProfileUpdated }: Co
           <button
             type="submit"
             disabled={saving}
-            className="bg-[#94C322] hover:bg-[#82ad1b] text-slate-950 font-bold px-5 py-2.5 rounded-xl transition shadow-xs cursor-pointer disabled:opacity-50"
+            className="bg-[#b2c359] hover:bg-[#9eb047] text-slate-950 font-bold px-5 py-2.5 rounded-xl transition shadow-xs cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
           >
-            {saving ? 'Updating...' : 'Update Company Profile'}
+            {saving ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></span>
+                <span>Updating Profile...</span>
+              </>
+            ) : (
+              <span>Update Company Profile</span>
+            )}
           </button>
         </div>
       </form>

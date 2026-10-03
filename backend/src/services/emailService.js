@@ -1,6 +1,6 @@
 const nodemailer = require("nodemailer");
 
-// Create reusable transporter object using Gmail SMTP
+// Create reusable transporter object using Gmail SMTP with pooling & optimized settings
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
   port: Number(process.env.SMTP_PORT) || 465,
@@ -8,8 +8,13 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.SMTP_USER || "torbitinsights@gmail.com",
     pass: process.env.SMTP_PASS || "svntwuvhadctqnzc"
+  },
+  tls: {
+    rejectUnauthorized: false
   }
 });
+
+const DEFAULT_FROM = process.env.EMAIL_FROM || '"Torbit Realty" <torbitinsights@gmail.com>';
 
 /**
  * Send 6-Digit Email Verification OTP
@@ -18,12 +23,17 @@ const transporter = nodemailer.createTransport({
  * @param {string} candidateName 
  */
 async function sendOtpEmail(toEmail, otp, candidateName = "Job Seeker") {
-  const fromAddress = process.env.EMAIL_FROM || "Torbit Realty <torbitinsights@gmail.com>";
-
   const mailOptions = {
-    from: fromAddress,
+    from: DEFAULT_FROM,
     to: toEmail,
-    subject: `🔐 Your Verification Code: ${otp} - Torbit Realty`,
+    replyTo: "torbitinsights@gmail.com",
+    subject: `Verification Code: ${otp} - Torbit Realty`,
+    text: `Hello ${candidateName || 'Job Seeker'},\n\nThank you for registering on Torbit Realty.\n\nYour One-Time Password (OTP) is: ${otp}\n\nThis verification code is valid for 10 minutes. Do not share this code with anyone.\n\nBest regards,\nTorbit Realty Team\nsupport: torbitinsights@gmail.com`,
+    headers: {
+      'X-Entity-Ref-ID': `OTP-${Date.now()}`,
+      'Importance': 'high',
+      'X-Priority': '1'
+    },
     html: `
       <!DOCTYPE html>
       <html>
@@ -42,7 +52,7 @@ async function sendOtpEmail(toEmail, otp, candidateName = "Job Seeker") {
                 <tr>
                   <td style="background-color: #080809; padding: 24px 32px; text-align: center;">
                     <div style="display: inline-block;">
-                      <span style="color: #94C322; font-weight: 900; font-size: 20px; letter-spacing: 1px;">TORBIT</span>
+                      <span style="color: #b2c359; font-weight: 900; font-size: 20px; letter-spacing: 1px;">TORBIT</span>
                       <span style="color: #ffffff; font-weight: 700; font-size: 20px; letter-spacing: 1px;"> REALTY</span>
                     </div>
                     <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 11px; font-weight: 500; letter-spacing: 0.5px;">
@@ -65,7 +75,7 @@ async function sendOtpEmail(toEmail, otp, candidateName = "Job Seeker") {
                     </p>
 
                     <!-- OTP Display Box -->
-                    <div style="background-color: #f8fafc; border: 2px dashed #94C322; border-radius: 12px; padding: 18px 24px; text-align: center; margin: 0 0 24px 0;">
+                    <div style="background-color: #f8fafc; border: 2px dashed #b2c359; border-radius: 12px; padding: 18px 24px; text-align: center; margin: 0 0 24px 0;">
                       <span style="font-family: 'Courier New', Courier, monospace; font-size: 32px; font-weight: 900; letter-spacing: 8px; color: #080809; display: inline-block;">
                         ${otp}
                       </span>
@@ -74,7 +84,7 @@ async function sendOtpEmail(toEmail, otp, candidateName = "Job Seeker") {
                     <!-- Security Alert -->
                     <div style="background-color: #fefce8; border-left: 4px solid #eab308; padding: 12px 16px; border-radius: 6px; margin: 0 0 20px 0;">
                       <p style="margin: 0; font-size: 11px; color: #854d0e; font-weight: 600; line-height: 1.5;">
-                        ⏱️ This verification code is valid for <strong>10 minutes</strong>. Do not share this code with anyone.
+                        This verification code is valid for <strong>10 minutes</strong>. Do not share this code with anyone.
                       </p>
                     </div>
 
@@ -88,10 +98,113 @@ async function sendOtpEmail(toEmail, otp, candidateName = "Job Seeker") {
                 <tr>
                   <td style="background-color: #f8fafc; padding: 20px 32px; text-align: center; border-top: 1px solid #f1f5f9;">
                     <p style="margin: 0 0 6px 0; font-size: 11px; color: #94a3b8; font-weight: 600;">
-                      © ${new Date().getFullYear()} Torbit Realty. All rights reserved.
+                      © ${new Date().getFullYear()} Torbit Realty Pvt. Ltd. All rights reserved.
                     </p>
-                    <p style="margin: 0; font-size: 10px; color: #cbd5e1;">
-                      Sent automatically from <a href="mailto:torbitinsights@gmail.com" style="color: #94C322; text-decoration: none;">torbitinsights@gmail.com</a>
+                    <p style="margin: 0; font-size: 10px; color: #94a3b8;">
+                      Official communication from Torbit Realty (<a href="mailto:torbitinsights@gmail.com" style="color: #b2c359; text-decoration: none;">torbitinsights@gmail.com</a>)
+                    </p>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `
+  };
+
+  return transporter.sendMail(mailOptions);
+}
+
+/**
+ * Send 6-Digit Password Reset OTP Email
+ * @param {string} toEmail 
+ * @param {string} otp 
+ * @param {string} userName 
+ * @param {string} roleName
+ */
+async function sendPasswordResetOtpEmail(toEmail, otp, userName = "User", roleName = "Account") {
+  const mailOptions = {
+    from: DEFAULT_FROM,
+    to: toEmail,
+    replyTo: "torbitinsights@gmail.com",
+    subject: `Password Reset Code: ${otp} - Torbit Realty`,
+    text: `Hello ${userName || 'User'},\n\nWe received a request to reset the password for your ${roleName} account on Torbit Realty.\n\nYour One-Time Password (OTP) is: ${otp}\n\nThis verification code is valid for 10 minutes. If you did not request this password reset, please ignore this email or contact support immediately.\n\nBest regards,\nTorbit Realty Security Team\nsupport: torbitinsights@gmail.com`,
+    headers: {
+      'X-Entity-Ref-ID': `RESET-OTP-${Date.now()}`,
+      'Importance': 'high',
+      'X-Priority': '1'
+    },
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Password Reset OTP</title>
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #f4f6f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed; background-color: #f4f6f8; padding: 30px 15px;">
+          <tr>
+            <td align="center">
+              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); border: 1px solid #e2e8f0;">
+                
+                <!-- Brand Header -->
+                <tr>
+                  <td style="background-color: #080809; padding: 24px 32px; text-align: center;">
+                    <div style="display: inline-block;">
+                      <span style="color: #b2c359; font-weight: 900; font-size: 20px; letter-spacing: 1px;">TORBIT</span>
+                      <span style="color: #ffffff; font-weight: 700; font-size: 20px; letter-spacing: 1px;"> REALTY</span>
+                    </div>
+                    <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 11px; font-weight: 500; letter-spacing: 0.5px;">
+                      Account Security &amp; Password Recovery
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Content Body -->
+                <tr>
+                  <td style="padding: 32px 32px 24px 32px;">
+                    <h1 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 800; color: #0f172a; line-height: 1.3;">
+                      Password Reset Request
+                    </h1>
+                    <p style="margin: 0 0 16px 0; font-size: 13px; color: #475569; line-height: 1.6;">
+                      Hello <strong>${userName || 'User'}</strong> (${roleName}),
+                    </p>
+                    <p style="margin: 0 0 24px 0; font-size: 13px; color: #475569; line-height: 1.6;">
+                      We received a request to reset the password for your Torbit Realty account. Please use the following One-Time Password (OTP) to securely create a new password:
+                    </p>
+
+                    <!-- OTP Display Box -->
+                    <div style="background-color: #f8fafc; border: 2px dashed #b2c359; border-radius: 12px; padding: 18px 24px; text-align: center; margin: 0 0 24px 0;">
+                      <span style="font-family: 'Courier New', Courier, monospace; font-size: 32px; font-weight: 900; letter-spacing: 8px; color: #080809; display: inline-block;">
+                        ${otp}
+                      </span>
+                    </div>
+
+                    <!-- Security Alert -->
+                    <div style="background-color: #fefce8; border-left: 4px solid #eab308; padding: 12px 16px; border-radius: 6px; margin: 0 0 20px 0;">
+                      <p style="margin: 0; font-size: 11px; color: #854d0e; font-weight: 600; line-height: 1.5;">
+                        This verification code is valid for <strong>10 minutes</strong>. Do not share this OTP with anyone, including Torbit support.
+                      </p>
+                    </div>
+
+                    <p style="margin: 0; font-size: 12px; color: #64748b; line-height: 1.5;">
+                      If you did not request this password reset, please safely ignore this email. Your current password remains active and secure.
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                  <td style="background-color: #f8fafc; padding: 20px 32px; text-align: center; border-top: 1px solid #f1f5f9;">
+                    <p style="margin: 0 0 6px 0; font-size: 11px; color: #94a3b8; font-weight: 600;">
+                      © ${new Date().getFullYear()} Torbit Realty Pvt. Ltd. All rights reserved.
+                    </p>
+                    <p style="margin: 0; font-size: 10px; color: #94a3b8;">
+                      Official security communication (<a href="mailto:torbitinsights@gmail.com" style="color: #b2c359; text-decoration: none;">torbitinsights@gmail.com</a>)
                     </p>
                   </td>
                 </tr>
@@ -116,12 +229,17 @@ async function sendOtpEmail(toEmail, otp, candidateName = "Job Seeker") {
  * @param {string} loginUrl 
  */
 async function sendCompanyApprovalEmail(toEmail, companyName, temporaryPassword, loginUrl = "http://localhost:3000") {
-  const fromAddress = process.env.EMAIL_FROM || "Torbit Realty <torbitinsights@gmail.com>";
-
   const mailOptions = {
-    from: fromAddress,
+    from: DEFAULT_FROM,
     to: toEmail,
-    subject: `🎉 Account Approved: Your Recruiter Login Credentials - Torbit Realty`,
+    replyTo: "torbitinsights@gmail.com",
+    subject: `Account Approved: Recruiter Login Credentials - Torbit Realty`,
+    text: `Dear ${companyName || "Employer"} Team,\n\nWe are pleased to inform you that your company credentials and GSTIN have been reviewed and APPROVED by the Torbit Realty Administration Team. Your corporate account is now active.\n\nYour Login Credentials:\n- Work Email: ${toEmail}\n- Temporary Password: ${temporaryPassword}\n- Portal URL: ${loginUrl}\n\nMandatory Security Note: Upon first login, you will be prompted to set your permanent password.\n\nBest regards,\nTorbit Realty Administration Desk`,
+    headers: {
+      'X-Entity-Ref-ID': `APP-${Date.now()}`,
+      'Importance': 'high',
+      'X-Priority': '1'
+    },
     html: `
       <!DOCTYPE html>
       <html>
@@ -140,7 +258,7 @@ async function sendCompanyApprovalEmail(toEmail, companyName, temporaryPassword,
                 <tr>
                   <td style="background-color: #080809; padding: 24px 32px; text-align: center;">
                     <div style="display: inline-block;">
-                      <span style="color: #94C322; font-weight: 900; font-size: 20px; letter-spacing: 1px;">TORBIT</span>
+                      <span style="color: #b2c359; font-weight: 900; font-size: 20px; letter-spacing: 1px;">TORBIT</span>
                       <span style="color: #ffffff; font-weight: 700; font-size: 20px; letter-spacing: 1px;"> RECRUITER</span>
                     </div>
                     <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 11px; font-weight: 500; letter-spacing: 0.5px;">
@@ -171,7 +289,7 @@ async function sendCompanyApprovalEmail(toEmail, companyName, temporaryPassword,
                     <!-- Credentials Card -->
                     <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 0 0 24px 0;">
                       <h3 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
-                        🔑 Your Initial Login Credentials
+                        Your Initial Login Credentials
                       </h3>
                       
                       <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
@@ -199,15 +317,15 @@ async function sendCompanyApprovalEmail(toEmail, companyName, temporaryPassword,
                     </div>
 
                     <!-- Security Alert -->
-                    <div style="background-color: #f0fdf4; border-left: 4px solid #94C322; padding: 14px 16px; border-radius: 6px; margin: 0 0 24px 0;">
+                    <div style="background-color: #f0fdf4; border-left: 4px solid #b2c359; padding: 14px 16px; border-radius: 6px; margin: 0 0 24px 0;">
                       <p style="margin: 0; font-size: 12px; color: #166534; font-weight: 600; line-height: 1.5;">
-                        🔒 <strong>Mandatory First-Time Security Step:</strong> When you log in with this temporary password, the system will prompt you to set your own secure, permanent password immediately before entering your dashboard.
+                        <strong>Mandatory First-Time Security Step:</strong> When you log in with this temporary password, the system will prompt you to set your own secure, permanent password immediately before entering your dashboard.
                       </p>
                     </div>
 
                     <!-- Login CTA Button -->
                     <div style="text-align: center; margin: 28px 0 16px 0;">
-                      <a href="${loginUrl}" style="display: inline-block; background-color: #94C322; color: #080809; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 14px 32px; border-radius: 10px; text-decoration: none; box-shadow: 0 2px 8px rgba(148, 195, 34, 0.4);">
+                      <a href="${loginUrl}" style="display: inline-block; background-color: #b2c359; color: #080809; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 14px 32px; border-radius: 10px; text-decoration: none; box-shadow: 0 2px 8px rgba(148, 195, 34, 0.4);">
                         Log In to Recruiter Portal →
                       </a>
                     </div>
@@ -218,10 +336,10 @@ async function sendCompanyApprovalEmail(toEmail, companyName, temporaryPassword,
                 <tr>
                   <td style="background-color: #f8fafc; padding: 20px 32px; text-align: center; border-top: 1px solid #f1f5f9;">
                     <p style="margin: 0 0 6px 0; font-size: 11px; color: #94a3b8; font-weight: 600;">
-                      © ${new Date().getFullYear()} Torbit Realty. All rights reserved.
+                      © ${new Date().getFullYear()} Torbit Realty Pvt. Ltd. All rights reserved.
                     </p>
-                    <p style="margin: 0; font-size: 10px; color: #cbd5e1;">
-                      Official communication from Torbit Realty Admin Team (<a href="mailto:torbitinsights@gmail.com" style="color: #94C322; text-decoration: none;">torbitinsights@gmail.com</a>)
+                    <p style="margin: 0; font-size: 10px; color: #94a3b8;">
+                      Official communication from Torbit Realty Admin Team (<a href="mailto:torbitinsights@gmail.com" style="color: #b2c359; text-decoration: none;">torbitinsights@gmail.com</a>)
                     </p>
                   </td>
                 </tr>
@@ -245,12 +363,15 @@ async function sendCompanyApprovalEmail(toEmail, companyName, temporaryPassword,
  * @param {string} reason 
  */
 async function sendCompanyRejectionEmail(toEmail, companyName, reason = "Information verification mismatch.") {
-  const fromAddress = process.env.EMAIL_FROM || "Torbit Realty <torbitinsights@gmail.com>";
-
   const mailOptions = {
-    from: fromAddress,
+    from: DEFAULT_FROM,
     to: toEmail,
+    replyTo: "torbitinsights@gmail.com",
     subject: `Update Regarding Your Company Registration - Torbit Realty`,
+    text: `Dear ${companyName || "Applicant"} Team,\n\nThank you for your interest in hiring on Torbit Realty. Following our admin verification process, we regret to inform you that your company registration could not be approved at this time.\n\nReason: ${reason}\n\nIf you believe this was in error, please contact us at torbitinsights@gmail.com.\n\nBest regards,\nTorbit Realty Compliance Team`,
+    headers: {
+      'X-Entity-Ref-ID': `REJ-${Date.now()}`
+    },
     html: `
       <!DOCTYPE html>
       <html>
@@ -269,7 +390,7 @@ async function sendCompanyRejectionEmail(toEmail, companyName, reason = "Informa
                 <tr>
                   <td style="background-color: #080809; padding: 24px 32px; text-align: center;">
                     <div style="display: inline-block;">
-                      <span style="color: #94C322; font-weight: 900; font-size: 20px; letter-spacing: 1px;">TORBIT</span>
+                      <span style="color: #b2c359; font-weight: 900; font-size: 20px; letter-spacing: 1px;">TORBIT</span>
                       <span style="color: #ffffff; font-weight: 700; font-size: 20px; letter-spacing: 1px;"> REALTY</span>
                     </div>
                   </td>
@@ -308,7 +429,7 @@ async function sendCompanyRejectionEmail(toEmail, companyName, reason = "Informa
                 <tr>
                   <td style="background-color: #f8fafc; padding: 20px 32px; text-align: center; border-top: 1px solid #f1f5f9;">
                     <p style="margin: 0 0 6px 0; font-size: 11px; color: #94a3b8; font-weight: 600;">
-                      © ${new Date().getFullYear()} Torbit Realty. All rights reserved.
+                      © ${new Date().getFullYear()} Torbit Realty Pvt. Ltd. All rights reserved.
                     </p>
                   </td>
                 </tr>
@@ -333,12 +454,16 @@ async function sendCompanyRejectionEmail(toEmail, companyName, reason = "Informa
  * @param {string} referenceId 
  */
 async function sendCompanyRegistrationAckEmail(toEmail, companyName, gstNumber, referenceId) {
-  const fromAddress = process.env.EMAIL_FROM || "Torbit Realty <torbitinsights@gmail.com>";
-
   const mailOptions = {
-    from: fromAddress,
+    from: DEFAULT_FROM,
     to: toEmail,
-    subject: `📋 Registration Received: Application Ref #${referenceId} - Torbit Realty`,
+    replyTo: "torbitinsights@gmail.com",
+    subject: `Registration Received: Application Ref #${referenceId} - Torbit Realty`,
+    text: `Dear ${companyName || "Employer"} Team,\n\nWe have successfully received your company registration request along with your GST certificate and verification documents.\n\nApplication Summary:\n- Reference ID: ${referenceId}\n- Company Name: ${companyName}\n- Registered Email: ${toEmail}\n- GSTIN: ${gstNumber}\n- Status: PENDING ADMIN APPROVAL\n\nWhat happens next?\nOur compliance team is currently reviewing your GST certificate. This typically takes 24–48 business hours. Once approved, you will receive your temporary login password.\n\nBest regards,\nTorbit Realty Compliance Desk`,
+    headers: {
+      'X-Entity-Ref-ID': `REF-${referenceId}`,
+      'X-Priority': '3'
+    },
     html: `
       <!DOCTYPE html>
       <html>
@@ -357,7 +482,7 @@ async function sendCompanyRegistrationAckEmail(toEmail, companyName, gstNumber, 
                 <tr>
                   <td style="background-color: #080809; padding: 24px 32px; text-align: center;">
                     <div style="display: inline-block;">
-                      <span style="color: #94C322; font-weight: 900; font-size: 20px; letter-spacing: 1px;">TORBIT</span>
+                      <span style="color: #b2c359; font-weight: 900; font-size: 20px; letter-spacing: 1px;">TORBIT</span>
                       <span style="color: #ffffff; font-weight: 700; font-size: 20px; letter-spacing: 1px;"> REALTY</span>
                     </div>
                     <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 11px; font-weight: 500; letter-spacing: 0.5px;">
@@ -371,7 +496,7 @@ async function sendCompanyRegistrationAckEmail(toEmail, companyName, gstNumber, 
                   <td style="padding: 32px 32px 24px 32px;">
                     <div style="display: inline-block; background-color: #fefce8; border: 1px solid #fef08a; border-radius: 20px; padding: 4px 12px; margin-bottom: 16px;">
                       <span style="color: #854d0e; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
-                        ⏳ Application Under Verification
+                        Application Under Verification
                       </span>
                     </div>
 
@@ -388,7 +513,7 @@ async function sendCompanyRegistrationAckEmail(toEmail, companyName, gstNumber, 
                     <!-- Reference / Details Card -->
                     <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 0 0 24px 0;">
                       <h3 style="margin: 0 0 12px 0; font-size: 12px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
-                        📄 Application Summary
+                        Application Summary
                       </h3>
                       
                       <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
@@ -422,9 +547,9 @@ async function sendCompanyRegistrationAckEmail(toEmail, companyName, gstNumber, 
                     </div>
 
                     <!-- Next Steps -->
-                    <div style="background-color: #f0fdf4; border-left: 4px solid #94C322; padding: 14px 16px; border-radius: 6px; margin: 0 0 20px 0;">
+                    <div style="background-color: #f0fdf4; border-left: 4px solid #b2c359; padding: 14px 16px; border-radius: 6px; margin: 0 0 20px 0;">
                       <h4 style="margin: 0 0 4px 0; font-size: 12px; font-weight: 800; color: #166534; text-transform: uppercase;">
-                        🔍 What happens next?
+                        What happens next?
                       </h4>
                       <p style="margin: 0; font-size: 12px; color: #166534; line-height: 1.5;">
                         Our compliance team is currently reviewing your GST certificate and details. This typically takes <strong>24–48 business hours</strong>. Once approved, you will receive an official email containing your <strong>Temporary Login Password</strong> and direct access to the recruiter dashboard.
@@ -441,10 +566,10 @@ async function sendCompanyRegistrationAckEmail(toEmail, companyName, gstNumber, 
                 <tr>
                   <td style="background-color: #f8fafc; padding: 20px 32px; text-align: center; border-top: 1px solid #f1f5f9;">
                     <p style="margin: 0 0 6px 0; font-size: 11px; color: #94a3b8; font-weight: 600;">
-                      © ${new Date().getFullYear()} Torbit Realty. All rights reserved.
+                      © ${new Date().getFullYear()} Torbit Realty Pvt. Ltd. All rights reserved.
                     </p>
-                    <p style="margin: 0; font-size: 10px; color: #cbd5e1;">
-                      Automatic acknowledgement sent from <a href="mailto:torbitinsights@gmail.com" style="color: #94C322; text-decoration: none;">torbitinsights@gmail.com</a>
+                    <p style="margin: 0; font-size: 10px; color: #94a3b8;">
+                      Automatic acknowledgement sent from <a href="mailto:torbitinsights@gmail.com" style="color: #b2c359; text-decoration: none;">torbitinsights@gmail.com</a>
                     </p>
                   </td>
                 </tr>
@@ -465,12 +590,15 @@ async function sendCompanyRegistrationAckEmail(toEmail, companyName, gstNumber, 
  * Send Job Alert Subscription Confirmation Email
  */
 async function sendJobAlertConfirmationEmail(toEmail, seekerName, alertData, matchedJobsCount = 0) {
-  const fromAddress = process.env.EMAIL_FROM || "Torbit Realty <torbitinsights@gmail.com>";
-
   const mailOptions = {
-    from: fromAddress,
+    from: DEFAULT_FROM,
     to: toEmail,
-    subject: `🔔 Job Alert Active: "${alertData.title}" - Torbit Realty`,
+    replyTo: "torbitinsights@gmail.com",
+    subject: `Job Alert Active: "${alertData.title}" - Torbit Realty`,
+    text: `Hello ${seekerName || "Candidate"},\n\nYour job alert for "${alertData.title}" in "${alertData.location}" is now active.\nWe will notify you whenever new matching positions are posted.\n\nBest regards,\nTorbit Realty Team`,
+    headers: {
+      'X-Entity-Ref-ID': `ALERT-${Date.now()}`
+    },
     html: `
       <!DOCTYPE html>
       <html>
@@ -489,7 +617,7 @@ async function sendJobAlertConfirmationEmail(toEmail, seekerName, alertData, mat
                 <tr>
                   <td style="background-color: #080809; padding: 24px 32px; text-align: center;">
                     <div style="display: inline-block;">
-                      <span style="color: #94C322; font-weight: 900; font-size: 20px; letter-spacing: 1px;">TORBIT</span>
+                      <span style="color: #b2c359; font-weight: 900; font-size: 20px; letter-spacing: 1px;">TORBIT</span>
                       <span style="color: #ffffff; font-weight: 700; font-size: 20px; letter-spacing: 1px;"> REALTY</span>
                     </div>
                     <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 11px; font-weight: 500; letter-spacing: 0.5px;">
@@ -520,7 +648,7 @@ async function sendJobAlertConfirmationEmail(toEmail, seekerName, alertData, mat
                     <!-- Alert Details Card -->
                     <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin: 0 0 24px 0;">
                       <h3 style="margin: 0 0 14px 0; font-size: 12px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
-                        🎯 Alert Parameters
+                        Alert Parameters
                       </h3>
                       
                       <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
@@ -543,7 +671,7 @@ async function sendJobAlertConfirmationEmail(toEmail, seekerName, alertData, mat
                         <tr>
                           <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Matching Openings:</td>
                           <td style="padding: 6px 0;">
-                            <span style="background-color: #94C322; color: #080809; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px;">
+                            <span style="background-color: #b2c359; color: #080809; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 6px;">
                               ${matchedJobsCount} Active Matching Jobs
                             </span>
                           </td>
@@ -554,13 +682,13 @@ async function sendJobAlertConfirmationEmail(toEmail, seekerName, alertData, mat
                     <!-- CTA Button -->
                     <div style="text-align: center; margin: 28px 0 20px 0;">
                       <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/seeker/dashboard" 
-                         style="background-color: #94C322; color: #080809; font-size: 13px; font-weight: 800; padding: 12px 28px; text-decoration: none; border-radius: 10px; display: inline-block; box-shadow: 0 2px 8px rgba(148, 195, 34, 0.3);">
+                         style="background-color: #b2c359; color: #080809; font-size: 13px; font-weight: 800; padding: 12px 28px; text-decoration: none; border-radius: 10px; display: inline-block; box-shadow: 0 2px 8px rgba(148, 195, 34, 0.3);">
                         View Matching Jobs &amp; Apply →
                       </a>
                     </div>
 
                     <p style="margin: 0; font-size: 11px; color: #64748b; line-height: 1.5; text-align: center;">
-                      You can modify or pause this alert anytime in your <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/seeker/dashboard" style="color: #94C322; text-decoration: underline;">Job Seeker Dashboard</a>.
+                      You can modify or pause this alert anytime in your <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/seeker/dashboard" style="color: #b2c359; text-decoration: underline;">Job Seeker Dashboard</a>.
                     </p>
                   </td>
                 </tr>
@@ -569,10 +697,10 @@ async function sendJobAlertConfirmationEmail(toEmail, seekerName, alertData, mat
                 <tr>
                   <td style="background-color: #f8fafc; padding: 20px 32px; text-align: center; border-top: 1px solid #f1f5f9;">
                     <p style="margin: 0 0 6px 0; font-size: 11px; color: #94a3b8; font-weight: 600;">
-                      © ${new Date().getFullYear()} Torbit Realty. All rights reserved.
+                      © ${new Date().getFullYear()} Torbit Realty Pvt. Ltd. All rights reserved.
                     </p>
-                    <p style="margin: 0; font-size: 10px; color: #cbd5e1;">
-                      Sent automatically from <a href="mailto:torbitinsights@gmail.com" style="color: #94C322; text-decoration: none;">torbitinsights@gmail.com</a>
+                    <p style="margin: 0; font-size: 10px; color: #94a3b8;">
+                      Sent automatically from <a href="mailto:torbitinsights@gmail.com" style="color: #b2c359; text-decoration: none;">torbitinsights@gmail.com</a>
                     </p>
                   </td>
                 </tr>
@@ -593,8 +721,6 @@ async function sendJobAlertConfirmationEmail(toEmail, seekerName, alertData, mat
  * Send Matching Jobs Digest Email
  */
 async function sendMatchedJobsAlertEmail(toEmail, seekerName, alertTitle, matchingJobs = []) {
-  const fromAddress = process.env.EMAIL_FROM || "Torbit Realty <torbitinsights@gmail.com>";
-
   const jobsListHtml = matchingJobs.map((j) => `
     <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 12px;">
       <div style="font-size: 14px; font-weight: 800; color: #0f172a; margin-bottom: 4px;">
@@ -610,9 +736,14 @@ async function sendMatchedJobsAlertEmail(toEmail, seekerName, alertTitle, matchi
   `).join('');
 
   const mailOptions = {
-    from: fromAddress,
+    from: DEFAULT_FROM,
     to: toEmail,
-    subject: `⚡ ${matchingJobs.length} New Matching Jobs Found for "${alertTitle}" - Torbit Realty`,
+    replyTo: "torbitinsights@gmail.com",
+    subject: `New Matching Jobs for "${alertTitle}" - Torbit Realty`,
+    text: `Hello ${seekerName || "Candidate"},\n\nWe found ${matchingJobs.length} new openings matching your alert "${alertTitle}".\nLog in to your dashboard to view details and apply.\n\nBest regards,\nTorbit Realty Team`,
+    headers: {
+      'X-Entity-Ref-ID': `DIGEST-${Date.now()}`
+    },
     html: `
       <!DOCTYPE html>
       <html>
@@ -631,7 +762,7 @@ async function sendMatchedJobsAlertEmail(toEmail, seekerName, alertTitle, matchi
                 <tr>
                   <td style="background-color: #080809; padding: 24px 32px; text-align: center;">
                     <div style="display: inline-block;">
-                      <span style="color: #94C322; font-weight: 900; font-size: 20px; letter-spacing: 1px;">TORBIT</span>
+                      <span style="color: #b2c359; font-weight: 900; font-size: 20px; letter-spacing: 1px;">TORBIT</span>
                       <span style="color: #ffffff; font-weight: 700; font-size: 20px; letter-spacing: 1px;"> REALTY</span>
                     </div>
                     <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 11px; font-weight: 500; letter-spacing: 0.5px;">
@@ -657,7 +788,7 @@ async function sendMatchedJobsAlertEmail(toEmail, seekerName, alertTitle, matchi
                     <!-- CTA Button -->
                     <div style="text-align: center; margin: 24px 0 16px 0;">
                       <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/seeker/dashboard" 
-                         style="background-color: #94C322; color: #080809; font-size: 13px; font-weight: 800; padding: 12px 28px; text-decoration: none; border-radius: 10px; display: inline-block; box-shadow: 0 2px 8px rgba(148, 195, 34, 0.3);">
+                         style="background-color: #b2c359; color: #080809; font-size: 13px; font-weight: 800; padding: 12px 28px; text-decoration: none; border-radius: 10px; display: inline-block; box-shadow: 0 2px 8px rgba(148, 195, 34, 0.3);">
                         View &amp; Quick Apply Now →
                       </a>
                     </div>
@@ -668,7 +799,7 @@ async function sendMatchedJobsAlertEmail(toEmail, seekerName, alertTitle, matchi
                 <tr>
                   <td style="background-color: #f8fafc; padding: 20px 32px; text-align: center; border-top: 1px solid #f1f5f9;">
                     <p style="margin: 0 0 6px 0; font-size: 11px; color: #94a3b8; font-weight: 600;">
-                      © ${new Date().getFullYear()} Torbit Realty. All rights reserved.
+                      © ${new Date().getFullYear()} Torbit Realty Pvt. Ltd. All rights reserved.
                     </p>
                   </td>
                 </tr>
@@ -688,10 +819,12 @@ async function sendMatchedJobsAlertEmail(toEmail, seekerName, alertTitle, matchi
 module.exports = {
   transporter,
   sendOtpEmail,
+  sendPasswordResetOtpEmail,
   sendCompanyApprovalEmail,
   sendCompanyRejectionEmail,
   sendCompanyRegistrationAckEmail,
   sendJobAlertConfirmationEmail,
   sendMatchedJobsAlertEmail
 };
+
 

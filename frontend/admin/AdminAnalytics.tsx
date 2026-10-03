@@ -65,7 +65,7 @@ export default function AdminAnalytics() {
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-lime-500 to-[#94C322] h-2.5 rounded-full"
+                    className="bg-gradient-to-r from-lime-500 to-[#b2c359] h-2.5 rounded-full"
                     style={{ width: sb.pct }}
                   />
                 </div>

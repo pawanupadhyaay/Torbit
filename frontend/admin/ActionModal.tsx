@@ -1,11 +1,11 @@
 'use client';
 import React, { useState } from 'react';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, X, Loader2 } from 'lucide-react';
 
 interface ActionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (reason: string) => void;
+  onConfirm: (reason: string) => Promise<void> | void;
   title: string;
   description: string;
   actionLabel: string;
@@ -22,15 +22,26 @@ export default function ActionModal({
   isDestructive = true
 }: ActionModalProps) {
   const [reason, setReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
+  const handleConfirm = async () => {
+    setSubmitting(true);
+    try {
+      await onConfirm(reason);
+      setReason('');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 font-['Helvetica',Arial,sans-serif]">
       <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200 relative">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition"
+          className="absolute right-4 top-4 p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>
@@ -70,23 +81,31 @@ export default function ActionModal({
 
         <div className="flex gap-2">
           <button
+            type="button"
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-50 transition"
+            disabled={submitting}
+            className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-50 transition cursor-pointer disabled:opacity-50"
           >
             Cancel
           </button>
           <button
-            onClick={() => {
-              onConfirm(reason);
-              setReason('');
-            }}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-bold text-white shadow transition ${
+            type="button"
+            disabled={submitting}
+            onClick={handleConfirm}
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold text-white shadow transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 ${
               isDestructive
                 ? 'bg-red-600 hover:bg-red-700'
                 : 'bg-amber-600 hover:bg-amber-700'
             }`}
           >
-            {actionLabel}
+            {submitting ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span>Processing...</span>
+              </>
+            ) : (
+              <span>{actionLabel}</span>
+            )}
           </button>
         </div>
       </div>

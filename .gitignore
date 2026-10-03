@@ -39,3 +39,7 @@ yarn-error.log*
 # Uploads directory
 backend/uploads/*
 !backend/uploads/.gitkeep
+
+# Root scratch captures
+screencapture*.png
+Torbit Logo.png

@@ -20,16 +20,26 @@ interface RecruiterJobsTableProps {
   onOpenCreateJob: () => void;
   isApproved: boolean;
   onJobUpdated?: () => void;
+  onEditJob?: (job: any) => void;
 }
 
 export default function RecruiterJobsTable({ 
   jobs, 
   onOpenCreateJob, 
   isApproved, 
-  onJobUpdated 
+  onJobUpdated,
+  onEditJob
 }: RecruiterJobsTableProps) {
   const [editingJob, setEditingJob] = useState<any>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const handleEditClick = (job: any) => {
+    if (onEditJob) {
+      onEditJob(job);
+    } else {
+      setEditingJob(job);
+    }
+  };
 
   const handleToggleStatus = async (jobId: string, currentStatus: string) => {
     const nextStatus = currentStatus === 'ACTIVE' ? 'CLOSED' : 'ACTIVE';
@@ -62,8 +72,8 @@ export default function RecruiterJobsTable({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-gray-100">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-sm sm:text-base font-black text-gray-900">My Real Estate Job Listings</h2>
-            <span className="bg-lime-100 text-[#82ad1b] text-[10px] font-black px-2 py-0.5 rounded-full border border-lime-200">
+            <h2 className="text-sm sm:text-base font-black text-gray-900">My Job Listings</h2>
+            <span className="bg-lime-100 text-[#9eb047] text-[10px] font-black px-2 py-0.5 rounded-full border border-lime-200">
               {jobs.length} Listed
             </span>
           </div>
@@ -76,7 +86,7 @@ export default function RecruiterJobsTable({
           <button
             type="button"
             onClick={onOpenCreateJob}
-            className="w-full sm:w-auto flex items-center justify-center gap-1.5 bg-[#94C322] hover:bg-[#82ad1b] text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-xs cursor-pointer active:scale-95"
+            className="w-full sm:w-auto flex items-center justify-center gap-1.5 bg-[#b2c359] hover:bg-[#9eb047] text-slate-950 text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-xs cursor-pointer active:scale-95"
           >
             <PlusCircle className="w-4 h-4" />
             <span>+ Create Opening</span>
@@ -95,7 +105,7 @@ export default function RecruiterJobsTable({
             <button
               type="button"
               onClick={onOpenCreateJob}
-              className="bg-[#94C322] hover:bg-[#82ad1b] text-slate-950 text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer"
+              className="bg-[#b2c359] hover:bg-[#9eb047] text-slate-950 text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer"
             >
               + Create First Job
             </button>
@@ -121,7 +131,7 @@ export default function RecruiterJobsTable({
                 <div
                   key={j.id}
                   className={`bg-white rounded-xl border p-4 shadow-2xs transition-colors space-y-3 ${
-                    isClosed ? 'border-gray-200 bg-gray-50/40 opacity-80' : 'border-gray-200/90 hover:border-[#94C322]/50'
+                    isClosed ? 'border-gray-200 bg-gray-50/40 opacity-80' : 'border-gray-200/90 hover:border-[#b2c359]/50'
                   }`}
                 >
                   {/* Top: Title & Status Badge */}
@@ -132,7 +142,7 @@ export default function RecruiterJobsTable({
                       </h3>
                       <div className="flex items-center gap-1.5 text-[10px] text-gray-500 mt-0.5">
                         <span className="font-semibold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded">
-                          {j.department || 'Real Estate'}
+                          {j.department || 'General'}
                         </span>
                         <span>•</span>
                         <span>Openings: <strong className="text-gray-800">{j.openings || 1}</strong></span>
@@ -187,7 +197,7 @@ export default function RecruiterJobsTable({
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
-                        onClick={() => setEditingJob(j)}
+                        onClick={() => handleEditClick(j)}
                         className="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-[11px] font-bold rounded-lg transition flex items-center gap-1 cursor-pointer"
                         title="Edit Job Details"
                       >
@@ -224,7 +234,7 @@ export default function RecruiterJobsTable({
               <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] font-bold border-b border-gray-200">
                 <tr>
                   <th className="p-3.5">Job Title</th>
-                  <th className="p-3.5">Category (32 Master)</th>
+                  <th className="p-3.5">Category / Department</th>
                   <th className="p-3.5">Work Mode &amp; City</th>
                   <th className="p-3.5">Salary Range (CTC)</th>
                   <th className="p-3.5">Applications</th>
@@ -282,7 +292,7 @@ export default function RecruiterJobsTable({
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
-                            onClick={() => setEditingJob(j)}
+                            onClick={() => handleEditClick(j)}
                             className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold rounded-lg transition inline-flex items-center gap-1 cursor-pointer"
                           >
                             <Edit3 className="w-3 h-3 text-gray-600" />

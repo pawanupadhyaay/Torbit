@@ -6,7 +6,7 @@
   html, body {
     width: 100%;
     max-width: 100vw;
-    overflow-x: hidden;
+    overflow-x: clip;
     -webkit-text-size-adjust: 100%;
     touch-action: manipulation;
   }
@@ -17,6 +17,30 @@
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-bold;
+  }
+
+  /* Responsive tactile click feedback across all buttons */
+  button {
+    transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+  }
+  
+  button:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  /* Hide number input spinners (increment / decrement arrows) across all browsers */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
   }
 }
 

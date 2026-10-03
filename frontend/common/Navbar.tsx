@@ -19,7 +19,7 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="bg-[#94C322] text-[#080809] sticky top-0 z-40 shadow-xs font-['Helvetica',Arial,sans-serif]">
+    <nav className="bg-[#b2c359] text-[#080809] sticky top-0 z-40 shadow-xs font-['Helvetica',Arial,sans-serif]">
       <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
         {/* Desktop Menu */}
         <div className="hidden lg:flex items-center space-x-1 font-normal text-[14px] leading-[26px] tracking-[0px] text-[#080809]">
@@ -27,19 +27,19 @@ export default function Navbar() {
             <Link
               key={item.label}
               href={item.href}
-              className="px-3.5 py-2.5 hover:bg-[#82ad1b] text-[#080809] transition whitespace-nowrap"
+              className="px-3.5 py-2.5 hover:bg-[#9eb047] text-[#080809] transition whitespace-nowrap"
             >
               {item.label}
             </Link>
           ))}
           <div className="relative group">
-            <button className="flex items-center gap-0.5 px-3 py-2.5 hover:bg-[#82ad1b] text-[#080809] transition">
+            <button className="flex items-center gap-0.5 px-3 py-2.5 hover:bg-[#9eb047] text-[#080809] transition">
               <span>MORE</span>
               <KeyboardArrowDownOutlinedIcon sx={{ fontSize: 16 }} />
             </button>
           </div>
           <div className="relative group">
-            <button className="flex items-center gap-0.5 px-3 py-2.5 hover:bg-[#82ad1b] text-[#080809] transition">
+            <button className="flex items-center gap-0.5 px-3 py-2.5 hover:bg-[#9eb047] text-[#080809] transition">
               <span>KNOW TORBIT</span>
               <KeyboardArrowDownOutlinedIcon sx={{ fontSize: 16 }} />
             </button>
@@ -60,7 +60,7 @@ export default function Navbar() {
 
       {/* Mobile dropdown */}
       {mobileOpen && (
-        <div className="lg:hidden bg-[#94C322] text-[#080809] px-4 py-3 space-y-1 text-[14px] leading-[26px] tracking-[0px] font-normal border-t border-lime-600">
+        <div className="lg:hidden bg-[#b2c359] text-[#080809] px-4 py-3 space-y-1 text-[14px] leading-[26px] tracking-[0px] font-normal border-t border-lime-600">
           {navItems.map((item) => (
             <Link 
               key={item.label} 

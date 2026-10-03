@@ -233,7 +233,7 @@ export default function EditJobModal({
           </button>
 
           <div className="flex items-center gap-2 mb-1">
-            <span className="bg-[#94C322]/20 text-[#94C322] text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-[#94C322]/40">
+            <span className="bg-[#b2c359]/20 text-[#b2c359] text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border border-[#b2c359]/40">
               Edit Job Listing
             </span>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
@@ -280,7 +280,7 @@ export default function EditJobModal({
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 placeholder="e.g. Senior Sales Manager"
-                className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs sm:text-[13px] text-neutral-800 font-semibold focus:outline-none focus:ring-1 focus:ring-[#94C322] focus:border-[#94C322] transition"
+                className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs sm:text-[13px] text-neutral-800 font-semibold focus:outline-none focus:ring-1 focus:ring-[#b2c359] focus:border-[#b2c359] transition"
               />
             </div>
 
@@ -293,7 +293,7 @@ export default function EditJobModal({
                 <select
                   value={formData.department}
                   onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs sm:text-[13px] text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#94C322] focus:border-[#94C322] transition cursor-pointer"
+                  className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs sm:text-[13px] text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#b2c359] focus:border-[#b2c359] transition cursor-pointer"
                 >
                   {categoriesList.map((dept) => (
                     <option key={dept} value={dept}>{dept}</option>
@@ -308,7 +308,7 @@ export default function EditJobModal({
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs sm:text-[13px] text-neutral-800 font-bold focus:outline-none focus:ring-1 focus:ring-[#94C322] focus:border-[#94C322] transition cursor-pointer"
+                  className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs sm:text-[13px] text-neutral-800 font-bold focus:outline-none focus:ring-1 focus:ring-[#b2c359] focus:border-[#b2c359] transition cursor-pointer"
                 >
                   <option value="ACTIVE">🟢 ACTIVE (Published &amp; Accepting Applications)</option>
                   <option value="PAUSED">🟡 PAUSED (Temporarily on hold)</option>
@@ -329,7 +329,7 @@ export default function EditJobModal({
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   placeholder="e.g. Gurugram, Delhi NCR"
-                  className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-medium text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#94C322] transition"
+                  className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-medium text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition"
                 />
               </div>
 
@@ -340,7 +340,7 @@ export default function EditJobModal({
                 <select
                   value={formData.workMode}
                   onChange={(e) => setFormData({ ...formData, workMode: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-medium text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#94C322] transition cursor-pointer"
+                  className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-medium text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition cursor-pointer"
                 >
                   <option value="On-site">On-site</option>
                   <option value="Hybrid">Hybrid</option>
@@ -355,7 +355,7 @@ export default function EditJobModal({
                 <select
                   value={formData.jobType}
                   onChange={(e) => setFormData({ ...formData, jobType: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-medium text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#94C322] transition cursor-pointer"
+                  className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-medium text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition cursor-pointer"
                 >
                   <option value="Full-time">Full-time</option>
                   <option value="Part-time">Part-time</option>
@@ -376,7 +376,7 @@ export default function EditJobModal({
                   value={formData.salaryMin}
                   onChange={(e) => setFormData({ ...formData, salaryMin: e.target.value })}
                   placeholder="e.g. 600000"
-                  className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-medium text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#94C322] transition"
+                  className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-medium text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition"
                 />
               </div>
 
@@ -389,7 +389,7 @@ export default function EditJobModal({
                   value={formData.salaryMax}
                   onChange={(e) => setFormData({ ...formData, salaryMax: e.target.value })}
                   placeholder="e.g. 1200000"
-                  className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-medium text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#94C322] transition"
+                  className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-medium text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition"
                 />
               </div>
 
@@ -402,7 +402,7 @@ export default function EditJobModal({
                   min={1}
                   value={formData.openings}
                   onChange={(e) => setFormData({ ...formData, openings: parseInt(e.target.value, 10) || 1 })}
-                  className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-medium text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#94C322] transition"
+                  className="w-full px-3 py-2 bg-white border border-neutral-200 rounded-xl text-xs font-medium text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition"
                 />
               </div>
             </div>
@@ -416,8 +416,8 @@ export default function EditJobModal({
                 type="text"
                 value={formData.skills}
                 onChange={(e) => setFormData({ ...formData, skills: e.target.value })}
-                placeholder="e.g. Client Relations, Negotiation, Real Estate Sales"
-                className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs font-medium text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#94C322] transition"
+                placeholder="e.g. Client Relations, Negotiation, Sales Management"
+                className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs font-medium text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition"
               />
             </div>
 
@@ -431,7 +431,7 @@ export default function EditJobModal({
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Describe role responsibilities, deliverables and qualification..."
-                className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs font-medium text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#94C322] transition resize-none"
+                className="w-full px-3.5 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs font-medium text-neutral-800 focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition resize-none"
               />
             </div>
 
@@ -458,7 +458,7 @@ export default function EditJobModal({
                 <button
                   type="submit"
                   disabled={saving || deleting}
-                  className="w-1/2 sm:w-auto bg-[#94C322] hover:bg-[#82ad1b] text-slate-950 font-bold px-6 py-2.5 rounded-xl text-xs transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  className="w-1/2 sm:w-auto bg-[#b2c359] hover:bg-[#9eb047] text-slate-950 font-bold px-6 py-2.5 rounded-xl text-xs transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                   <Save className="w-3.5 h-3.5" />
                   <span>{saving ? 'Saving Changes...' : 'Save Changes'}</span>

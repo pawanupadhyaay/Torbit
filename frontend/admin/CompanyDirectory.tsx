@@ -52,7 +52,7 @@ export default function CompanyDirectory({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search builders..."
-              className="w-full pl-9 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#94C322]"
+              className="w-full pl-9 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-[#b2c359]"
             />
           </div>
         </div>

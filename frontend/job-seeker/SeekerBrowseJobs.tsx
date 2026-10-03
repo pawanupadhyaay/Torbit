@@ -1,21 +1,28 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Building2, Briefcase, IndianRupee, Sparkles, Filter, CheckCircle2 } from 'lucide-react';
+import { Search, MapPin, Building2, Briefcase, IndianRupee, Sparkles, Filter, CheckCircle2, Clock } from 'lucide-react';
 import ApplyJobModal from './ApplyJobModal';
+import JobDetailsModal from '@/common/JobDetailsModal';
+import JobApplicationView from './JobApplicationView';
 
 interface SeekerBrowseJobsProps {
   currentUser?: any;
+  applications?: any[];
   onApplicationSubmitted?: () => void;
 }
 
-export default function SeekerBrowseJobs({ currentUser, onApplicationSubmitted }: SeekerBrowseJobsProps) {
+export default function SeekerBrowseJobs({ currentUser, applications, onApplicationSubmitted }: SeekerBrowseJobsProps) {
   const [jobs, setJobs] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('ALL');
   const [selectedLoc, setSelectedLoc] = useState('ALL');
   const [loading, setLoading] = useState(false);
+  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
 
+  const [selectedJobForDetails, setSelectedJobForDetails] = useState<any>(null);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [applyingJob, setApplyingJob] = useState<any | null>(null);
   const [selectedJobForApply, setSelectedJobForApply] = useState<any>(null);
   const [applyModalOpen, setApplyModalOpen] = useState(false);
 
@@ -59,7 +66,38 @@ export default function SeekerBrowseJobs({ currentUser, onApplicationSubmitted }
   };
 
   useEffect(() => {
+    if (applications && Array.isArray(applications)) {
+      const ids = new Set<string>(
+        applications.map((a: any) => a.jobId || a.job?.id).filter(Boolean)
+      );
+      setAppliedJobIds(ids);
+    }
+  }, [applications]);
+
+  const fetchApplications = async () => {
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      if (!token) return;
+      const res = await fetch(`${apiBase}/applications`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.applications && Array.isArray(data.applications)) {
+          const ids = new Set<string>(
+            data.applications.map((a: any) => a.jobId || a.job?.id).filter(Boolean)
+          );
+          setAppliedJobIds(ids);
+        }
+      }
+    } catch (e) {
+      console.error('Error fetching applications for browse view:', e);
+    }
+  };
+
+  useEffect(() => {
     fetchJobs();
+    fetchApplications();
   }, []);
 
   const filteredJobs = jobs.filter((job) => {
@@ -74,14 +112,45 @@ export default function SeekerBrowseJobs({ currentUser, onApplicationSubmitted }
     const matchesLoc = selectedLoc === 'ALL' || job.location?.toLowerCase().includes(selectedLoc.toLowerCase());
 
     return matchesSearch && matchesCat && matchesLoc;
+  }).sort((a, b) => {
+    const isClosedA = a.status === 'CLOSED';
+    const isClosedB = b.status === 'CLOSED';
+    if (isClosedA !== isClosedB) {
+      return isClosedA ? 1 : -1;
+    }
+    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
   });
 
   const locations = Array.from(new Set(jobs.map((j) => j.location).filter(Boolean)));
 
-  const handleOpenApply = (job: any) => {
-    setSelectedJobForApply(job);
-    setApplyModalOpen(true);
+  const handleOpenDetails = (job: any) => {
+    setSelectedJobForDetails(job);
+    setDetailsModalOpen(true);
   };
+
+  const handleOpenApply = (job: any) => {
+    if (job?.status === 'CLOSED' || appliedJobIds.has(job.id)) return;
+    setApplyingJob(job);
+  };
+
+  if (applyingJob) {
+    return (
+      <JobApplicationView
+        job={applyingJob}
+        currentUser={currentUser}
+        onBack={() => setApplyingJob(null)}
+        onApplicationSubmitted={() => {
+          fetchJobs();
+          fetchApplications();
+          if (onApplicationSubmitted) onApplicationSubmitted();
+        }}
+        onViewApplications={() => {
+          setApplyingJob(null);
+          if (onApplicationSubmitted) onApplicationSubmitted();
+        }}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6 font-['Helvetica',Arial,sans-serif]">
@@ -91,12 +160,12 @@ export default function SeekerBrowseJobs({ currentUser, onApplicationSubmitted }
           <div>
             <h2 className="text-sm sm:text-base font-black text-gray-900 flex items-center gap-2">
               <span>Browse Job Openings</span>
-              <span className="bg-lime-100 text-[#82ad1b] text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-lime-200">
+              <span className="bg-lime-100 text-[#9eb047] text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-lime-200">
                 {filteredJobs.length} Active Jobs
               </span>
             </h2>
             <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
-              Apply directly to verified companies, startups, and top enterprises.
+              Click any job card to read the full job description and requirements before applying.
             </p>
           </div>
         </div>
@@ -110,7 +179,7 @@ export default function SeekerBrowseJobs({ currentUser, onApplicationSubmitted }
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by role, company, skills..."
-              className="w-full pl-9 pr-3 py-2.5 sm:py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-[13px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] focus:bg-white transition"
+              className="w-full pl-9 pr-3 py-2.5 sm:py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-[13px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] focus:bg-white transition"
             />
           </div>
 
@@ -118,7 +187,7 @@ export default function SeekerBrowseJobs({ currentUser, onApplicationSubmitted }
             <select
               value={selectedCat}
               onChange={(e) => setSelectedCat(e.target.value)}
-              className="w-full px-3 py-2.5 sm:py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-[#94C322] focus:bg-white transition cursor-pointer"
+              className="w-full px-3 py-2.5 sm:py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-[#b2c359] focus:bg-white transition cursor-pointer"
             >
               <option value="ALL">All Categories / Departments</option>
               {categories.map((c) => (
@@ -133,7 +202,7 @@ export default function SeekerBrowseJobs({ currentUser, onApplicationSubmitted }
             <select
               value={selectedLoc}
               onChange={(e) => setSelectedLoc(e.target.value)}
-              className="w-full px-3 py-2.5 sm:py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-[#94C322] focus:bg-white transition cursor-pointer"
+              className="w-full px-3 py-2.5 sm:py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-[#b2c359] focus:bg-white transition cursor-pointer"
             >
               <option value="ALL">All Locations</option>
               {locations.map((loc) => (
@@ -157,70 +226,172 @@ export default function SeekerBrowseJobs({ currentUser, onApplicationSubmitted }
             No matching job openings found. Try adjusting your search or filters.
           </div>
         ) : (
-          filteredJobs.map((job) => (
-            <div
-              key={job.id}
-              className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 shadow-xs hover:border-[#94C322] hover:shadow-md transition flex flex-col justify-between space-y-3 sm:space-y-4"
-            >
-              <div className="space-y-2.5">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#94C322] block mb-0.5">
-                      {job.department || 'General'}
+          filteredJobs.map((job) => {
+            const companyName = job.company?.companyName || 'Verified Partner';
+            const companyInitials = (companyName || 'JOB').substring(0, 2).toUpperCase();
+
+            return (
+              <div
+                key={job.id}
+                onClick={() => handleOpenDetails(job)}
+                className="group bg-white rounded-2xl border border-gray-200 p-4 sm:p-5 shadow-xs hover:border-[#b2c359] hover:shadow-md transition flex flex-col justify-between space-y-3 sm:space-y-3.5 cursor-pointer text-left"
+              >
+                <div className="space-y-2.5">
+                  {/* Top: Logo & Title Row */}
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center font-bold text-xs text-gray-800 shrink-0 overflow-hidden group-hover:border-[#b2c359] transition shadow-2xs">
+                      {job.company?.logoUrl ? (
+                        <img
+                          src={job.company.logoUrl}
+                          alt={companyName}
+                          className="w-full h-full object-contain p-0.5"
+                        />
+                      ) : (
+                        <span className="text-[#647a16] font-black">{companyInitials}</span>
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2 mb-0.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#7ea81b] truncate">
+                          {job.department || 'General'}
+                        </span>
+                        {job.status === 'CLOSED' ? (
+                          <span className="bg-rose-100 text-rose-700 text-[10px] font-extrabold px-2 py-0.5 rounded-lg shrink-0 border border-rose-200 uppercase tracking-wider">
+                            Closed
+                          </span>
+                        ) : appliedJobIds.has(job.id) ? (
+                          <span className="bg-emerald-50 text-emerald-700 text-[10px] font-extrabold px-2 py-0.5 rounded-lg shrink-0 border border-emerald-200 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            Applied
+                          </span>
+                        ) : (
+                          <span className="bg-slate-900 text-lime-400 text-[10px] font-extrabold px-2 py-0.5 rounded-lg shrink-0">
+                            {job.jobType || 'Full Time'}
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="font-bold text-xs sm:text-sm text-gray-900 leading-snug truncate group-hover:text-[#647a16] transition">
+                        {job.title}
+                      </h3>
+
+                      <p className="text-xs text-gray-600 font-semibold flex items-center gap-1.5 mt-0.5 truncate">
+                        <Building2 className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                        <span className="truncate">{companyName}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Highlights Meta Row */}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] sm:text-xs text-gray-600 pt-0.5">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                      <span>{job.location || 'India'}</span>
                     </span>
-                    <h3 className="font-bold text-xs sm:text-sm text-gray-900 leading-snug truncate">
-                      {job.title}
-                    </h3>
-                    <p className="text-xs text-gray-600 font-semibold flex items-center gap-1.5 mt-0.5">
-                      <Building2 className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                      <span className="truncate">{job.company?.companyName || 'Torbit Realty Partner'}</span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1 font-mono font-bold text-gray-900">
+                      <IndianRupee className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>
+                        {job.salaryMin && job.salaryMax
+                          ? `₹${job.salaryMin / 100000}L – ₹${job.salaryMax / 100000}L PA`
+                          : 'Competitive CTC'}
+                      </span>
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1">
+                      <Briefcase className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                      <span>{job.expMin ?? 0}–{job.expMax ?? 5} Yrs</span>
+                    </span>
+                  </div>
+
+                  {/* Description Preview (2 lines like LinkedIn) */}
+                  {job.description && (
+                    <p className="text-[11px] sm:text-xs text-gray-500 line-clamp-2 leading-relaxed pt-0.5">
+                      {job.description}
                     </p>
-                  </div>
-                  <span className="bg-slate-900 text-lime-400 text-[10px] font-extrabold px-2 py-0.5 rounded-lg shrink-0">
-                    {job.jobType || 'Full Time'}
-                  </span>
+                  )}
+
+                  {/* Skills tags preview */}
+                  {job.skills && (
+                    <div className="text-[11px] text-gray-500 line-clamp-1 pt-1 border-t border-gray-100 flex items-center gap-1">
+                      <span className="font-bold text-gray-700 shrink-0">Skills: </span>
+                      <span className="truncate text-gray-600">{job.skills}</span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[11px] sm:text-xs text-gray-500 pt-0.5">
-                  <span className="flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                    <span>{job.location || 'India'}</span>
+                {/* Footer with View Details & 1-Click Apply */}
+                <div className="pt-2.5 border-t border-gray-100 flex items-center justify-between gap-2">
+                  <span className="text-[10px] text-gray-400 font-medium truncate">
+                    {job._count?.applications || 0} applicants
                   </span>
-                  <span className="flex items-center gap-1 font-mono font-bold text-gray-900">
-                    <IndianRupee className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>
-                      {job.salaryMin && job.salaryMax
-                        ? `₹${job.salaryMin / 100000}L – ₹${job.salaryMax / 100000}L PA`
-                        : 'Competitive CTC'}
-                    </span>
-                  </span>
-                </div>
-
-                {job.skills && (
-                  <div className="text-[11px] text-gray-500 line-clamp-1 pt-1 border-t border-gray-50">
-                    <span className="font-bold text-gray-700">Skills: </span>
-                    <span>{job.skills}</span>
+                  
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenDetails(job);
+                      }}
+                      className="border border-gray-200 hover:bg-gray-100 hover:border-gray-300 text-gray-700 font-bold text-xs px-3 py-1.5 rounded-xl transition cursor-pointer"
+                    >
+                      View Details
+                    </button>
+                    {job.status === 'CLOSED' ? (
+                      <button
+                        type="button"
+                        disabled
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-gray-100 text-gray-400 border border-gray-200 font-bold text-xs px-3.5 py-1.5 rounded-xl cursor-not-allowed whitespace-nowrap"
+                      >
+                        Closed
+                      </button>
+                    ) : appliedJobIds.has(job.id) ? (
+                      <button
+                        type="button"
+                        disabled
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold text-xs px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 cursor-default shadow-none whitespace-nowrap"
+                        title="You have already applied for this job"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Applied</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenApply(job);
+                        }}
+                        className="bg-[#b2c359] hover:bg-[#9eb047] active:scale-[0.98] text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-xl transition shadow-xs cursor-pointer flex items-center gap-1"
+                      >
+                        <span>Apply</span>
+                        <span>→</span>
+                      </button>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
-
-              <div className="pt-2.5 border-t border-gray-100 flex items-center justify-between gap-2">
-                <span className="text-[10px] text-gray-400 font-medium truncate">
-                  {job._count?.applications || 0} candidates applied
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleOpenApply(job)}
-                  className="bg-[#94C322] hover:bg-[#82ad1b] text-slate-950 font-bold text-xs px-4 py-2 rounded-xl transition shadow-xs cursor-pointer flex items-center gap-1 shrink-0"
-                >
-                  <span>1-Click Apply</span>
-                  <span>→</span>
-                </button>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
+
+      {/* LinkedIn-style Job Details Modal */}
+      {selectedJobForDetails && (
+        <JobDetailsModal
+          isOpen={detailsModalOpen}
+          onClose={() => setDetailsModalOpen(false)}
+          job={selectedJobForDetails}
+          isApplied={appliedJobIds.has(selectedJobForDetails.id)}
+          onApply={(job) => {
+            setDetailsModalOpen(false);
+            handleOpenApply(job);
+          }}
+        />
+      )}
 
       {/* Apply Modal */}
       {selectedJobForApply && (
@@ -231,6 +402,7 @@ export default function SeekerBrowseJobs({ currentUser, onApplicationSubmitted }
           currentUser={currentUser}
           onApplicationSubmitted={() => {
             fetchJobs();
+            fetchApplications();
             if (onApplicationSubmitted) onApplicationSubmitted();
           }}
         />

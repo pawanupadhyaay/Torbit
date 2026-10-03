@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { QUALIFICATIONS, QUALIFICATION_CATEGORIES, EXPERIENCE_RANGES } from '@/lib/constants';
 import { AlertCircle, Eye, EyeOff, Calendar, CheckCircle2, Mail, ShieldCheck, RefreshCw } from 'lucide-react';
+import GoogleAuthButton from '@/common/GoogleAuthButton';
 
 interface SeekerSignUpCardProps {
   onSuccess?: (user: any) => void;
@@ -19,6 +20,7 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [qualification, setQualification] = useState('Graduate (B.Tech / B.E / B.Sc / B.Com / BBA)');
+  const [customQualification, setCustomQualification] = useState('');
   const [experience, setExperience] = useState('1–3 years');
   const [agree, setAgree] = useState(true);
 
@@ -123,13 +125,43 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
     e.preventDefault();
     setError(null);
 
-    if (!fullName || !email || !phone || !password) {
+    const cleanName = fullName.trim();
+    if (!cleanName || !email || !phone || !password) {
       setError('Please fill in all mandatory fields.');
+      return;
+    }
+
+    // Strict alphabet and space validation for Full Name
+    const nameRegex = /^[a-zA-Z\s\.\']+$/;
+    if (!nameRegex.test(cleanName)) {
+      setError('Full Name must only contain alphabetical characters (letters and spaces only).');
+      return;
+    }
+    if (cleanName.length < 2) {
+      setError('Full Name must be at least 2 characters long.');
+      return;
+    }
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email.trim())) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    const cleanPhone = phone.trim().replace(/[\s\-]/g, '');
+    const phoneRegex = /^(\+91|0)?[6-9]\d{9}$/;
+    if (!phoneRegex.test(cleanPhone)) {
+      setError('Please enter a valid 10-digit mobile number (e.g. 9811002233).');
       return;
     }
 
     if (!isEmailVerified) {
       setError('Please verify your email address via OTP before creating your account.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
       return;
     }
 
@@ -142,6 +174,15 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
       return;
     }
 
+    if (qualification === 'Others' && !customQualification.trim()) {
+      setError('Please specify your qualification.');
+      return;
+    }
+
+    const finalQualification = qualification === 'Others'
+      ? customQualification.trim()
+      : qualification;
+
     setLoading(true);
     try {
       const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
@@ -152,12 +193,12 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullName,
-          email,
-          phone,
-          location: location || 'India',
+          fullName: cleanName,
+          email: email.trim().toLowerCase(),
+          phone: cleanPhone,
+          location: location ? location.trim() : 'India',
           dob: dob || null,
-          qualification,
+          qualification: finalQualification,
           experience,
           password
         })
@@ -171,7 +212,13 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
       }
 
       if (onSuccess) onSuccess(data.user);
-      window.location.href = '/seeker/dashboard';
+      const pendingJobId = typeof window !== 'undefined' ? (sessionStorage.getItem('torbit_pending_apply_job_id') || localStorage.getItem('torbit_pending_apply_job_id')) : null;
+      const seekerId = data.user?.seekerProfile?.id || (data.user?.id ? `TOR-JS-${data.user.id.slice(-6).toUpperCase()}` : 'TOR-JS-ME');
+      if (pendingJobId) {
+        window.location.href = `/seeker/dashboard/${seekerId}?applyJobId=${encodeURIComponent(pendingJobId)}`;
+      } else {
+        window.location.href = `/seeker/dashboard/${seekerId}`;
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -183,7 +230,7 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden w-full max-w-2xl mx-auto font-['Helvetica',Arial,sans-serif]">
       {/* Dark Top Header Banner */}
       <div className="bg-[#181C20] px-5 py-3 sm:px-6 sm:py-3 text-white">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-[#94C322] block mb-0.5">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-[#b2c359] block mb-0.5">
           JOB SEEKER SIGN UP
         </span>
         <h2 className="text-sm sm:text-base font-bold text-white tracking-tight leading-snug">
@@ -191,8 +238,27 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
         </h2>
       </div>
 
+      {/* Google Quick Sign Up */}
+      <div className="p-4 sm:p-5 pb-0 text-xs text-gray-800">
+        <GoogleAuthButton
+          role="JOB_SEEKER"
+          text="signup"
+          onSwitchToLogin={(email) => {
+            window.location.href = `/login?identifier=${encodeURIComponent(email)}`;
+          }}
+        />
+        <div className="relative my-3">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white px-2.5 text-gray-400 font-bold text-[10px] tracking-wider">Or register with email &amp; OTP</span>
+          </div>
+        </div>
+      </div>
+
       {/* Form Content */}
-      <form onSubmit={handleSubmit} className="p-4 sm:p-5 space-y-2.5 sm:space-y-3 text-xs text-gray-800">
+      <form onSubmit={handleSubmit} className="p-4 sm:p-5 pt-1 space-y-2.5 sm:space-y-3 text-xs text-gray-800">
         {error && (
           <div className="bg-red-50 text-red-700 p-2.5 rounded-lg flex items-center gap-2 border border-red-200 text-xs animate-in fade-in duration-200">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -202,7 +268,7 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
 
         {otpNotice && (
           <div className="bg-lime-50 text-lime-900 p-2.5 rounded-lg flex items-center gap-2 border border-lime-200 text-xs animate-in fade-in duration-200">
-            <ShieldCheck className="w-4 h-4 text-[#94C322] flex-shrink-0" />
+            <ShieldCheck className="w-4 h-4 text-[#b2c359] flex-shrink-0" />
             <span>{otpNotice}</span>
           </div>
         )}
@@ -215,9 +281,9 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
               type="text"
               required
               value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Full name"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition"
+              onChange={(e) => setFullName(e.target.value.replace(/[^a-zA-Z\s\.\']/g, ''))}
+              placeholder="e.g. John Doe"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition"
             />
           </div>
           <div>
@@ -230,7 +296,7 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
                 onClick={(e) => (e.target as any).showPicker?.()}
                 min="1950-01-01"
                 max={new Date().toISOString().split('T')[0]}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-[#94C322] bg-white transition cursor-pointer"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-[#b2c359] bg-white transition cursor-pointer"
               />
             </div>
           </div>
@@ -270,7 +336,7 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
                 className={`w-full px-3 py-2 border rounded-lg text-xs transition placeholder:text-gray-400 focus:outline-none ${
                   isEmailVerified
                     ? 'border-emerald-300 bg-emerald-50/40 text-gray-900 font-medium cursor-not-allowed'
-                    : 'border-gray-200 bg-white text-gray-800 focus:border-[#94C322]'
+                    : 'border-gray-200 bg-white text-gray-800 focus:border-[#b2c359]'
                 }`}
               />
             </div>
@@ -293,7 +359,7 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
                   </>
                 ) : (
                   <>
-                    <Mail className="w-3.5 h-3.5 text-[#94C322]" />
+                    <Mail className="w-3.5 h-3.5 text-[#b2c359]" />
                     <span>Verify OTP</span>
                   </>
                 )}
@@ -306,7 +372,7 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
             <div className="mt-2.5 p-3 bg-slate-50 border border-lime-200/90 rounded-xl space-y-2 animate-in fade-in duration-200">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-[#94C322]" />
+                  <Mail className="w-3.5 h-3.5 text-[#b2c359]" />
                   <span>Enter 6-Digit OTP received on {email}</span>
                 </span>
                 <span className="text-[10px] text-slate-500 font-medium">Valid for 10 mins</span>
@@ -319,13 +385,13 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
                   value={otpInput}
                   onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
                   placeholder="• • • • • •"
-                  className="w-36 tracking-[6px] text-center font-mono font-bold text-sm px-3 py-2 bg-white border border-gray-300 rounded-lg text-slate-900 focus:outline-none focus:border-[#94C322] shadow-2xs"
+                  className="w-36 tracking-[6px] text-center font-mono font-bold text-sm px-3 py-2 bg-white border border-gray-300 rounded-lg text-slate-900 focus:outline-none focus:border-[#b2c359] shadow-2xs"
                 />
                 <button
                   type="button"
                   onClick={handleVerifyOtp}
                   disabled={otpVerifying || otpInput.length !== 6}
-                  className="flex-1 bg-[#94C322] hover:bg-[#82ad1b] text-slate-950 font-bold text-xs py-2 px-4 rounded-lg transition disabled:opacity-50 shadow-2xs cursor-pointer flex items-center justify-center gap-1"
+                  className="flex-1 bg-[#b2c359] hover:bg-[#9eb047] text-slate-950 font-bold text-xs py-2 px-4 rounded-lg transition disabled:opacity-50 shadow-2xs cursor-pointer flex items-center justify-center gap-1"
                 >
                   {otpVerifying ? 'Verifying...' : 'Confirm OTP ✓'}
                 </button>
@@ -344,7 +410,7 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+91 98XXXXXXXX"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition"
             />
           </div>
           <div>
@@ -354,7 +420,7 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="City, State"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white transition"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white transition"
             />
           </div>
         </div>
@@ -370,7 +436,7 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white pr-8 transition"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white pr-8 transition"
               />
               <button
                 type="button"
@@ -390,7 +456,7 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#94C322] bg-white pr-8 transition"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] bg-white pr-8 transition"
               />
               <button
                 type="button"
@@ -410,12 +476,12 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
             <div className="relative">
               <select
                 value={qualification}
-                onChange={(e) => setQualification(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-[#94C322] bg-white cursor-pointer appearance-none transition"
+                onChange={(e) => {
+                  setQualification(e.target.value);
+                  if (e.target.value !== 'Others') setCustomQualification('');
+                }}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-[#b2c359] bg-white cursor-pointer appearance-none transition"
               >
-                {qualification && !QUALIFICATION_CATEGORIES.some(g => g.options.includes(qualification)) && (
-                  <option value={qualification}>{qualification}</option>
-                )}
                 {QUALIFICATION_CATEGORIES.map((group) => (
                   <optgroup key={group.category} label={group.category} className="font-bold text-gray-900">
                     {group.options.map((opt) => (
@@ -432,6 +498,23 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
                 </svg>
               </div>
             </div>
+
+            {/* Custom Qualification input when Others is selected */}
+            {qualification === 'Others' && (
+              <div className="mt-2 animate-in fade-in duration-200">
+                <label className="font-bold text-gray-800 block mb-1 text-[11px]">
+                  Specify Qualification <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={customQualification}
+                  onChange={(e) => setCustomQualification(e.target.value)}
+                  placeholder="e.g. Diploma in Interior Architecture"
+                  className="w-full px-3 py-2 border border-lime-300 bg-lime-50/30 rounded-lg text-xs text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-[#b2c359] transition shadow-2xs"
+                />
+              </div>
+            )}
           </div>
           <div>
             <label className="font-bold text-gray-800 block mb-1 text-[11px] sm:text-xs">Total Experience</label>
@@ -439,7 +522,7 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
               <select
                 value={experience}
                 onChange={(e) => setExperience(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-[#94C322] bg-white cursor-pointer appearance-none transition"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs text-gray-800 focus:outline-none focus:border-[#b2c359] bg-white cursor-pointer appearance-none transition"
               >
                 {EXPERIENCE_RANGES.map((exp) => (
                   <option key={exp} value={exp}>{exp}</option>
@@ -461,10 +544,10 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
             id="seeker-terms-check"
             checked={agree}
             onChange={(e) => setAgree(e.target.checked)}
-            className="rounded border-gray-300 text-[#94C322] focus:ring-[#94C322] w-3.5 h-3.5 cursor-pointer"
+            className="rounded border-gray-300 text-[#b2c359] focus:ring-[#b2c359] w-3.5 h-3.5 cursor-pointer"
           />
           <label htmlFor="seeker-terms-check" className="text-gray-600 text-[11px] sm:text-xs font-medium cursor-pointer">
-            I agree to the <a href="#terms" className="text-[#94C322] underline font-semibold">Terms &amp; Conditions</a> and <a href="#privacy" className="text-[#94C322] underline font-semibold">Privacy Policy</a>
+            I agree to the <a href="#terms" className="text-[#b2c359] underline font-semibold">Terms &amp; Conditions</a> and <a href="#privacy" className="text-[#b2c359] underline font-semibold">Privacy Policy</a>
           </label>
         </div>
 
@@ -473,7 +556,7 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#94C322] hover:bg-[#85b21c] text-white font-['Helvetica',Arial,sans-serif] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-3.5 px-5 rounded-lg transition shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
+            className="w-full bg-[#b2c359] hover:bg-[#85b21c] text-white font-['Helvetica',Arial,sans-serif] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-3.5 px-5 rounded-lg transition shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
           >
             <span>{loading ? 'Creating Job Seeker Account...' : 'Create Job Seeker Account →'}</span>
           </button>
