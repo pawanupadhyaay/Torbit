@@ -167,12 +167,14 @@ export default function HomePage() {
       // Already logged in as Job Seeker -> Redirect directly to job application form
       window.location.href = `/seeker/dashboard/${seekerId}?applyJobId=${encodeURIComponent(job.id)}`;
     } else {
-      // Not logged in or not a job seeker -> Store pending job and redirect to login page
+      // Not logged in or not a job seeker -> Store pending job and open common login/register modal
       try {
         sessionStorage.setItem('torbit_pending_apply_job_id', job.id);
         localStorage.setItem('torbit_pending_apply_job_id', job.id);
       } catch (e) {}
-      window.location.href = `/login?redirect=apply&jobId=${encodeURIComponent(job.id)}`;
+      setAuthRole('JOB_SEEKER');
+      setAuthTab('LOGIN');
+      setAuthOpen(true);
     }
   };
 
@@ -180,7 +182,16 @@ export default function HomePage() {
     setCurrentUser(user);
     if (user?.role === 'JOB_SEEKER') {
       const seekerId = user.seekerProfile?.id || (user.id ? `TOR-JS-${user.id.slice(-6).toUpperCase()}` : 'TOR-JS-ME');
-      window.location.href = `/seeker/dashboard/${seekerId}`;
+      const pendingJobId = typeof window !== 'undefined' ? (sessionStorage.getItem('torbit_pending_apply_job_id') || localStorage.getItem('torbit_pending_apply_job_id')) : null;
+      if (pendingJobId) {
+        try {
+          sessionStorage.removeItem('torbit_pending_apply_job_id');
+          localStorage.removeItem('torbit_pending_apply_job_id');
+        } catch (e) {}
+        window.location.href = `/seeker/dashboard/${seekerId}?applyJobId=${encodeURIComponent(pendingJobId)}`;
+      } else {
+        window.location.href = `/seeker/dashboard/${seekerId}`;
+      }
     } else if (user?.role === 'RECRUITER' || user?.role === 'COMPANY') {
       const recId = user.companyProfile?.gstNumber || user.companyProfile?.id || user.id;
       window.location.href = recId ? `/recruiter/dashboard/${recId}` : '/recruiter/dashboard';

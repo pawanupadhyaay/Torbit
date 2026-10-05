@@ -6,6 +6,7 @@ import Header from '@/common/Header';
 import Footer from '@/common/Footer';
 import AuthModal from '@/common/AuthModal';
 import MobileBottomBar from '@/common/MobileBottomBar';
+import JobFilterBar from '@/common/JobFilterBar';
 import { DEPARTMENT_CATEGORIES } from '@/lib/constants';
 import { 
   Search, 
@@ -94,6 +95,11 @@ export default function CategoriesPage() {
     loadCategories();
   }, []);
 
+  const [filterLocation, setFilterLocation] = useState('All Locations');
+  const [filterCategory, setFilterCategory] = useState('All Categories');
+  const [filterJobType, setFilterJobType] = useState('All Job Types');
+  const [filterWorkMode, setFilterWorkMode] = useState('All Work Modes');
+
   const allCategoriesMap = new Map<string, number>();
   (DEPARTMENT_CATEGORIES as unknown as string[]).forEach(name => {
     allCategoriesMap.set(name, 0);
@@ -108,14 +114,50 @@ export default function CategoriesPage() {
     jobCount
   }));
 
-  const filteredList = fullCategoryList.filter(c => 
-    c.name.toLowerCase().includes(searchTerm.toLowerCase().trim())
-  );
+  const filteredList = fullCategoryList.filter(c => {
+    const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase().trim());
+    const matchesCategory = filterCategory === 'All Categories' || c.name.toLowerCase() === filterCategory.toLowerCase();
+    return matchesSearch && matchesCategory;
+  });
+
+  const handleFilterSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const params = new URLSearchParams();
+    if (searchTerm.trim()) params.set('q', searchTerm.trim());
+    if (filterLocation && filterLocation !== 'All Locations') params.set('location', filterLocation);
+    if (filterCategory && filterCategory !== 'All Categories') params.set('category', filterCategory);
+    if (filterJobType && filterJobType !== 'All Job Types') params.set('jobType', filterJobType);
+    if (filterWorkMode && filterWorkMode !== 'All Work Modes') params.set('workMode', filterWorkMode);
+
+    const qs = params.toString();
+    router.push(qs ? `/jobs?${qs}` : '/jobs');
+  };
 
   const handleOpenAuth = (role: 'JOB_SEEKER' | 'RECRUITER' | null = null, tab: 'LOGIN' | 'REGISTER' = 'LOGIN') => {
     setAuthRole(role);
     setAuthTab(tab);
     setAuthOpen(true);
+  };
+
+  const handleAuthSuccess = (user: any) => {
+    if (user?.role === 'JOB_SEEKER') {
+      const seekerId = user.seekerProfile?.id || (user.id ? `TOR-JS-${user.id.slice(-6).toUpperCase()}` : 'TOR-JS-ME');
+      const pendingJobId = typeof window !== 'undefined' ? (sessionStorage.getItem('torbit_pending_apply_job_id') || localStorage.getItem('torbit_pending_apply_job_id')) : null;
+      if (pendingJobId) {
+        try {
+          sessionStorage.removeItem('torbit_pending_apply_job_id');
+          localStorage.removeItem('torbit_pending_apply_job_id');
+        } catch (e) {}
+        window.location.href = `/seeker/dashboard/${seekerId}?applyJobId=${encodeURIComponent(pendingJobId)}`;
+      } else {
+        window.location.href = `/seeker/dashboard/${seekerId}`;
+      }
+    } else if (user?.role === 'RECRUITER' || user?.role === 'COMPANY') {
+      const recId = user.companyProfile?.gstNumber || user.companyProfile?.id || user.id;
+      window.location.href = recId ? `/recruiter/dashboard/${recId}` : '/recruiter/dashboard';
+    } else if (user?.role === 'ADMIN') {
+      window.location.href = '/admin/dashboard';
+    }
   };
 
   const handleCategoryClick = (categoryName: string) => {
@@ -154,26 +196,22 @@ export default function CategoriesPage() {
             </p>
           </div>
 
-          {/* Search Input for Categories */}
-          <div className="mt-4 sm:mt-6 max-w-xl">
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search categories (e.g. Sales, Marketing, Civil)..."
-                className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 bg-white text-slate-900 rounded-xl text-xs sm:text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#b2c359] shadow-lg transition"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400 hover:text-slate-700"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
+          {/* Integrated Multi-Filter Search Bar */}
+          <div className="mt-4 sm:mt-6">
+            <JobFilterBar
+              keyword={searchTerm}
+              setKeyword={setSearchTerm}
+              location={filterLocation}
+              setLocation={setFilterLocation}
+              category={filterCategory}
+              setCategory={setFilterCategory}
+              jobType={filterJobType}
+              setJobType={setFilterJobType}
+              workMode={filterWorkMode}
+              setWorkMode={setFilterWorkMode}
+              onSubmit={handleFilterSubmit}
+              id="categories-filter-bar"
+            />
           </div>
         </div>
       </section>
@@ -297,6 +335,7 @@ export default function CategoriesPage() {
         onClose={() => setAuthOpen(false)}
         defaultRole={authRole}
         defaultTab={authTab}
+        onSuccess={handleAuthSuccess}
       />
     </div>
   );

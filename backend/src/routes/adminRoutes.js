@@ -651,6 +651,44 @@ router.post("/jobs", async (req, res) => {
       }
     }
 
+    // Optionally sync company & logo into platform settings (specialJobCompanies)
+    if (req.body.addToTopHiring !== false) {
+      try {
+        const currentSettings = settingsService.getSettings();
+        const existingList = Array.isArray(currentSettings.specialJobCompanies)
+          ? [...currentSettings.specialJobCompanies]
+          : [];
+
+        const existingIdx = existingList.findIndex(
+          (c) => (typeof c === 'string' ? c : c?.name || '').toLowerCase() === trimmedCompanyName.toLowerCase()
+        );
+
+        if (existingIdx >= 0) {
+          const item = existingList[existingIdx];
+          const oldUrl = typeof item === 'object' ? item.logoUrl : '';
+          if (cleanLogoUrl && cleanLogoUrl !== oldUrl) {
+            existingList[existingIdx] = {
+              name: trimmedCompanyName,
+              logo: trimmedCompanyName.slice(0, 8).toUpperCase(),
+              logoUrl: cleanLogoUrl,
+              websiteUrl: typeof item === 'object' ? item.websiteUrl || '' : ''
+            };
+            settingsService.updateSettings({ specialJobCompanies: existingList });
+          }
+        } else if (req.body.addToTopHiring === true) {
+          existingList.push({
+            name: trimmedCompanyName,
+            logo: trimmedCompanyName.slice(0, 8).toUpperCase(),
+            logoUrl: cleanLogoUrl || '',
+            websiteUrl: ''
+          });
+          settingsService.updateSettings({ specialJobCompanies: existingList });
+        }
+      } catch (settingsErr) {
+        console.warn("Could not sync special company to settings:", settingsErr.message);
+      }
+    }
+
     // 2. Parse screener questions if any
     let parsedQuestions = null;
     if (customQuestions) {

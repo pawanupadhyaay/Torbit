@@ -75,12 +75,14 @@ export default function Footer() {
           
           {/* Col 1: Torbit Logo + Social Icons */}
           <div className="md:col-span-5 space-y-3.5 sm:space-y-5">
-            <Link href="/" className="inline-flex items-center gap-2 group" title="Torbit Jobs">
-              <img
-                src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
-                alt="Torbit Jobs"
-                className="h-8 sm:h-11 w-auto object-contain brightness-0 invert opacity-95 group-hover:opacity-100 transition-opacity"
-              />
+            <Link href="/" className="inline-flex items-center gap-2.5 group" title="Torbit Realty Jobs">
+              <div className="bg-white rounded-xl px-3 py-1.5 flex items-center shadow-xs border border-white/10 group-hover:opacity-95 transition-opacity">
+                <img
+                  src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
+                  alt="Torbit Realty"
+                  className="h-7 sm:h-9 w-auto object-contain"
+                />
+              </div>
               <span className="bg-[#b2c359] text-[#080809] text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase">
                 JOBS
               </span>

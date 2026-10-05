@@ -52,6 +52,31 @@ router.get("/", async (req, res) => {
       jobs = [...activeJobs, ...otherJobs, ...closedJobs];
     }
 
+    // Enrich jobs with logo from specialJobCompanies if company logoUrl is missing
+    const specialList = Array.isArray(platformSettings.specialJobCompanies) ? platformSettings.specialJobCompanies : [];
+    const specialMap = new Map();
+    specialList.forEach(c => {
+      const name = (typeof c === 'string' ? c : c?.name || '').trim().toLowerCase();
+      const url = typeof c === 'object' ? c.logoUrl : '';
+      if (name && url) specialMap.set(name, url);
+    });
+
+    jobs = jobs.map(job => {
+      if (job.company && !job.company.logoUrl) {
+        const cName = (job.company.companyName || '').trim().toLowerCase();
+        if (specialMap.has(cName)) {
+          return {
+            ...job,
+            company: {
+              ...job.company,
+              logoUrl: specialMap.get(cName)
+            }
+          };
+        }
+      }
+      return job;
+    });
+
     const categories = await prisma.category.findMany({ orderBy: { jobCount: "desc" } });
 
     res.json({ jobs, categories, showClosedJobsOnPortal: showClosed });

@@ -15,7 +15,9 @@ import {
   CheckSquare,
   AlertCircle,
   CheckCircle2,
-  ChevronDown
+  ChevronDown,
+  Upload,
+  Image as ImageIcon
 } from 'lucide-react';
 
 export interface CustomQuestion {
@@ -86,8 +88,10 @@ export default function AdminPostSpecialJobModal({
 
   // Form State
   const [selectedCompany, setSelectedCompany] = useState<string>('');
-  const [customCompanyName, setCustomCompanyName] = useState<string>('');
+  const [companyName, setCompanyName] = useState<string>('');
+  const [companyLogoUrl, setCompanyLogoUrl] = useState<string>('');
   const [isCustomCompany, setIsCustomCompany] = useState<boolean>(false);
+  const [addToTopHiring, setAddToTopHiring] = useState<boolean>(true);
 
   const [title, setTitle] = useState('');
   const [department, setDepartment] = useState('Sales & Business Development');
@@ -136,9 +140,12 @@ export default function AdminPostSpecialJobModal({
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
-      // Default to first company if available
-      if (normalizedCompanies.length > 0 && !selectedCompany) {
-        setSelectedCompany(normalizedCompanies[0].name);
+      // Default to first company if available and not yet set
+      if (normalizedCompanies.length > 0 && !companyName) {
+        const first = normalizedCompanies[0];
+        setSelectedCompany(first.name);
+        setCompanyName(first.name);
+        setCompanyLogoUrl(first.logoUrl || '');
       }
     } else {
       document.body.style.overflow = 'unset';
@@ -146,7 +153,74 @@ export default function AdminPostSpecialJobModal({
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen, normalizedCompanies, selectedCompany]);
+  }, [isOpen, normalizedCompanies]);
+
+  const handleSelectCompany = (compName: string) => {
+    setSelectedCompany(compName);
+    setCompanyName(compName);
+    const matched = normalizedCompanies.find(c => c.name.toLowerCase() === compName.toLowerCase());
+    if (matched) {
+      setCompanyLogoUrl(matched.logoUrl || '');
+    }
+  };
+
+  const [logoUploading, setLogoUploading] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleLogoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Logo image file must be smaller than 5MB.');
+      return;
+    }
+
+    setLogoUploading(true);
+    setError(null);
+
+    try {
+      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+        ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+        : '/api';
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'logos');
+
+      const res = await fetch(`${apiBase}/upload`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.fileUrl) {
+          setCompanyLogoUrl(data.fileUrl);
+          return;
+        }
+      }
+
+      // Client-side fallback if server upload endpoint is unavailable
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setCompanyLogoUrl(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      console.warn('Direct upload error, falling back to local base64:', err);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setCompanyLogoUrl(reader.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setLogoUploading(false);
+    }
+  };
 
   if (!isOpen || !mounted) return null;
 
@@ -188,9 +262,9 @@ export default function AdminPostSpecialJobModal({
     e.preventDefault();
     setError(null);
 
-    const finalCompany = isCustomCompany ? customCompanyName.trim() : selectedCompany.trim();
+    const finalCompany = (companyName || '').trim();
     if (!finalCompany) {
-      setError('Please select or specify a company name.');
+      setError('Please provide a valid company name.');
       return;
     }
 
@@ -228,11 +302,10 @@ export default function AdminPostSpecialJobModal({
         ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
         : '/api';
 
-      const matchedCompany = normalizedCompanies.find(c => c.name.toLowerCase() === finalCompany.toLowerCase());
-
       const payload = {
         companyName: finalCompany,
-        logoUrl: matchedCompany?.logoUrl || undefined,
+        logoUrl: companyLogoUrl.trim() || undefined,
+        addToTopHiring,
         title: title.trim(),
         department,
         customDepartment: department === 'Others' ? customDepartment.trim() : null,
@@ -314,31 +387,47 @@ export default function AdminPostSpecialJobModal({
             </div>
           )}
 
-          {/* Section 1: Hiring Company Selection (Dropdown from Settings) */}
-          <div className="p-4 bg-slate-50 border border-slate-200/90 rounded-xl space-y-3">
+          {/* Section 1: Hiring Company Selection & Branding */}
+          <div className="p-4 bg-slate-50 border border-slate-200/90 rounded-2xl space-y-3.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                 <Building2 className="w-4 h-4 text-[#658A0D]" />
-                <span>Select Enterprise / Big Brand Company *</span>
+                <span>Enterprise Hiring Company &amp; Branding *</span>
               </label>
               <button
                 type="button"
                 onClick={() => {
-                  setIsCustomCompany(!isCustomCompany);
+                  const nextIsCustom = !isCustomCompany;
+                  setIsCustomCompany(nextIsCustom);
                   setError(null);
+                  if (nextIsCustom) {
+                    if (!companyName || normalizedCompanies.some(c => c.name.toLowerCase() === companyName.toLowerCase())) {
+                      setCompanyName('');
+                    }
+                  } else if (normalizedCompanies.length > 0) {
+                    const first = normalizedCompanies[0];
+                    setSelectedCompany(first.name);
+                    setCompanyName(first.name);
+                    if (!companyLogoUrl) {
+                      setCompanyLogoUrl(first.logoUrl || '');
+                    }
+                  }
                 }}
                 className="text-[11px] text-[#658A0D] hover:underline font-bold cursor-pointer"
               >
-                {isCustomCompany ? '← Choose from Settings Dropdown' : '+ Type Custom Company Name'}
+                {isCustomCompany ? '← Pick from Master Brands Dropdown' : '+ Add New / Custom Company'}
               </button>
             </div>
 
-            {!isCustomCompany ? (
+            {/* If choosing from dropdown, show dropdown */}
+            {!isCustomCompany && (
               <div className="space-y-1">
+                <label className="block text-[11px] font-semibold text-slate-600">
+                  Select Configured Brand:
+                </label>
                 <select
                   value={selectedCompany}
-                  onChange={(e) => setSelectedCompany(e.target.value)}
-                  required
+                  onChange={(e) => handleSelectCompany(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#b2c359] focus:ring-1 focus:ring-[#b2c359] transition cursor-pointer"
                 >
                   <option value="" disabled>-- Select a Brand Configured in Settings --</option>
@@ -348,25 +437,118 @@ export default function AdminPostSpecialJobModal({
                     </option>
                   ))}
                 </select>
-                <p className="text-[10px] text-slate-400">
-                  Companies shown here are managed in Admin Dashboard &gt; Settings &gt; Special Job Companies.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <input
-                  type="text"
-                  value={customCompanyName}
-                  onChange={(e) => setCustomCompanyName(e.target.value)}
-                  placeholder="e.g. DLF Cybercity Developers Ltd."
-                  required={isCustomCompany}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#b2c359] transition"
-                />
-                <p className="text-[10px] text-slate-400">
-                  Enter the exact brand name to be displayed publicly on portal listings &amp; candidate cards.
-                </p>
               </div>
             )}
+
+            {/* Editable Company Name & Company Logo Fields */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              {/* Company Name */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  Company Name *
+                </label>
+                <input
+                  type="text"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder="e.g. DLF Limited"
+                  required
+                  className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#b2c359] transition"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Displayed publicly across portal job listings and candidate cards.
+                </p>
+              </div>
+
+              {/* Company Logo URL & Upload */}
+              <div className="space-y-1">
+                <label className="block text-xs font-bold text-slate-700">
+                  Company Logo (URL or Upload)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={companyLogoUrl}
+                    onChange={(e) => setCompanyLogoUrl(e.target.value)}
+                    placeholder="https://... or click Upload"
+                    className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-[#b2c359] transition"
+                  />
+                  <button
+                    type="button"
+                    disabled={logoUploading}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 text-[11px] font-bold rounded-xl transition cursor-pointer shrink-0 shadow-2xs whitespace-nowrap flex items-center gap-1 active:scale-95 disabled:opacity-50"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{logoUploading ? 'Uploading...' : 'Upload'}</span>
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png, image/jpeg, image/jpg, image/webp, image/svg+xml"
+                    onChange={handleLogoFileUpload}
+                    className="hidden"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  Paste image URL or click Upload to select an image from your device.
+                </p>
+              </div>
+            </div>
+
+            {/* Live Logo Preview Box */}
+            <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-12 h-10 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden p-1 shrink-0">
+                  {companyLogoUrl ? (
+                    <img
+                      src={companyLogoUrl}
+                      alt={companyName || 'Logo Preview'}
+                      className="max-h-8 max-w-full object-contain"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.parentElement?.querySelector('.logo-preview-fallback');
+                        if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <span
+                    style={{ display: companyLogoUrl ? 'none' : 'flex' }}
+                    className="logo-preview-fallback w-full h-full items-center justify-center text-[10px] font-black text-slate-600 bg-slate-100 rounded"
+                  >
+                    {companyName ? companyName.slice(0, 3).toUpperCase() : 'LOGO'}
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-slate-800 truncate">
+                    {companyName || 'No Company Name Entered'}
+                  </p>
+                  <p className="text-[10px] text-slate-400">
+                    {companyLogoUrl ? 'Custom logo active and previewing' : 'Default monogram initials badge will be used'}
+                  </p>
+                </div>
+              </div>
+              {companyLogoUrl && (
+                <button
+                  type="button"
+                  onClick={() => setCompanyLogoUrl('')}
+                  className="text-[10px] text-red-500 hover:text-red-700 font-bold px-2 py-1 hover:bg-red-50 rounded-lg transition"
+                >
+                  Remove Logo
+                </button>
+              )}
+            </div>
+
+            {/* Checkbox: Sync to Top Hiring Companies */}
+            <label className="flex items-center gap-2 cursor-pointer pt-0.5 text-xs text-slate-700 font-medium select-none">
+              <input
+                type="checkbox"
+                checked={addToTopHiring}
+                onChange={(e) => setAddToTopHiring(e.target.checked)}
+                className="w-4 h-4 rounded text-[#b2c359] focus:ring-[#b2c359] border-slate-300"
+              />
+              <span>Sync and display this company &amp; logo in &quot;Top Hiring Companies&quot; master list</span>
+            </label>
           </div>
 
           {/* Section 2: Core Job Details */}

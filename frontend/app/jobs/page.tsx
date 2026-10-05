@@ -8,6 +8,7 @@ import AuthModal from '@/common/AuthModal';
 import ApplyJobModal from '@/job-seeker/ApplyJobModal';
 import JobDetailsModal from '@/common/JobDetailsModal';
 import MobileBottomBar from '@/common/MobileBottomBar';
+import JobFilterBar from '@/common/JobFilterBar';
 import { DEPARTMENT_CATEGORIES, JOB_TYPES, WORK_MODES } from '@/lib/constants';
 import {
   Search,
@@ -171,6 +172,20 @@ function JobsContent() {
     fetchUserApplications();
   }, []);
 
+  const handleFilterSubmit = () => {
+    const params = new URLSearchParams();
+    if (searchKeyword.trim()) params.set('q', searchKeyword.trim());
+    if (selectedLocation && selectedLocation !== 'All Locations') params.set('location', selectedLocation);
+    if (selectedCategory && selectedCategory !== 'All Categories') params.set('category', selectedCategory);
+    if (selectedJobType && selectedJobType !== 'All Job Types') params.set('jobType', selectedJobType);
+    if (selectedWorkMode && selectedWorkMode !== 'All Work Modes') params.set('workMode', selectedWorkMode);
+    if (selectedExp && selectedExp !== 'All Experience') params.set('experience', selectedExp);
+    if (selectedCompany && selectedCompany !== 'All Companies') params.set('company', selectedCompany);
+
+    const qs = params.toString();
+    router.push(qs ? `/jobs?${qs}` : '/jobs');
+  };
+
   // Filter Jobs based on active selections
   const filteredJobs = useMemo(() => {
     const list = jobs.filter((job) => {
@@ -195,9 +210,16 @@ function JobsContent() {
 
       // 3. Location filter
       if (selectedLocation && selectedLocation !== 'All Locations') {
-        const jobLoc = (job.location || '').toLowerCase();
-        const targetLoc = selectedLocation.toLowerCase();
-        if (!jobLoc.includes(targetLoc)) {
+        const jobLoc = (job.location || '').toLowerCase().trim();
+        const targetLoc = selectedLocation.toLowerCase().trim();
+        const primaryCity = targetLoc.split(',')[0].trim();
+        const jobCity = jobLoc.split(',')[0].trim();
+        if (
+          !jobLoc.includes(targetLoc) &&
+          !jobLoc.includes(primaryCity) &&
+          !targetLoc.includes(jobLoc) &&
+          !targetLoc.includes(jobCity)
+        ) {
           return false;
         }
       }
@@ -301,12 +323,35 @@ function JobsContent() {
       // Already logged in as Job Seeker -> Redirect directly to job application form
       window.location.href = `/seeker/dashboard/${seekerId}?applyJobId=${encodeURIComponent(job.id)}`;
     } else {
-      // Not logged in or not a job seeker -> Store pending job and redirect to login page
+      // Not logged in or not a job seeker -> Store pending job and open common login/register modal
       try {
         sessionStorage.setItem('torbit_pending_apply_job_id', job.id);
         localStorage.setItem('torbit_pending_apply_job_id', job.id);
       } catch (e) {}
-      window.location.href = `/login?redirect=apply&jobId=${encodeURIComponent(job.id)}`;
+      setAuthRole('JOB_SEEKER');
+      setAuthTab('LOGIN');
+      setAuthOpen(true);
+    }
+  };
+
+  const handleAuthSuccess = (user: any) => {
+    if (user?.role === 'JOB_SEEKER') {
+      const seekerId = user.seekerProfile?.id || (user.id ? `TOR-JS-${user.id.slice(-6).toUpperCase()}` : 'TOR-JS-ME');
+      const pendingJobId = typeof window !== 'undefined' ? (sessionStorage.getItem('torbit_pending_apply_job_id') || localStorage.getItem('torbit_pending_apply_job_id')) : null;
+      if (pendingJobId) {
+        try {
+          sessionStorage.removeItem('torbit_pending_apply_job_id');
+          localStorage.removeItem('torbit_pending_apply_job_id');
+        } catch (e) {}
+        window.location.href = `/seeker/dashboard/${seekerId}?applyJobId=${encodeURIComponent(pendingJobId)}`;
+      } else {
+        window.location.href = `/seeker/dashboard/${seekerId}`;
+      }
+    } else if (user?.role === 'RECRUITER' || user?.role === 'COMPANY') {
+      const recId = user.companyProfile?.gstNumber || user.companyProfile?.id || user.id;
+      window.location.href = recId ? `/recruiter/dashboard/${recId}` : '/recruiter/dashboard';
+    } else if (user?.role === 'ADMIN') {
+      window.location.href = '/admin/dashboard';
     }
   };
 
@@ -389,51 +434,22 @@ function JobsContent() {
           </div>
 
           {/* Integrated Multi-Filter Search Bar */}
-          <form 
-            onSubmit={(e) => { e.preventDefault(); }} 
-            className="bg-white p-2 rounded-2xl shadow-xl grid grid-cols-1 sm:grid-cols-12 gap-2 text-slate-800"
-          >
-            {/* Keyword */}
-            <div className="sm:col-span-5 flex items-center px-3 py-2.5 bg-slate-50 sm:bg-transparent rounded-xl border sm:border-0 border-slate-200">
-              <Search className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
-              <input
-                type="text"
-                value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
-                placeholder="Job title, keywords, skills..."
-                className="w-full text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 bg-transparent focus:outline-none"
-              />
-            </div>
-
-            {/* Category Dropdown */}
-            <div className="sm:col-span-4 flex items-center px-3 py-2.5 bg-slate-50 sm:bg-transparent rounded-xl border sm:border-0 border-slate-200 sm:border-l sm:border-slate-200">
-              <Briefcase className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full text-xs sm:text-sm text-slate-800 bg-transparent focus:outline-none cursor-pointer truncate"
-              >
-                <option value="All Categories">All Job Categories</option>
-                {(DEPARTMENT_CATEGORIES as unknown as string[]).map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Location Dropdown */}
-            <div className="sm:col-span-3 flex items-center px-3 py-2.5 bg-slate-50 sm:bg-transparent rounded-xl border sm:border-0 border-slate-200 sm:border-l sm:border-slate-200">
-              <MapPin className="w-4 h-4 text-slate-400 mr-2 shrink-0" />
-              <select
-                value={selectedLocation}
-                onChange={(e) => setSelectedLocation(e.target.value)}
-                className="w-full text-xs sm:text-sm text-slate-800 bg-transparent focus:outline-none cursor-pointer truncate"
-              >
-                {TOP_LOCATIONS.map((loc) => (
-                  <option key={loc} value={loc}>{loc}</option>
-                ))}
-              </select>
-            </div>
-          </form>
+          <div className="mt-4 sm:mt-6">
+            <JobFilterBar
+              keyword={searchKeyword}
+              setKeyword={setSearchKeyword}
+              location={selectedLocation}
+              setLocation={setSelectedLocation}
+              category={selectedCategory}
+              setCategory={setSelectedCategory}
+              jobType={selectedJobType}
+              setJobType={setSelectedJobType}
+              workMode={selectedWorkMode}
+              setWorkMode={setSelectedWorkMode}
+              onSubmit={handleFilterSubmit}
+              id="jobs-filter-bar"
+            />
+          </div>
         </div>
       </section>
 
@@ -795,8 +811,25 @@ function JobsContent() {
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                         {/* Company Logo + Titles */}
                         <div className="flex items-start gap-3.5 flex-1 min-w-0">
-                          <div className="w-12 h-12 rounded-xl bg-slate-900 text-[#b2c359] font-black text-sm flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform">
-                            {companyInitials}
+                          <div className="w-12 h-12 rounded-xl bg-white border border-slate-200/90 flex items-center justify-center text-slate-800 font-black text-xs shrink-0 shadow-xs overflow-hidden group-hover:scale-105 transition-transform p-1">
+                            {job.company?.logoUrl ? (
+                              <img
+                                src={job.company.logoUrl}
+                                alt={job.company.companyName || 'Company'}
+                                className="max-h-9 max-w-full object-contain"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  const fallback = e.currentTarget.parentElement?.querySelector('.jobs-logo-fallback');
+                                  if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <span
+                              style={{ display: job.company?.logoUrl ? 'none' : 'flex' }}
+                              className="jobs-logo-fallback w-full h-full items-center justify-center bg-slate-900 text-[#b2c359] font-black text-sm rounded-lg"
+                            >
+                              {companyInitials}
+                            </span>
                           </div>
 
                           <div className="flex-1 min-w-0">
@@ -944,6 +977,7 @@ function JobsContent() {
         onClose={() => setAuthOpen(false)}
         defaultRole={authRole}
         defaultTab={authTab}
+        onSuccess={handleAuthSuccess}
       />
     </div>
   );
