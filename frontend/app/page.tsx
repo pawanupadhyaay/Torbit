@@ -15,10 +15,11 @@ import MobileBottomBar from '@/common/MobileBottomBar';
 
 export default function HomePage() {
   const router = useRouter();
-  const [jobs, setJobs] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(false);
   
   const [authOpen, setAuthOpen] = useState(false);
   const [authRole, setAuthRole] = useState<'JOB_SEEKER' | 'RECRUITER' | null>(null);
@@ -58,6 +59,7 @@ export default function HomePage() {
   };
 
   const fetchJobs = async (params = {}) => {
+    setIsLoadingJobs(true);
     try {
       const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
         ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
@@ -66,14 +68,17 @@ export default function HomePage() {
       const res = await fetch(`${apiBase}/jobs?${qs}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.jobs) setJobs(data.jobs);
-        if (data.categories) setCategories(data.categories);
-        try {
-          sessionStorage.setItem('torbitHomeSnapshot', JSON.stringify({ jobs: data.jobs, categories: data.categories }));
-        } catch (e) {}
+        if (data.jobs) {
+          setJobs(data.jobs);
+        }
+        if (data.categories) {
+          setCategories(data.categories);
+        }
       }
     } catch (err) {
       console.error('Error fetching jobs:', err);
+    } finally {
+      setIsLoadingJobs(false);
     }
   };
 
@@ -91,46 +96,25 @@ export default function HomePage() {
     fetchJobs();
     fetchUserApplications();
 
-    // Check saved session in browser (Industry Standard: Auto-Restore Active Dashboard)
+    // Hydrate current user state without auto-redirecting away from common dashboard
     try {
       const stored = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       const adminUser = typeof window !== 'undefined' ? localStorage.getItem('adminUser') : null;
       const adminToken = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
-      const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
-      const isExplicitHome = params.get('view') === 'home';
 
-      if (!isExplicitHome) {
-        if (adminUser && adminToken) {
-          window.location.replace('/admin/dashboard');
-          return;
-        }
-
-        if (stored && token) {
-          try {
-            const u = JSON.parse(stored);
-            setCurrentUser(u);
-            if (u.role === 'JOB_SEEKER') {
-              const seekerId = u.seekerProfile?.id || (u.id ? `TOR-JS-${u.id.slice(-6).toUpperCase()}` : 'TOR-JS-ME');
-              window.location.replace(`/seeker/dashboard/${seekerId}`);
-              return;
-            } else if (u.role === 'RECRUITER' || u.role === 'COMPANY') {
-              const recId = u.companyProfile?.gstNumber || u.companyProfile?.id || u.id;
-              const target = recId ? `/recruiter/dashboard/${recId}` : '/recruiter/dashboard';
-              window.location.replace(target);
-              return;
-            } else if (u.role === 'ADMIN') {
-              window.location.replace('/admin/dashboard');
-              return;
-            }
-          } catch (e) {}
-        }
+      if (stored && token) {
+        try {
+          const u = JSON.parse(stored);
+          setCurrentUser(u);
+        } catch (e) {}
+      } else if (adminUser && adminToken) {
+        try {
+          const u = JSON.parse(adminUser);
+          setCurrentUser(u);
+        } catch (e) {}
       }
-
-      setIsCheckingAuth(false);
-    } catch (e) {
-      setIsCheckingAuth(false);
-    }
+    } catch (e) {}
   }, [router]);
 
   const handleOpenAuth = (role: 'JOB_SEEKER' | 'RECRUITER' | null = null, tab: 'LOGIN' | 'REGISTER' = 'REGISTER') => {
@@ -202,10 +186,14 @@ export default function HomePage() {
 
   if (isCheckingAuth) {
     return (
-      <div className="min-h-screen bg-[#0F172A] flex flex-col items-center justify-center p-4">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#b2c359] to-[#b2c359] flex items-center justify-center shadow-lg shadow-[#b2c359]/20 animate-pulse">
-            <span className="text-white font-black text-2xl tracking-tighter">TR</span>
+      <div className="min-h-screen bg-[#0F172A] flex flex-col items-center justify-center p-4 font-['Helvetica',Arial,sans-serif]">
+        <div className="flex flex-col items-center space-y-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl px-5 py-2.5 flex items-center shadow-xl border border-white/10">
+            <img
+              src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
+              alt="Torbit Realty"
+              className="h-8 sm:h-9 w-auto object-contain"
+            />
           </div>
           <div className="flex items-center space-x-3 text-slate-300">
             <Loader2 className="w-5 h-5 animate-spin text-[#b2c359]" />
@@ -218,7 +206,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F8FAFC] pb-16 lg:pb-0">
-      <Header onOpenAuth={handleOpenAuth} />
+      <Header onOpenAuth={handleOpenAuth} currentUser={currentUser} />
 
       <HeroSection 
         categories={categories} 
@@ -232,12 +220,14 @@ export default function HomePage() {
             <PopularCategories 
               categories={categories} 
               onSelectCategory={(catName) => fetchJobs(catName === 'All Categories' ? {} : { category: catName })} 
+              isLoading={isLoadingJobs}
             />
             <FeaturedJobs 
               jobs={jobs} 
               onApply={handleOpenApply}
               onViewDetails={handleOpenDetails}
               appliedJobIds={appliedJobIds}
+              isLoading={isLoadingJobs}
             />
           </div>
 

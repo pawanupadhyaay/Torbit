@@ -125,6 +125,7 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
                 <div className="sm:col-span-2 lg:col-span-1 flex items-center px-3 py-2.5 sm:py-3 bg-gray-50/80 rounded-xl border border-gray-200 min-h-[44px] sm:min-h-[48px]">
                   <LayersOutlinedIcon className="text-gray-400 mr-2 flex-shrink-0" sx={{ fontSize: 18 }} />
                   <select
+                    suppressHydrationWarning
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     className="w-full text-xs sm:text-[13.5px] font-normal text-[#080809] focus:outline-none bg-transparent truncate cursor-pointer"

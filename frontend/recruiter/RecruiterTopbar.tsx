@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import Link from 'next/link';
 import { Building2, RotateCw, Menu, LogOut } from 'lucide-react';
 
 interface RecruiterTopbarProps {
@@ -48,19 +49,25 @@ export default function RecruiterTopbar({
       </div>
 
       <div className="flex items-center gap-2.5 mx-auto md:mx-0">
-        <img
-          src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
-          alt="Torbit Realty"
-          className="h-6 sm:h-7.5 w-auto object-contain max-w-[150px] sm:max-w-[200px]"
-        />
-        <span className="bg-[#b2c359] text-[#080809] text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider uppercase shrink-0">
-          RECRUITER
-        </span>
-        {gstNumber && (
-          <span className="hidden lg:inline-flex items-center gap-1 font-mono text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200">
-            GSTIN: {gstNumber}
+        <Link
+          href="/"
+          className="flex items-center gap-2.5 group cursor-pointer"
+          title="Go to Common Dashboard"
+        >
+          <img
+            src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
+            alt="Torbit Realty"
+            className="h-6 sm:h-7.5 w-auto object-contain max-w-[150px] sm:max-w-[200px]"
+          />
+          <span className="bg-[#b2c359] text-[#080809] text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wider uppercase shrink-0">
+            RECRUITER
           </span>
-        )}
+          {gstNumber && (
+            <span className="hidden lg:inline-flex items-center gap-1 font-mono text-[10px] font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200">
+              GSTIN: {gstNumber}
+            </span>
+          )}
+        </Link>
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">

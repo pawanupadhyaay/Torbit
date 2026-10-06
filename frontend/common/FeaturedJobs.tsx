@@ -30,9 +30,10 @@ interface FeaturedJobsProps {
   onApply: (job: Job) => void;
   onViewDetails?: (job: Job) => void;
   appliedJobIds?: Set<string>;
+  isLoading?: boolean;
 }
 
-export default function FeaturedJobs({ jobs, onApply, onViewDetails, appliedJobIds }: FeaturedJobsProps) {
+export default function FeaturedJobs({ jobs, onApply, onViewDetails, appliedJobIds, isLoading }: FeaturedJobsProps) {
   const [activeTab, setActiveTab] = useState('All Jobs');
   const filterTabs = ['All Jobs', 'Full Time', 'Part Time', 'Contract', 'Internship'];
 
@@ -139,7 +140,13 @@ export default function FeaturedJobs({ jobs, onApply, onViewDetails, appliedJobI
       </div>
 
       <div className="space-y-3">
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center shadow-xs flex flex-col items-center justify-center min-h-[220px]">
+            <div className="w-10 h-10 border-[3px] border-gray-200 border-t-[#b2c359] rounded-full animate-spin mb-3"></div>
+            <h4 className="text-sm font-bold text-gray-800">Loading featured opportunities...</h4>
+            <p className="text-xs text-gray-400 mt-1">Fetching live openings from verified employers</p>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-200/90 p-8 sm:p-10 text-center shadow-xs">
             <WorkOutlineOutlinedIcon className="text-gray-300 mx-auto mb-2" sx={{ fontSize: 36 }} />
             <h4 className="text-sm font-bold text-gray-800">

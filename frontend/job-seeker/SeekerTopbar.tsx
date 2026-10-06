@@ -48,10 +48,9 @@ export default function SeekerTopbar({
       {/* Center: Desktop-style Logo with SEEKER Badge */}
       <div className="flex items-center gap-2.5 mx-auto md:mx-0">
         <Link
-          href="/seeker/dashboard"
-          onClick={handleLogoClick}
+          href="/"
           className="flex items-center gap-2 group cursor-pointer"
-          title="Go to Seeker Dashboard"
+          title="Go to Common Dashboard"
         >
           <img
             src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"

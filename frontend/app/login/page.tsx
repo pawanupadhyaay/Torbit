@@ -10,6 +10,7 @@ import LockResetOutlinedIcon from '@mui/icons-material/LockResetOutlined';
 import Header from '@/common/Header';
 import Footer from '@/common/Footer';
 import GoogleAuthButton from '@/common/GoogleAuthButton';
+import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const [identifier, setIdentifier] = useState('');
@@ -582,9 +583,16 @@ export default function LoginPage() {
                     <button
                       type="submit"
                       disabled={forgotLoading || !forgotEmail}
-                      className="w-full bg-[#b2c359] hover:bg-[#85b21c] active:scale-[0.99] text-[#080809] font-['Helvetica',Arial,sans-serif] font-bold text-sm py-3.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                      className="w-full bg-[#b2c359] hover:bg-[#85b21c] active:scale-[0.99] text-[#080809] font-['Helvetica',Arial,sans-serif] font-bold text-sm py-3.5 rounded-xl shadow-xs transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                     >
-                      <span>{forgotLoading ? 'Checking & Dispatching OTP...' : 'Request OTP Code →'}</span>
+                      {forgotLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                          <span>Checking &amp; Dispatching OTP...</span>
+                        </>
+                      ) : (
+                        <span>Request OTP Code →</span>
+                      )}
                     </button>
                   </div>
 
@@ -704,9 +712,16 @@ export default function LoginPage() {
                     <button
                       type="submit"
                       disabled={forgotLoading || forgotOtp.length !== 6 || forgotNewPassword.length < 6}
-                      className="w-full bg-[#b2c359] hover:bg-[#85b21c] active:scale-[0.99] text-[#080809] font-['Helvetica',Arial,sans-serif] font-bold text-sm py-3.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                      className="w-full bg-[#b2c359] hover:bg-[#85b21c] active:scale-[0.99] text-[#080809] font-['Helvetica',Arial,sans-serif] font-bold text-sm py-3.5 rounded-xl shadow-xs transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                     >
-                      <span>{forgotLoading ? 'Verifying & Opening Dashboard...' : 'Save New Password & Sign In →'}</span>
+                      {forgotLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                          <span>Verifying &amp; Opening Dashboard...</span>
+                        </>
+                      ) : (
+                        <span>Save New Password &amp; Sign In →</span>
+                      )}
                     </button>
                   </div>
 
@@ -841,9 +856,16 @@ export default function LoginPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-[#b2c359] hover:bg-[#85b21c] active:scale-[0.99] text-[#080809] font-['Helvetica',Arial,sans-serif] font-bold text-sm py-3.5 rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                    className="w-full bg-[#b2c359] hover:bg-[#85b21c] active:scale-[0.99] text-[#080809] font-['Helvetica',Arial,sans-serif] font-bold text-sm py-3.5 rounded-xl shadow-xs transition flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                   >
-                    <span>{loading ? 'Authenticating...' : 'Sign In →'}</span>
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                        <span>Authenticating Session...</span>
+                      </>
+                    ) : (
+                      <span>Sign In →</span>
+                    )}
                   </button>
                 </div>
 

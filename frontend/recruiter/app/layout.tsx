@@ -8,12 +8,12 @@ export const metadata: Metadata = {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
       { url: '/favicon.png', type: 'image/png' },
-      { url: 'https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png' }
+      { url: '/icon.png', type: 'image/png' }
     ],
     shortcut: '/favicon.png',
     apple: [
       { url: '/favicon.png' },
-      { url: 'https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png' }
+      { url: '/apple-icon.png' }
     ],
   },
 };

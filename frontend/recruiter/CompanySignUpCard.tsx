@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { AlertCircle, ShieldCheck, Upload, FileText, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, ShieldCheck, Upload, FileText, CheckCircle2, Loader2 } from 'lucide-react';
 import GoogleAuthButton from '@/common/GoogleAuthButton';
 
 interface CompanySignUpCardProps {
@@ -387,9 +387,16 @@ export default function CompanySignUpCard({ onSuccess, onSwitchToLogin, onShowVe
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#b2c359] hover:bg-[#85b21c] text-white font-['Helvetica',Arial,sans-serif] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-3.5 px-5 rounded-lg transition shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
+            className="w-full bg-[#b2c359] hover:bg-[#85b21c] text-[#080809] font-['Helvetica',Arial,sans-serif] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-3.5 px-5 rounded-lg transition shadow-xs disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
           >
-            <span>{loading ? 'Submitting for Verification...' : 'Submit for Admin Approval →'}</span>
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                <span>Submitting for Verification...</span>
+              </>
+            ) : (
+              <span>Submit for Admin Approval →</span>
+            )}
           </button>
         </div>
 

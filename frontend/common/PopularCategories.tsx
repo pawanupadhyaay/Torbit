@@ -17,6 +17,7 @@ import BalanceOutlinedIcon from '@mui/icons-material/BalanceOutlined';
 interface PopularCategoriesProps {
   categories?: Array<{ id?: string; name: string; jobCount?: number; iconColor?: string }>;
   onSelectCategory?: (name: string) => void;
+  isLoading?: boolean;
 }
 
 const getCategoryIcon = (name: string) => {
@@ -45,22 +46,12 @@ const getCategoryColor = (name: string, fallbackColor?: string) => {
   return '#10B981';
 };
 
-export default function PopularCategories({ categories, onSelectCategory }: PopularCategoriesProps) {
+export default function PopularCategories({ categories, onSelectCategory, isLoading }: PopularCategoriesProps) {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const defaultList = [
-    { id: '1', name: 'Sales & Business Development', jobCount: 128, iconColor: '#10B981' },
-    { id: '2', name: 'Marketing', jobCount: 96, iconColor: '#F97316' },
-    { id: '3', name: 'Projects & Construction', jobCount: 89, iconColor: '#0D9488' },
-    { id: '4', name: 'Property Management', jobCount: 64, iconColor: '#EA580C' },
-    { id: '5', name: 'Finance & Accounts', jobCount: 52, iconColor: '#2563EB' },
-    { id: '6', name: 'Human Resources', jobCount: 41, iconColor: '#EC4899' },
-    { id: '7', name: 'Information Technology', jobCount: 38, iconColor: '#6366F1' },
-    { id: '8', name: 'Legal', jobCount: 30, iconColor: '#8B5CF6' },
-  ];
-
-  const displayList = categories && categories.length > 0 ? categories.slice(0, 10) : defaultList;
+  const hasCategories = Boolean(categories && categories.length > 0);
+  const displayList = hasCategories ? (categories as any[]).slice(0, 10) : [];
 
   const handleScroll = (direction: 'left' | 'right') => {
     if (scrollRef.current) {
@@ -75,6 +66,27 @@ export default function PopularCategories({ categories, onSelectCategory }: Popu
     }
     router.push(`/jobs?category=${encodeURIComponent(categoryName)}`);
   };
+
+  if (isLoading || !hasCategories) {
+    return (
+      <section id="popular-categories" className="py-2 font-['Helvetica',Arial,sans-serif]">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="min-w-0 flex-1">
+            <h3 className="text-base sm:text-lg font-['Helvetica',Arial,sans-serif] font-bold text-[#111827] truncate">
+              Popular Categories
+            </h3>
+            <p className="text-[11px] sm:text-xs text-gray-500 font-['Helvetica',Arial,sans-serif] truncate">
+              Explore highest-demand career streams
+            </p>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center shadow-xs flex flex-col items-center justify-center min-h-[120px]">
+          <div className="w-8 h-8 border-[3px] border-gray-200 border-t-[#b2c359] rounded-full animate-spin mb-2"></div>
+          <p className="text-[11px] font-semibold text-gray-500">Loading career categories...</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="popular-categories" className="py-2 font-['Helvetica',Arial,sans-serif]">

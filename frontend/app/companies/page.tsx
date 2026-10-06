@@ -227,7 +227,13 @@ export default function CompaniesPage() {
           </Link>
         </div>
 
-        {filteredCompanies.length === 0 ? (
+        {loading ? (
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center flex flex-col items-center justify-center min-h-[260px] shadow-xs">
+            <div className="w-10 h-10 border-[3px] border-slate-200 border-t-[#b2c359] rounded-full animate-spin mb-3"></div>
+            <h3 className="text-sm font-bold text-slate-800">Loading enterprise brands...</h3>
+            <p className="text-xs text-slate-400 mt-1">Connecting to verified employers and active positions</p>
+          </div>
+        ) : filteredCompanies.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center max-w-md mx-auto my-8">
             <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
               <Building2 className="w-6 h-6" />

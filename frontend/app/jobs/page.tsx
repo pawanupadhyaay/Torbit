@@ -746,19 +746,10 @@ function JobsContent() {
 
             {/* Job Listings Feed */}
             {loading ? (
-              <div className="space-y-3">
-                {[1, 2, 3, 4].map((n) => (
-                  <div key={n} className="bg-white rounded-2xl p-5 border border-slate-100 animate-pulse space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-slate-100 rounded-xl" />
-                      <div className="space-y-1.5 flex-1">
-                        <div className="h-4 bg-slate-100 rounded w-1/3" />
-                        <div className="h-3 bg-slate-100 rounded w-1/4" />
-                      </div>
-                    </div>
-                    <div className="h-10 bg-slate-50 rounded" />
-                  </div>
-                ))}
+              <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center flex flex-col items-center justify-center min-h-[300px] shadow-xs">
+                <div className="w-10 h-10 border-[3px] border-slate-200 border-t-[#b2c359] rounded-full animate-spin mb-3"></div>
+                <h3 className="text-sm font-bold text-slate-800">Loading career opportunities...</h3>
+                <p className="text-xs text-slate-400 mt-1">Fetching matching openings from verified employers</p>
               </div>
             ) : filteredJobs.length === 0 ? (
               <div className="bg-white rounded-2xl border border-slate-200 p-8 sm:p-12 text-center shadow-2xs">

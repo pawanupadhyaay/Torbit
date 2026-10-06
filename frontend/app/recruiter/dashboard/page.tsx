@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Clock, ShieldCheck, RefreshCw, LogOut, ArrowLeft, Building2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import RecruiterSidebar from '../../../recruiter/RecruiterSidebar';
@@ -271,11 +272,13 @@ export default function RecruiterDashboardPage() {
     return (
       <div className="min-h-screen bg-[#080809] flex flex-col items-center justify-center p-4 text-white font-['Helvetica',Arial,sans-serif]">
         <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 duration-200">
-          <img
-            src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
-            alt="Torbit Logo"
-            className="h-8 w-auto object-contain brightness-0 invert"
-          />
+          <div className="bg-white rounded-2xl px-5 py-2.5 flex items-center shadow-xl border border-white/10">
+            <img
+              src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
+              alt="Torbit Realty"
+              className="h-8 sm:h-9 w-auto object-contain"
+            />
+          </div>
           <div className="flex items-center gap-2 text-sm text-[#b2c359] font-bold">
             <RefreshCw className="w-4 h-4 animate-spin" />
             <span>Authenticating Enterprise Session...</span>
@@ -291,7 +294,7 @@ export default function RecruiterDashboardPage() {
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-['Helvetica',Arial,sans-serif]">
         {/* Top Header */}
         <header className="bg-[#080809] border-b border-gray-800 py-3.5 px-4 sm:px-8 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3 cursor-pointer group" title="Go to Common Dashboard">
             <img
               src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
               alt="Torbit Realty"
@@ -300,7 +303,7 @@ export default function RecruiterDashboardPage() {
             <span className="bg-[#b2c359] text-[#080809] text-[10px] font-black px-2 py-0.5 rounded tracking-wider uppercase">
               EMPLOYER PORTAL
             </span>
-          </div>
+          </Link>
 
           <button
             onClick={handleLogout}

@@ -238,7 +238,13 @@ export default function CategoriesPage() {
         </div>
 
         {/* Categories Grid Cards: 2 Columns on Mobile, 4 on Desktop */}
-        {filteredList.length === 0 ? (
+        {loading ? (
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center flex flex-col items-center justify-center min-h-[260px] shadow-xs">
+            <div className="w-10 h-10 border-[3px] border-slate-200 border-t-[#b2c359] rounded-full animate-spin mb-3"></div>
+            <h3 className="text-sm font-bold text-slate-800">Loading career categories...</h3>
+            <p className="text-xs text-slate-400 mt-1">Fetching verified specializations and real-time openings</p>
+          </div>
+        ) : filteredList.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 sm:p-12 text-center max-w-md mx-auto">
             <Compass className="w-10 h-10 text-slate-300 mx-auto mb-2" />
             <h3 className="text-sm sm:text-base font-bold text-slate-900">No categories found</h3>

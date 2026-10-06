@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import SeekerSidebar from '@/job-seeker/SeekerSidebar';
 import SeekerTopbar from '@/job-seeker/SeekerTopbar';
 import SeekerOverview from '@/job-seeker/SeekerOverview';
@@ -316,6 +317,26 @@ export default function SeekerDashboardPage() {
     }
   ];
 
+  if (!mounted || (loading && !user)) {
+    return (
+      <div className="min-h-screen bg-[#080809] flex flex-col items-center justify-center p-4 text-white font-['Helvetica',Arial,sans-serif]">
+        <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl px-5 py-2.5 flex items-center shadow-xl border border-white/10">
+            <img
+              src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
+              alt="Torbit Realty"
+              className="h-8 sm:h-9 w-auto object-contain"
+            />
+          </div>
+          <div className="flex items-center gap-2.5 text-sm text-[#b2c359] font-bold">
+            <div className="w-4 h-4 border-2 border-slate-600 border-t-[#b2c359] rounded-full animate-spin" />
+            <span>Loading Candidate Workspace...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex bg-[#F8FAFC] font-['Helvetica',Arial,sans-serif] antialiased text-slate-900 selection:bg-[#b2c359]/20">
       
@@ -330,7 +351,7 @@ export default function SeekerDashboardPage() {
           >
             {/* Drawer Header */}
             <div className="p-4 border-b border-gray-800/80 flex items-center justify-between bg-[#121418]">
-              <div className="flex items-center gap-2">
+              <Link href="/" className="flex items-center gap-2 cursor-pointer group" title="Go to Common Dashboard">
                 <div className="w-7 h-7 rounded-lg bg-[#b2c359] flex items-center justify-center text-[#080809] font-black">
                   T
                 </div>
@@ -340,7 +361,7 @@ export default function SeekerDashboardPage() {
                     SEEKER
                   </span>
                 </div>
-              </div>
+              </Link>
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -446,7 +467,6 @@ export default function SeekerDashboardPage() {
           onRefresh={() => loadData(true)}
           isRefreshing={isRefreshing}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
-          onLogoClick={() => handleTabChange('OVERVIEW')}
         />
 
         {/* Main Content Area */}

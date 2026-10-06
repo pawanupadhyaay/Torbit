@@ -1586,9 +1586,16 @@ export default function AuthModal({
                   <button
                     type="submit"
                     disabled={seekerLoading}
-                    className="w-full bg-[#b2c359] hover:bg-[#85b21c] text-[#111827] font-['Helvetica',Arial,sans-serif] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-3.5 px-6 rounded-lg transition shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    className="w-full bg-[#b2c359] hover:bg-[#85b21c] text-[#111827] font-['Helvetica',Arial,sans-serif] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-3.5 px-6 rounded-lg transition shadow-xs disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>{seekerLoading ? 'Creating Job Seeker Account...' : 'Create Job Seeker Account →'}</span>
+                    {seekerLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                        <span>Creating Job Seeker Account...</span>
+                      </>
+                    ) : (
+                      <span>Create Job Seeker Account →</span>
+                    )}
                   </button>
                 </div>
 
@@ -1866,9 +1873,16 @@ export default function AuthModal({
                   <button
                     type="submit"
                     disabled={recruiterLoading}
-                    className="w-full bg-[#b2c359] hover:bg-[#85b21c] text-[#111827] font-['Helvetica',Arial,sans-serif] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-3.5 px-6 rounded-lg transition shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    className="w-full bg-[#b2c359] hover:bg-[#85b21c] text-[#111827] font-['Helvetica',Arial,sans-serif] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-3.5 px-6 rounded-lg transition shadow-xs disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <span>{recruiterLoading ? 'Submitting for Verification...' : 'Submit for Admin Approval →'}</span>
+                    {recruiterLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                        <span>Submitting for Verification...</span>
+                      </>
+                    ) : (
+                      <span>Submit for Admin Approval →</span>
+                    )}
                   </button>
                 </div>
 

@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import StarRoundedIcon from '@mui/icons-material/StarRounded';
 import StarOutlineOutlinedIcon from '@mui/icons-material/StarOutlineOutlined';
@@ -2188,7 +2189,11 @@ export default function AdminDashboardPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 border-b border-gray-800/80 flex items-center justify-between bg-[#121418]">
-              <div className="flex items-center gap-2">
+              <Link
+                href="/"
+                className="flex items-center gap-2 cursor-pointer group"
+                title="Go to Common Dashboard"
+              >
                 <div className="bg-white rounded-lg px-2 py-1 flex items-center shadow-xs">
                   <img
                     src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
@@ -2199,7 +2204,7 @@ export default function AdminDashboardPage() {
                 <span className="bg-[#b2c359] text-[#080809] text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase shrink-0">
                   ADMIN
                 </span>
-              </div>
+              </Link>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800"
@@ -2436,14 +2441,20 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="flex items-center gap-2.5 mx-auto md:mx-0">
-            <img
-              src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
-              alt="Torbit Realty"
-              className="h-6 sm:h-7.5 w-auto object-contain max-w-[150px] sm:max-w-[200px]"
-            />
-            <span className="bg-[#b2c359] text-[#080809] text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase shrink-0">
-              ADMIN
-            </span>
+            <Link
+              href="/"
+              className="flex items-center gap-2.5 group cursor-pointer"
+              title="Go to Common Dashboard"
+            >
+              <img
+                src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
+                alt="Torbit Realty"
+                className="h-6 sm:h-7.5 w-auto object-contain max-w-[150px] sm:max-w-[200px]"
+              />
+              <span className="bg-[#b2c359] text-[#080809] text-[9px] font-black px-1.5 py-0.5 rounded tracking-wider uppercase shrink-0">
+                ADMIN
+              </span>
+            </Link>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">

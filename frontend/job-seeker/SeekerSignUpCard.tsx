@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { QUALIFICATIONS, QUALIFICATION_CATEGORIES, EXPERIENCE_RANGES } from '@/lib/constants';
-import { AlertCircle, Eye, EyeOff, Calendar, CheckCircle2, Mail, ShieldCheck, RefreshCw } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, Calendar, CheckCircle2, Mail, ShieldCheck, RefreshCw, Loader2 } from 'lucide-react';
 import GoogleAuthButton from '@/common/GoogleAuthButton';
 
 interface SeekerSignUpCardProps {
@@ -556,9 +556,16 @@ export default function SeekerSignUpCard({ onSuccess, onSwitchToLogin, onSwitchR
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#b2c359] hover:bg-[#85b21c] text-white font-['Helvetica',Arial,sans-serif] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-3.5 px-5 rounded-lg transition shadow-xs disabled:opacity-50 flex items-center justify-center gap-1.5"
+            className="w-full bg-[#b2c359] hover:bg-[#85b21c] text-[#080809] font-['Helvetica',Arial,sans-serif] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-3.5 px-5 rounded-lg transition shadow-xs disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
           >
-            <span>{loading ? 'Creating Job Seeker Account...' : 'Create Job Seeker Account →'}</span>
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                <span>Creating Job Seeker Account...</span>
+              </>
+            ) : (
+              <span>Create Job Seeker Account →</span>
+            )}
           </button>
         </div>
 
