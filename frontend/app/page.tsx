@@ -1,7 +1,8 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ShieldAlert, AlertCircle } from 'lucide-react';
 import Header from '@/common/Header';
 import Footer from '@/common/Footer';
 import HeroSection from '@/common/HeroSection';
@@ -31,6 +32,15 @@ export default function HomePage() {
   const [applyModalOpen, setApplyModalOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<any>(null);
   const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
+
+  // Role Notice Modal & Toast state (for Admin / Recruiter attempting to apply)
+  const [roleNotice, setRoleNotice] = useState<{ title: string; message: string; role: 'ADMIN' | 'RECRUITER' } | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   const fetchUserApplications = async () => {
     try {
@@ -96,25 +106,47 @@ export default function HomePage() {
     fetchJobs();
     fetchUserApplications();
 
-    // Hydrate current user state without auto-redirecting away from common dashboard
-    try {
-      const stored = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-      const adminUser = typeof window !== 'undefined' ? localStorage.getItem('adminUser') : null;
-      const adminToken = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
+    // Hydrate current user state across tabs
+    const syncUser = () => {
+      try {
+        const adminToken = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
+        const adminUser = typeof window !== 'undefined' ? localStorage.getItem('adminUser') : null;
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
 
-      if (stored && token) {
-        try {
-          const u = JSON.parse(stored);
-          setCurrentUser(u);
-        } catch (e) {}
-      } else if (adminUser && adminToken) {
-        try {
-          const u = JSON.parse(adminUser);
-          setCurrentUser(u);
-        } catch (e) {}
-      }
-    } catch (e) {}
+        if (adminToken && adminUser) {
+          try {
+            const u = JSON.parse(adminUser);
+            if (u?.role === 'ADMIN') {
+              setCurrentUser(u);
+              return;
+            }
+          } catch (e) {}
+        }
+
+        if (token && userStr) {
+          try {
+            const u = JSON.parse(userStr);
+            setCurrentUser(u);
+            return;
+          } catch (e) {}
+        }
+
+        setCurrentUser(null);
+      } catch (e) {}
+    };
+
+    syncUser();
+
+    window.addEventListener('storage', syncUser);
+    window.addEventListener('focus', syncUser);
+    document.addEventListener('visibilitychange', syncUser);
+
+    return () => {
+      window.removeEventListener('storage', syncUser);
+      window.removeEventListener('focus', syncUser);
+      document.removeEventListener('visibilitychange', syncUser);
+    };
   }, [router]);
 
   const handleOpenAuth = (role: 'JOB_SEEKER' | 'RECRUITER' | null = null, tab: 'LOGIN' | 'REGISTER' = 'REGISTER') => {
@@ -131,27 +163,65 @@ export default function HomePage() {
   const handleOpenApply = (job: any) => {
     if (job?.status === 'CLOSED' || appliedJobIds.has(job?.id)) return;
 
-    // Check if user is already logged in as a JOB_SEEKER
+    // Check all auth tokens & profiles
+    const adminToken = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
+    const adminUser = typeof window !== 'undefined' ? localStorage.getItem('adminUser') : null;
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+
+    let isAdmin = false;
+    let isRecruiter = false;
     let isSeekerLoggedIn = false;
     let seekerId = 'TOR-JS-ME';
+
+    if (adminToken && adminUser) {
+      try {
+        const parsed = JSON.parse(adminUser);
+        if (parsed?.role === 'ADMIN') isAdmin = true;
+      } catch (e) {}
+    }
 
     if (token && userStr) {
       try {
         const u = JSON.parse(userStr);
-        if (u?.role === 'JOB_SEEKER') {
+        if (u?.role === 'ADMIN') {
+          isAdmin = true;
+        } else if (u?.role === 'RECRUITER' || u?.role === 'COMPANY') {
+          isRecruiter = true;
+        } else if (u?.role === 'JOB_SEEKER') {
           isSeekerLoggedIn = true;
           seekerId = u.seekerProfile?.id || (u.id ? `TOR-JS-${u.id.slice(-6).toUpperCase()}` : 'TOR-JS-ME');
         }
       } catch (e) {}
     }
 
+    // Client Requirement: If logged in as admin, show message instead of asking to login
+    if (isAdmin) {
+      setRoleNotice({
+        title: 'Admin Access Notice',
+        message: "You are already an admin, you can't apply to jobs.",
+        role: 'ADMIN'
+      });
+      showToast("You are already an admin, you can't apply to jobs.");
+      return;
+    }
+
+    // If logged in as recruiter / employer, inform them cleanly
+    if (isRecruiter) {
+      setRoleNotice({
+        title: 'Employer Account Notice',
+        message: "You are logged in as an employer / recruiter, you can't apply to jobs.",
+        role: 'RECRUITER'
+      });
+      showToast("You are logged in as an employer, you can't apply to jobs.");
+      return;
+    }
+
     if (isSeekerLoggedIn) {
       // Already logged in as Job Seeker -> Redirect directly to job application form
       window.location.href = `/seeker/dashboard/${seekerId}?applyJobId=${encodeURIComponent(job.id)}`;
     } else {
-      // Not logged in or not a job seeker -> Store pending job and open common login/register modal
+      // Not logged in -> Store pending job and open common login/register modal
       try {
         sessionStorage.setItem('torbit_pending_apply_job_id', job.id);
         localStorage.setItem('torbit_pending_apply_job_id', job.id);
@@ -272,6 +342,52 @@ export default function HomePage() {
             fetchUserApplications();
           }}
         />
+      )}
+      {/* Admin / Employer Role Notice Modal */}
+      {roleNotice && (
+        <div 
+          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setRoleNotice(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-150 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-3">
+              <ShieldAlert className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-gray-900">
+              {roleNotice.title}
+            </h3>
+            <p className="text-xs text-gray-600 mt-2 leading-relaxed">
+              {roleNotice.message}
+            </p>
+            <div className="mt-5 flex gap-2.5">
+              <button
+                type="button"
+                onClick={() => setRoleNotice(null)}
+                className="flex-1 py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold rounded-xl transition cursor-pointer"
+              >
+                Dismiss
+              </button>
+              <Link
+                href={roleNotice.role === 'ADMIN' ? '/admin/dashboard' : '/recruiter/dashboard'}
+                onClick={() => setRoleNotice(null)}
+                className="flex-1 py-2.5 px-4 bg-[#b2c359] hover:bg-[#9eb047] text-slate-950 text-xs font-black rounded-xl transition text-center shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span>Dashboard</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-[99999] bg-[#080809] text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs font-bold border border-gray-700 animate-in fade-in slide-in-from-bottom-3 duration-200 max-w-md">
+          <AlertCircle className="text-amber-400 w-4 h-4 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
       )}
     </div>
   );

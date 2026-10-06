@@ -19,19 +19,38 @@ export default function MobileBottomBar({ onOpenAuth }: MobileBottomBarProps) {
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('user');
-      const token = localStorage.getItem('token');
-      if (stored && token) {
-        setCurrentUser(JSON.parse(stored));
-      } else {
+    const syncBottomUser = () => {
+      try {
         const adminStored = localStorage.getItem('adminUser');
         const adminToken = localStorage.getItem('adminToken');
         if (adminStored && adminToken) {
-          setCurrentUser(JSON.parse(adminStored));
+          const u = JSON.parse(adminStored);
+          if (u?.role === 'ADMIN') {
+            setCurrentUser(u);
+            return;
+          }
         }
-      }
-    } catch (e) {}
+        const stored = localStorage.getItem('user');
+        const token = localStorage.getItem('token');
+        if (stored && token) {
+          setCurrentUser(JSON.parse(stored));
+          return;
+        }
+        setCurrentUser(null);
+      } catch (e) {}
+    };
+
+    syncBottomUser();
+
+    window.addEventListener('storage', syncBottomUser);
+    window.addEventListener('focus', syncBottomUser);
+    document.addEventListener('visibilitychange', syncBottomUser);
+
+    return () => {
+      window.removeEventListener('storage', syncBottomUser);
+      window.removeEventListener('focus', syncBottomUser);
+      document.removeEventListener('visibilitychange', syncBottomUser);
+    };
   }, []);
 
   const role = currentUser?.role;

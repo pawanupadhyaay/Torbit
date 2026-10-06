@@ -167,7 +167,7 @@ export default function RightSidebar({ onOpenAuth }: { onOpenAuth: (role?: any, 
           </Link>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          {topCompanies.map((c, index) => {
+          {topCompanies.slice(0, 6).map((c, index) => {
             return (
               <Link
                 key={`${c.name}-${index}`}

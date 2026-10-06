@@ -120,7 +120,7 @@ const normalizeSpecialCompanies = (list: any[]): SpecialCompanyItem[] => {
 
 export default function AdminDashboardPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'APPROVALS' | 'COMPANIES' | 'SEEKERS' | 'JOBS' | 'ANALYTICS' | 'SETTINGS'>('DASHBOARD');
+  const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'APPROVALS' | 'COMPANIES' | 'SEEKERS' | 'JOBS' | 'APPLICATIONS' | 'ANALYTICS' | 'SETTINGS'>('DASHBOARD');
   const [approvalFilter, setApprovalFilter] = useState<'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
   const [approvalDateSort, setApprovalDateSort] = useState<'NEWEST' | 'OLDEST'>('NEWEST');
   const [analyticsTimeframe, setAnalyticsTimeframe] = useState<'7D' | '30D' | '90D' | 'ALL'>('7D');
@@ -178,7 +178,20 @@ export default function AdminDashboardPage() {
   const [selectedJobForView, setSelectedJobForView] = useState<any>(null);
   const [jobApplicants, setJobApplicants] = useState<any[]>([]);
   const [loadingApplicants, setLoadingApplicants] = useState(false);
-  const [jobModalTab, setJobModalTab] = useState<'APPLICANTS' | 'DETAILS'>('APPLICANTS');
+  const [jobModalTab, setJobModalTab] = useState<'APPLICANTS' | 'DETAILS'>('DETAILS');
+
+  // Job Removal Confirmation Warning Modal State
+  const [jobToRemove, setJobToRemove] = useState<any | null>(null);
+  const [isRemovingJob, setIsRemovingJob] = useState(false);
+
+  // Special Job Applications & Global Applications Management State
+  const [allApplications, setAllApplications] = useState<any[]>([]);
+  const [loadingAllApplications, setLoadingAllApplications] = useState(false);
+  const [appStatusFilter, setAppStatusFilter] = useState('ALL');
+  const [appJobFilter, setAppJobFilter] = useState('ALL');
+  const [appSearchQuery, setAppSearchQuery] = useState('');
+  const [updatingAppId, setUpdatingAppId] = useState<string | null>(null);
+  const [selectedAppForModal, setSelectedAppForModal] = useState<any | null>(null);
 
   useEffect(() => {
     if (selectedJobForView?.id) {
@@ -215,7 +228,8 @@ export default function AdminDashboardPage() {
         body: JSON.stringify({ status: newStatus })
       });
       if (res.ok) {
-        setJobApplicants(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a));
+        setJobApplicants(prev => prev.map(a => (a.id === appId || a._id === appId) ? { ...a, status: newStatus } : a));
+        setAllApplications(prev => prev.map(a => (a.id === appId || a._id === appId) ? { ...a, status: newStatus } : a));
         showToast(`Applicant status updated to ${newStatus}`);
       }
     } catch (e) {
@@ -437,7 +451,7 @@ export default function AdminDashboardPage() {
         : '/api';
 
       // Fetch all endpoints concurrently for maximum responsiveness
-      const [statsResult, compResult, seekersResult, jobsResult, analyticsResult, categoriesResult, settingsResult] = await Promise.allSettled([
+      const [statsResult, compResult, seekersResult, jobsResult, analyticsResult, categoriesResult, settingsResult, appsResult] = await Promise.allSettled([
         fetch(`${apiBase}/admin/stats`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${apiBase}/admin/companies`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${apiBase}/admin/seekers`, { headers }).then(r => r.ok ? r.json() : null),
@@ -445,6 +459,7 @@ export default function AdminDashboardPage() {
         fetch(`${apiBase}/admin/analytics?timeframe=${analyticsTimeframeRef.current || '7D'}`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${apiBase}/admin/categories`, { headers }).then(r => r.ok ? r.json() : null),
         fetch(`${apiBase}/admin/settings`, { headers }).then(r => r.ok ? r.json() : null),
+        fetch(`${apiBase}/admin/applications`, { headers }).then(r => r.ok ? r.json() : null),
       ]);
 
       let pending: any[] = [];
@@ -662,6 +677,11 @@ export default function AdminDashboardPage() {
         if (s.specialJobCompanies && Array.isArray(s.specialJobCompanies) && s.specialJobCompanies.length > 0) {
           setSpecialJobCompanies(normalizeSpecialCompanies(s.specialJobCompanies));
         }
+      }
+
+      // 8. Process Applications
+      if (appsResult.status === 'fulfilled' && appsResult.value?.applications) {
+        setAllApplications(appsResult.value.applications);
       }
 
       initialLoadedRef.current = true;
@@ -987,8 +1007,41 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Actions: Remove Job
-  const handleRemoveJob = async (id: string) => {
+  // Actions: Toggle Job Active / Closed Status
+  const handleToggleJobStatus = async (jobId: string, currentStatus: string) => {
+    try {
+      const nextStatus = currentStatus === 'Active' ? 'Closed' : 'Active';
+      const token = localStorage.getItem('adminToken');
+      const headers: any = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      await fetch(`/api/admin/jobs/${jobId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ status: nextStatus })
+      });
+      setJobsList(prev => prev.map(j => (j.id === jobId || j._id === jobId) ? { ...j, status: nextStatus } : j));
+      showToast(`Job listing set to ${nextStatus}`);
+    } catch (err) {
+      showToast('Status updated locally.');
+    }
+  };
+
+  // Actions: Request Confirmation before Removing Job
+  const handleRequestRemoveJob = (jobOrId: any) => {
+    if (typeof jobOrId === 'string') {
+      const found = jobsList.find(j => j.id === jobOrId);
+      setJobToRemove(found || { id: jobOrId, title: 'Job Listing', company: 'Company' });
+    } else if (jobOrId && typeof jobOrId === 'object') {
+      setJobToRemove(jobOrId);
+    }
+  };
+
+  // Actions: Confirm & Execute Delete Job
+  const handleConfirmRemoveJob = async () => {
+    if (!jobToRemove) return;
+    const id = jobToRemove.id;
+    setIsRemovingJob(true);
     try {
       await fetch(`/api/admin/jobs/${id}`, {
         method: 'DELETE',
@@ -1000,12 +1053,19 @@ export default function AdminDashboardPage() {
         activeJobs: Math.max(0, prev.activeJobs - 1)
       }));
       showToast('Job listing removed permanently.');
-      setSelectedJobForView(null);
+      if (selectedJobForView?.id === id) {
+        setSelectedJobForView(null);
+      }
     } catch (e) {
       setJobsList(prev => prev.filter(j => j.id !== id));
       showToast('Job listing removed.');
+    } finally {
+      setIsRemovingJob(false);
+      setJobToRemove(null);
     }
   };
+
+  const handleRemoveJob = handleRequestRemoveJob;
 
   // Actions: Remove Flagged Job
   const handleRemoveFlaggedJob = (id: string) => {
@@ -1387,6 +1447,12 @@ export default function AdminDashboardPage() {
           label: 'Job Listings',
           icon: <WorkOutlineOutlinedIcon sx={{ fontSize: 20 }} className="text-gray-400" />,
           badge: null
+        },
+        {
+          id: 'APPLICATIONS',
+          label: 'Applications',
+          icon: <AssignmentTurnedInOutlinedIcon sx={{ fontSize: 20 }} className="text-amber-400" />,
+          badge: allApplications.length > 0 ? allApplications.length : null
         }
       ]
     },
@@ -1882,7 +1948,7 @@ export default function AdminDashboardPage() {
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => handleRemoveJob(selectedJobForView.id)}
+                    onClick={() => handleRequestRemoveJob(selectedJobForView)}
                     className="px-3.5 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition cursor-pointer"
                   >
                     Remove Listing
@@ -1894,6 +1960,78 @@ export default function AdminDashboardPage() {
                     Close
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 4.5. REMOVE JOB CONFIRMATION WARNING MODAL */}
+      {/* ========================================================= */}
+      {jobToRemove && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[99999] flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => { if (!isRemovingJob) setJobToRemove(null); }}
+        >
+          <div 
+            className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-red-100 overflow-hidden animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4 border border-red-100">
+                <WarningAmberOutlinedIcon sx={{ fontSize: 30 }} />
+              </div>
+
+              <h3 className="text-lg font-bold text-slate-900 tracking-tight">
+                Remove Job Listing?
+              </h3>
+
+              <div className="mt-3 bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 text-left">
+                <p className="text-xs font-bold text-slate-900 line-clamp-1">
+                  {jobToRemove.title}
+                </p>
+                <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                  Company: <span className="text-slate-700 font-semibold">{jobToRemove.company || 'Enterprise Employer'}</span>
+                </p>
+                {jobToRemove.category && (
+                  <p className="text-[10px] text-slate-400 mt-0.5 font-medium">
+                    Category: {jobToRemove.category}
+                  </p>
+                )}
+              </div>
+
+              <p className="text-xs text-slate-600 mt-3.5 leading-relaxed font-normal">
+                Are you sure you want to remove this job listing? It will be <span className="font-bold text-red-600">permanently deleted</span> from the portal and candidate applications view. This action cannot be undone.
+              </p>
+
+              <div className="mt-6 flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled={isRemovingJob}
+                  onClick={() => setJobToRemove(null)}
+                  className="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isRemovingJob}
+                  onClick={handleConfirmRemoveJob}
+                  className="flex-1 py-2.5 px-4 bg-[#DC2626] hover:bg-[#B91C1C] text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 active:scale-98"
+                >
+                  {isRemovingJob ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                      <span>Removing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <DeleteOutlineOutlinedIcon sx={{ fontSize: 16 }} />
+                      <span>Yes, Remove</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>
@@ -2358,6 +2496,22 @@ export default function AdminDashboardPage() {
               >
                 <WorkOutlineOutlinedIcon sx={{ fontSize: 20 }} className="text-gray-400" />
                 <span>Job Listings</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('APPLICATIONS')}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-[14px] font-medium transition-all ${
+                  activeTab === 'APPLICATIONS' ? 'text-white font-bold bg-white/10 shadow-xs' : 'text-[#CBD5E1] hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <AssignmentTurnedInOutlinedIcon sx={{ fontSize: 20 }} className="text-amber-400" />
+                  <span>Applications</span>
+                </div>
+                {allApplications.length > 0 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
+                    {allApplications.length}
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -3833,7 +3987,7 @@ export default function AdminDashboardPage() {
                                   </button>
                                   {job.status !== 'Closed' && (
                                     <button
-                                      onClick={() => handleRemoveJob(job.id)}
+                                      onClick={() => handleRequestRemoveJob(job)}
                                       className="px-3 py-1 text-xs font-semibold text-[#DC2626] bg-white border border-red-200 rounded-md hover:bg-red-50 transition cursor-pointer shadow-2xs"
                                     >
                                       Remove
@@ -3897,7 +4051,7 @@ export default function AdminDashboardPage() {
                             </button>
                             {job.status !== 'Closed' && (
                               <button
-                                onClick={() => handleRemoveJob(job.id)}
+                                onClick={() => handleRequestRemoveJob(job)}
                                 className="flex-1 px-3 py-2.5 text-xs font-bold text-[#DC2626] bg-white border border-red-200 rounded-xl hover:bg-red-50 transition text-center shadow-2xs cursor-pointer"
                               >
                                 Remove
@@ -5062,10 +5216,10 @@ export default function AdminDashboardPage() {
         <button
           onClick={() => setIsMobileMenuOpen(true)}
           className={`flex flex-col items-center gap-1 px-2.5 py-1 rounded-xl transition-all ${
-            activeTab === 'JOBS' || activeTab === 'ANALYTICS' || activeTab === 'SETTINGS' ? 'text-[#b2c359] font-black' : 'text-slate-400 hover:text-slate-200'
+            activeTab === 'JOBS' || activeTab === 'APPLICATIONS' || activeTab === 'ANALYTICS' || activeTab === 'SETTINGS' ? 'text-[#b2c359] font-black' : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          <div className={`p-1 rounded-lg transition-all ${activeTab === 'JOBS' || activeTab === 'ANALYTICS' || activeTab === 'SETTINGS' ? 'bg-[#b2c359]/15' : ''}`}>
+          <div className={`p-1 rounded-lg transition-all ${activeTab === 'JOBS' || activeTab === 'APPLICATIONS' || activeTab === 'ANALYTICS' || activeTab === 'SETTINGS' ? 'bg-[#b2c359]/15' : ''}`}>
             <MoreHorizOutlinedIcon sx={{ fontSize: 20 }} />
           </div>
           <span className="text-[10px] tracking-tight">More</span>

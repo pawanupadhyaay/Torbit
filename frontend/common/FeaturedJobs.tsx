@@ -49,13 +49,15 @@ export default function FeaturedJobs({ jobs, onApply, onViewDetails, appliedJobI
     return dateB - dateA;
   });
 
-  // 2. Filter by active job type tab and limit to max 5 recent jobs
-  const filtered = sortedJobs.filter((j) => {
+  // 2. Filter by active job type tab and limit to max 6 recent jobs
+  const MAX_FEATURED_JOBS = 6;
+  const filteredAll = sortedJobs.filter((j) => {
     if (activeTab === 'All Jobs') return true;
     const jt = (j.jobType || '').toLowerCase().replace(/[\s\-_]/g, '');
     const at = activeTab.toLowerCase().replace(/[\s\-_]/g, '');
     return jt.includes(at) || at.includes(jt);
-  }).slice(0, 5);
+  });
+  const filtered = filteredAll.slice(0, MAX_FEATURED_JOBS);
 
   const formatSalary = (job: Job) => {
     if (job.hideSalary) return 'Disclosed upon request';
@@ -279,6 +281,18 @@ export default function FeaturedJobs({ jobs, onApply, onViewDetails, appliedJobI
           ))
         )}
       </div>
+
+      {!isLoading && filteredAll.length > MAX_FEATURED_JOBS && (
+        <div className="mt-4 text-center">
+          <Link
+            href={viewAllUrl}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs shadow-2xs hover:border-[#b2c359] transition group cursor-pointer"
+          >
+            <span>View All Available Jobs ({filteredAll.length})</span>
+            <ArrowForwardOutlinedIcon sx={{ fontSize: 15 }} className="text-[#b2c359] group-hover:translate-x-0.5 transition-transform" />
+          </Link>
+        </div>
+      )}
     </section>
   );
 }

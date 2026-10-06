@@ -179,6 +179,10 @@ export default function AdminDashboardPage() {
   const [loadingApplicants, setLoadingApplicants] = useState(false);
   const [jobModalTab, setJobModalTab] = useState<'APPLICANTS' | 'DETAILS'>('APPLICANTS');
 
+  // Job Removal Confirmation Warning Modal State
+  const [jobToRemove, setJobToRemove] = useState<any | null>(null);
+  const [isRemovingJob, setIsRemovingJob] = useState(false);
+
   useEffect(() => {
     if (selectedJobForView?.id) {
       setLoadingApplicants(true);
@@ -986,8 +990,21 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Actions: Remove Job
-  const handleRemoveJob = async (id: string) => {
+  // Actions: Request Confirmation before Removing Job
+  const handleRequestRemoveJob = (jobOrId: any) => {
+    if (typeof jobOrId === 'string') {
+      const found = jobsList.find(j => j.id === jobOrId);
+      setJobToRemove(found || { id: jobOrId, title: 'Job Listing', company: 'Company' });
+    } else if (jobOrId && typeof jobOrId === 'object') {
+      setJobToRemove(jobOrId);
+    }
+  };
+
+  // Actions: Confirm & Execute Delete Job
+  const handleConfirmRemoveJob = async () => {
+    if (!jobToRemove) return;
+    const id = jobToRemove.id;
+    setIsRemovingJob(true);
     try {
       await fetch(`/api/admin/jobs/${id}`, {
         method: 'DELETE',
@@ -999,12 +1016,19 @@ export default function AdminDashboardPage() {
         activeJobs: Math.max(0, prev.activeJobs - 1)
       }));
       showToast('Job listing removed permanently.');
-      setSelectedJobForView(null);
+      if (selectedJobForView?.id === id) {
+        setSelectedJobForView(null);
+      }
     } catch (e) {
       setJobsList(prev => prev.filter(j => j.id !== id));
       showToast('Job listing removed.');
+    } finally {
+      setIsRemovingJob(false);
+      setJobToRemove(null);
     }
   };
+
+  const handleRemoveJob = handleRequestRemoveJob;
 
   // Actions: Remove Flagged Job
   const handleRemoveFlaggedJob = (id: string) => {
@@ -1881,7 +1905,7 @@ export default function AdminDashboardPage() {
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => handleRemoveJob(selectedJobForView.id)}
+                    onClick={() => handleRequestRemoveJob(selectedJobForView)}
                     className="px-3.5 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-xl transition cursor-pointer"
                   >
                     Remove Listing
@@ -1893,6 +1917,78 @@ export default function AdminDashboardPage() {
                     Close
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 4.5. REMOVE JOB CONFIRMATION WARNING MODAL */}
+      {/* ========================================================= */}
+      {jobToRemove && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[99999] flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => { if (!isRemovingJob) setJobToRemove(null); }}
+        >
+          <div 
+            className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-red-100 overflow-hidden animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto mb-4 border border-red-100">
+                <WarningAmberOutlinedIcon sx={{ fontSize: 30 }} />
+              </div>
+
+              <h3 className="text-lg font-bold text-slate-900 tracking-tight">
+                Remove Job Listing?
+              </h3>
+
+              <div className="mt-3 bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 text-left">
+                <p className="text-xs font-bold text-slate-900 line-clamp-1">
+                  {jobToRemove.title}
+                </p>
+                <p className="text-[11px] text-slate-500 font-medium mt-0.5">
+                  Company: <span className="text-slate-700 font-semibold">{jobToRemove.company || 'Enterprise Employer'}</span>
+                </p>
+                {jobToRemove.category && (
+                  <p className="text-[10px] text-slate-400 mt-0.5 font-medium">
+                    Category: {jobToRemove.category}
+                  </p>
+                )}
+              </div>
+
+              <p className="text-xs text-slate-600 mt-3.5 leading-relaxed font-normal">
+                Are you sure you want to remove this job listing? It will be <span className="font-bold text-red-600">permanently deleted</span> from the portal and candidate applications view. This action cannot be undone.
+              </p>
+
+              <div className="mt-6 flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled={isRemovingJob}
+                  onClick={() => setJobToRemove(null)}
+                  className="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isRemovingJob}
+                  onClick={handleConfirmRemoveJob}
+                  className="flex-1 py-2.5 px-4 bg-[#DC2626] hover:bg-[#B91C1C] text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 active:scale-98"
+                >
+                  {isRemovingJob ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                      <span>Removing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <DeleteOutlineOutlinedIcon sx={{ fontSize: 16 }} />
+                      <span>Yes, Remove</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>
@@ -3822,7 +3918,7 @@ export default function AdminDashboardPage() {
                                   </button>
                                   {job.status !== 'Closed' && (
                                     <button
-                                      onClick={() => handleRemoveJob(job.id)}
+                                      onClick={() => handleRequestRemoveJob(job)}
                                       className="px-3 py-1 text-xs font-semibold text-[#DC2626] bg-white border border-red-200 rounded-md hover:bg-red-50 transition cursor-pointer shadow-2xs"
                                     >
                                       Remove
@@ -3886,7 +3982,7 @@ export default function AdminDashboardPage() {
                             </button>
                             {job.status !== 'Closed' && (
                               <button
-                                onClick={() => handleRemoveJob(job.id)}
+                                onClick={() => handleRequestRemoveJob(job)}
                                 className="flex-1 px-3 py-2.5 text-xs font-bold text-[#DC2626] bg-white border border-red-200 rounded-xl hover:bg-red-50 transition text-center shadow-2xs cursor-pointer"
                               >
                                 Remove

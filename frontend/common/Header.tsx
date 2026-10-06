@@ -17,29 +17,127 @@ interface HeaderProps {
   currentUser?: any;
 }
 
-const getInitialUser = () => {
+const syncHeaderAuthState = () => {
   if (typeof window === 'undefined') return null;
   try {
-    const stored = localStorage.getItem('user');
-    const token = localStorage.getItem('token');
-    if (stored && token) return JSON.parse(stored);
-    const adminStored = localStorage.getItem('adminUser');
     const adminToken = localStorage.getItem('adminToken');
-    if (adminStored && adminToken) return JSON.parse(adminStored);
-  } catch (e) {}
-  return null;
+    const adminUser = localStorage.getItem('adminUser');
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+
+    let activeUser = null;
+    let activeRole = null;
+
+    if (adminToken && adminUser) {
+      try {
+        const parsed = JSON.parse(adminUser);
+        if (parsed?.role === 'ADMIN') {
+          activeUser = parsed;
+          activeRole = 'ADMIN';
+        }
+      } catch (e) {}
+    }
+
+    if (!activeUser && token && userStr) {
+      try {
+        const parsed = JSON.parse(userStr);
+        activeUser = parsed;
+        activeRole = (parsed?.role || '').toUpperCase();
+      } catch (e) {}
+    }
+
+    if (activeUser) {
+      document.documentElement.classList.add('user-is-authenticated');
+      if (activeRole === 'ADMIN') {
+        document.documentElement.setAttribute('data-auth-role', 'ADMIN');
+      } else if (activeRole === 'RECRUITER' || activeRole === 'COMPANY') {
+        document.documentElement.setAttribute('data-auth-role', 'RECRUITER');
+      } else {
+        document.documentElement.setAttribute('data-auth-role', 'JOB_SEEKER');
+      }
+      return activeUser;
+    } else {
+      document.documentElement.classList.remove('user-is-authenticated');
+      document.documentElement.removeAttribute('data-auth-role');
+      return null;
+    }
+  } catch (e) {
+    return null;
+  }
 };
 
 export default function Header({ onOpenAuth, currentUser: propUser }: HeaderProps) {
-  const [currentUser, setCurrentUser] = useState<any>(() => propUser || getInitialUser());
+  const [currentUser, setCurrentUser] = useState<any>(() => {
+    if (propUser) return propUser;
+    return syncHeaderAuthState();
+  });
 
   useEffect(() => {
-    if (propUser !== undefined) {
-      setCurrentUser(propUser);
-      return;
-    }
-    const u = getInitialUser();
-    if (u) setCurrentUser(u);
+    // 1. Initial sync
+    const initial = propUser || syncHeaderAuthState();
+    if (initial) setCurrentUser(initial);
+
+    // 2. Storage event listener (triggers in other tabs when localStorage changes)
+    const handleStorageChange = (e?: StorageEvent) => {
+      if (
+        !e ||
+        !e.key ||
+        e.key === 'token' ||
+        e.key === 'user' ||
+        e.key === 'adminToken' ||
+        e.key === 'adminUser'
+      ) {
+        const updated = syncHeaderAuthState();
+        setCurrentUser(updated);
+      }
+    };
+
+    // 3. Tab visibility and focus listener (syncs when switching tabs)
+    const handleTabActive = () => {
+      const updated = syncHeaderAuthState();
+      setCurrentUser(updated);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleTabActive);
+    document.addEventListener('visibilitychange', handleTabActive);
+
+    // 4. BroadcastChannel listener for 0ms instant cross-tab sync
+    let channel: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        channel = new BroadcastChannel('torbit_auth_sync');
+        channel.onmessage = () => {
+          const updated = syncHeaderAuthState();
+          setCurrentUser(updated);
+        };
+      }
+    } catch (e) {}
+
+    // 5. Light heartbeat check (every 1s) to ensure 100% sync even in background tabs
+    const intervalId = setInterval(() => {
+      const updated = syncHeaderAuthState();
+      setCurrentUser((prev: any) => {
+        const prevId = prev?.id || prev?.email || null;
+        const nextId = updated?.id || updated?.email || null;
+        if (prevId !== nextId) {
+          return updated;
+        }
+        return prev;
+      });
+    }, 1000);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleTabActive);
+      document.removeEventListener('visibilitychange', handleTabActive);
+      clearInterval(intervalId);
+      if (channel) {
+        try {
+          channel.close();
+        } catch (e) {}
+      }
+    };
   }, [propUser]);
 
   const handleLogout = () => {
@@ -54,6 +152,13 @@ export default function Header({ onOpenAuth, currentUser: propUser }: HeaderProp
     try {
       document.documentElement.classList.remove('user-is-authenticated');
       document.documentElement.removeAttribute('data-auth-role');
+    } catch (e) {}
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('torbit_auth_sync');
+        bc.postMessage({ type: 'LOGOUT' });
+        bc.close();
+      }
     } catch (e) {}
     setCurrentUser(null);
     window.location.href = '/?view=home';

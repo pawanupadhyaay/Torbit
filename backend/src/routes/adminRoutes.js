@@ -508,7 +508,9 @@ const handleUpdateJob = async (req, res) => {
     const jobId = req.params.id || req.body.jobId;
     const { status, isFeatured } = req.body;
     const data = {};
-    if (status !== undefined) data.status = status;
+    if (status !== undefined) {
+      data.status = String(status).toUpperCase();
+    }
     if (isFeatured !== undefined) data.isFeatured = isFeatured;
 
     const job = await prisma.job.update({
@@ -523,6 +525,58 @@ const handleUpdateJob = async (req, res) => {
 router.patch("/jobs", handleUpdateJob);
 router.patch("/jobs/:id", handleUpdateJob);
 router.put("/jobs/:id", handleUpdateJob);
+
+// 5a. GET All Applications across Platform / Special Jobs in Admin Console
+router.get("/applications", async (req, res) => {
+  try {
+    const { jobId, companyId, status, q } = req.query;
+    const where = {};
+    if (jobId && jobId !== 'ALL') where.jobId = jobId;
+    if (status && status !== 'ALL') {
+      where.status = { equals: status, mode: 'insensitive' };
+    }
+    if (companyId && companyId !== 'ALL') {
+      where.job = { companyId };
+    }
+    if (q) {
+      where.OR = [
+        { seeker: { fullName: { contains: q, mode: 'insensitive' } } },
+        { seeker: { user: { email: { contains: q, mode: 'insensitive' } } } },
+        { job: { title: { contains: q, mode: 'insensitive' } } },
+        { job: { company: { companyName: { contains: q, mode: 'insensitive' } } } }
+      ];
+    }
+
+    const applications = await prisma.application.findMany({
+      where,
+      include: {
+        seeker: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                phone: true,
+                role: true
+              }
+            }
+          }
+        },
+        job: {
+          include: {
+            company: true
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
+    res.json({ success: true, applications });
+  } catch (err) {
+    console.error("Error fetching all applications for admin:", err);
+    res.status(500).json({ error: "Failed to fetch applications" });
+  }
+});
 
 // 5b. GET Applicants for a specific job in Admin Console
 router.get("/jobs/:id/applications", async (req, res) => {

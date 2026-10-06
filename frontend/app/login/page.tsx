@@ -156,6 +156,13 @@ export default function LoginPage() {
           localStorage.setItem('adminToken', data.token);
           localStorage.setItem('adminUser', JSON.stringify(data.user));
         }
+        try {
+          if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('torbit_auth_sync');
+            bc.postMessage({ type: 'LOGIN', user: data.user });
+            bc.close();
+          }
+        } catch (e) {}
       }
 
       if (data.mustChangePassword) {
@@ -367,6 +374,13 @@ export default function LoginPage() {
           localStorage.setItem('adminToken', data.token);
           localStorage.setItem('adminUser', JSON.stringify(data.user));
         }
+        try {
+          if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('torbit_auth_sync');
+            bc.postMessage({ type: 'LOGIN', user: data.user });
+            bc.close();
+          }
+        } catch (e) {}
 
         let destination = data.redirectUrl;
         if (!destination) {
@@ -424,7 +438,7 @@ export default function LoginPage() {
             className="h-6 w-auto object-contain"
           />
         </Link>
-        <span className="text-[10px] font-bold text-[#b2c359] uppercase tracking-wider">Universal Login</span>
+        <span className="text-[10px] font-bold text-[#b2c359] uppercase tracking-wider">Sign In</span>
       </div>
 
       <main className="flex-1 w-full max-w-md mx-auto px-5 py-6 sm:py-10 flex flex-col justify-center">
@@ -748,16 +762,11 @@ export default function LoginPage() {
             <>
               {/* Heading */}
               <div className="mb-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="bg-lime-100 text-[#608014] text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-lime-200">
-                    Single Secure Login
-                  </span>
-                </div>
                 <h1 className="text-xl sm:text-2xl font-black text-gray-950 tracking-tight font-['Helvetica',Arial,sans-serif]">
-                  Sign In to Torbit
+                  Sign In to Torbit Realty
                 </h1>
-                <p className="text-xs sm:text-sm text-gray-500 mt-1 font-normal">
-                  Universal login for Candidates, Recruiters &amp; Administrators
+                <p className="text-xs sm:text-sm text-gray-500 mt-1.5 leading-relaxed font-normal">
+                  Access your candidate workspace, recruiter pipeline, or admin console.
                 </p>
               </div>
 

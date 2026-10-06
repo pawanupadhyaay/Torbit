@@ -533,6 +533,13 @@ export default function AuthModal({
           localStorage.setItem('adminToken', data.token);
           localStorage.setItem('adminUser', JSON.stringify(data.user));
         }
+        try {
+          if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('torbit_auth_sync');
+            bc.postMessage({ type: 'LOGIN', user: data.user });
+            bc.close();
+          }
+        } catch (e) {}
       }
 
       // Check if this is a first-time recruiter login with a temporary password
@@ -738,6 +745,13 @@ export default function AuthModal({
           localStorage.setItem('adminToken', data.token);
           localStorage.setItem('adminUser', JSON.stringify(data.user));
         }
+        try {
+          if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('torbit_auth_sync');
+            bc.postMessage({ type: 'LOGIN', user: data.user });
+            bc.close();
+          }
+        } catch (e) {}
 
         let destination = data.redirectUrl;
         if (!destination) {
@@ -1926,17 +1940,12 @@ export default function AuthModal({
               </button>
 
               {/* Dark Top Banner */}
-              <div className="bg-[#181C20] px-6 sm:px-7 py-4.5 text-white pr-14">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="bg-[#b2c359] text-[#080809] text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                    Universal Secure Sign In
-                  </span>
-                </div>
-                <h2 className="text-base sm:text-lg font-bold text-white tracking-tight leading-snug">
+              <div className="bg-[#181C20] px-6 sm:px-7 py-5 text-white pr-14 border-b border-white/5">
+                <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight leading-snug">
                   Sign In to Torbit Realty
                 </h2>
-                <p className="text-[11px] text-gray-400 mt-0.5">
-                  Single portal for Candidates, Recruiters &amp; Administrators
+                <p className="text-xs text-slate-300 mt-1 leading-relaxed font-normal">
+                  Access your candidate workspace, recruiter pipeline, or admin console.
                 </p>
               </div>
 
