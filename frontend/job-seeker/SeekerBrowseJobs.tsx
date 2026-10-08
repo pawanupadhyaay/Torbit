@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Building2, Briefcase, IndianRupee, Sparkles, Filter, CheckCircle2, Clock } from 'lucide-react';
+import { Search, MapPin, Building2, Briefcase, IndianRupee, Sparkles, Filter, CheckCircle2, Clock, ArrowUpDown } from 'lucide-react';
 import ApplyJobModal from './ApplyJobModal';
 import JobDetailsModal from '@/common/JobDetailsModal';
 import JobApplicationView from './JobApplicationView';
@@ -17,6 +17,7 @@ export default function SeekerBrowseJobs({ currentUser, applications, onApplicat
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState('ALL');
   const [selectedLoc, setSelectedLoc] = useState('ALL');
+  const [sortBy, setSortBy] = useState('newest');
   const [loading, setLoading] = useState(false);
   const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
 
@@ -118,6 +119,30 @@ export default function SeekerBrowseJobs({ currentUser, applications, onApplicat
     if (isClosedA !== isClosedB) {
       return isClosedA ? 1 : -1;
     }
+
+    if (sortBy === 'salary_high') {
+      const salA = a.salaryMax || a.salaryMin || 0;
+      const salB = b.salaryMax || b.salaryMin || 0;
+      if (salB !== salA) return salB - salA;
+    } else if (sortBy === 'salary_low') {
+      const salA = a.salaryMin || a.salaryMax || 0;
+      const salB = b.salaryMin || b.salaryMax || 0;
+      if (salA !== salB) return salA - salB;
+    } else if (sortBy === 'exp_low') {
+      const expA = a.expMin ?? 0;
+      const expB = b.expMin ?? 0;
+      if (expA !== expB) return expA - expB;
+    } else if (sortBy === 'exp_high') {
+      const expA = a.expMax ?? a.expMin ?? 0;
+      const expB = b.expMax ?? b.expMin ?? 0;
+      if (expB !== expA) return expB - expA;
+    } else if (sortBy === 'title_asc') {
+      const titleA = (a.title || '').toLowerCase();
+      const titleB = (b.title || '').toLowerCase();
+      const comp = titleA.localeCompare(titleB);
+      if (comp !== 0) return comp;
+    }
+
     return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
   });
 
@@ -130,27 +155,9 @@ export default function SeekerBrowseJobs({ currentUser, applications, onApplicat
 
   const handleOpenApply = (job: any) => {
     if (job?.status === 'CLOSED' || appliedJobIds.has(job.id)) return;
-    setApplyingJob(job);
+    setSelectedJobForApply(job);
+    setApplyModalOpen(true);
   };
-
-  if (applyingJob) {
-    return (
-      <JobApplicationView
-        job={applyingJob}
-        currentUser={currentUser}
-        onBack={() => setApplyingJob(null)}
-        onApplicationSubmitted={() => {
-          fetchJobs();
-          fetchApplications();
-          if (onApplicationSubmitted) onApplicationSubmitted();
-        }}
-        onViewApplications={() => {
-          setApplyingJob(null);
-          if (onApplicationSubmitted) onApplicationSubmitted();
-        }}
-      />
-    );
-  }
 
   return (
     <div className="space-y-4 sm:space-y-6 font-['Helvetica',Arial,sans-serif]">
@@ -171,7 +178,7 @@ export default function SeekerBrowseJobs({ currentUser, applications, onApplicat
         </div>
 
         {/* Filter inputs */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
           <div className="relative">
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -210,6 +217,21 @@ export default function SeekerBrowseJobs({ currentUser, applications, onApplicat
                   {loc}
                 </option>
               ))}
+            </select>
+          </div>
+
+          <div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full px-3 py-2.5 sm:py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-800 focus:outline-none focus:border-[#b2c359] focus:bg-white transition cursor-pointer"
+            >
+              <option value="newest">Sort: Most Recent</option>
+              <option value="salary_high">Sort: Salary High to Low</option>
+              <option value="salary_low">Sort: Salary Low to High</option>
+              <option value="exp_low">Sort: Entry Level First</option>
+              <option value="exp_high">Sort: Senior Level First</option>
+              <option value="title_asc">Sort: Title A to Z</option>
             </select>
           </div>
         </div>
@@ -397,10 +419,15 @@ export default function SeekerBrowseJobs({ currentUser, applications, onApplicat
       {selectedJobForApply && (
         <ApplyJobModal
           isOpen={applyModalOpen}
-          onClose={() => setApplyModalOpen(false)}
+          onClose={() => {
+            setApplyModalOpen(false);
+            setSelectedJobForApply(null);
+          }}
           job={selectedJobForApply}
           currentUser={currentUser}
           onApplicationSubmitted={() => {
+            setApplyModalOpen(false);
+            setSelectedJobForApply(null);
             fetchJobs();
             fetchApplications();
             if (onApplicationSubmitted) onApplicationSubmitted();

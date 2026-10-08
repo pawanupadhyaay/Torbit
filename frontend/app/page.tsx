@@ -218,8 +218,9 @@ export default function HomePage() {
     }
 
     if (isSeekerLoggedIn) {
-      // Already logged in as Job Seeker -> Redirect directly to job application form
-      window.location.href = `/seeker/dashboard/${seekerId}?applyJobId=${encodeURIComponent(job.id)}`;
+      // Already logged in as Job Seeker -> Open Apply Job Popup Modal right here
+      setSelectedJob(job);
+      setApplyModalOpen(true);
     } else {
       // Not logged in -> Store pending job and open common login/register modal
       try {

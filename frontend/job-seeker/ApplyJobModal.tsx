@@ -170,15 +170,20 @@ export default function ApplyJobModal({
       if (profile.portfolioUrl && !portfolioUrl) {
         setPortfolioUrl(profile.portfolioUrl);
       }
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') onClose();
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = 'unset';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
     } else {
       document.body.style.overflow = 'unset';
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen, currentUser, profile]);
+  }, [isOpen, currentUser, profile, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !job) return null;
 
   const handleCustomAnswerChange = (questionId: string, value: any) => {
     setCustomAnswers(prev => ({
@@ -338,10 +343,12 @@ export default function ApplyJobModal({
 
   const modalContent = (
     <div 
-      className="fixed inset-0 z-[99999] w-screen h-screen min-h-screen bg-[#F8FAFC] overflow-y-auto font-sans antialiased"
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200 font-sans antialiased"
+      onClick={onClose}
     >
       <div 
-        className="bg-white min-h-screen sm:min-h-0 sm:my-6 sm:rounded-3xl max-w-3xl w-full mx-auto shadow-xl relative overflow-hidden flex flex-col border border-gray-200 animate-in fade-in duration-200"
+        className="bg-white rounded-2xl sm:rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col shadow-2xl relative overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200 my-auto"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Exact Dark Top Header */}
         <div className="bg-[#080809] text-white p-4 sm:p-6 sm:pb-5 relative shrink-0">
@@ -391,14 +398,21 @@ export default function ApplyJobModal({
                 </span>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-2 flex items-center justify-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2.5 rounded-xl border border-neutral-200 hover:bg-neutral-100 text-neutral-700 text-xs font-bold transition cursor-pointer"
+                >
+                  Close
+                </button>
                 <button
                   type="button"
                   onClick={() => {
                     onClose();
                     window.location.href = '/seeker/dashboard';
                   }}
-                  className="bg-[#b2c359] hover:bg-[#9eb047] text-black font-bold px-6 py-2.5 rounded-xl text-xs transition shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+                  className="bg-[#b2c359] hover:bg-[#9eb047] text-black font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-xs cursor-pointer inline-flex items-center gap-1.5"
                 >
                   <span>Go to My Applications</span>
                   <ArrowRight className="w-4 h-4" />
@@ -719,6 +733,6 @@ export default function ApplyJobModal({
     </div>
   );
 
-  if (!mounted) return null;
+  if (!mounted || !isOpen || !job) return null;
   return createPortal(modalContent, document.body);
 }

@@ -8,7 +8,7 @@ import SeekerApplicationsTable from '@/job-seeker/SeekerApplicationsTable';
 import SeekerProfileSection from '@/job-seeker/SeekerProfileSection';
 import SeekerBrowseJobs from '@/job-seeker/SeekerBrowseJobs';
 import SeekerJobAlerts from '@/job-seeker/SeekerJobAlerts';
-import JobApplicationView from '@/job-seeker/JobApplicationView';
+import ApplyJobModal from '@/job-seeker/ApplyJobModal';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
@@ -471,54 +471,50 @@ export default function SeekerDashboardPage() {
 
         {/* Main Content Area */}
         <main className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-4 sm:space-y-6 pb-12">
-          {applyingJob ? (
-            <JobApplicationView
-              job={applyingJob}
-              currentUser={user}
-              onBack={() => setApplyingJob(null)}
-              onApplicationSubmitted={() => {
-                setApplyingJob(null);
-                loadData(true);
-              }}
-              onViewApplications={() => {
-                setApplyingJob(null);
-                handleTabChange('APPLICATIONS');
-              }}
+          {activeTab === 'OVERVIEW' && (
+            <SeekerOverview
+              profile={profile}
+              applications={applications}
+              recommendedJobs={recommendedJobs}
+              setActiveTab={handleTabChange}
+              loading={loading}
             />
-          ) : (
-            <>
-              {activeTab === 'OVERVIEW' && (
-                <SeekerOverview
-                  profile={profile}
-                  applications={applications}
-                  recommendedJobs={recommendedJobs}
-                  setActiveTab={handleTabChange}
-                  loading={loading}
-                />
-              )}
+          )}
 
-              {activeTab === 'PROFILE' && (
-                <SeekerProfileSection profile={profile} onProfileUpdated={handleProfileUpdated} />
-              )}
+          {activeTab === 'PROFILE' && (
+            <SeekerProfileSection profile={profile} onProfileUpdated={handleProfileUpdated} />
+          )}
 
-              {activeTab === 'BROWSE' && (
-                <SeekerBrowseJobs
-                  currentUser={user}
-                  applications={applications}
-                  onApplicationSubmitted={() => loadData(true)}
-                />
-              )}
+          {activeTab === 'BROWSE' && (
+            <SeekerBrowseJobs
+              currentUser={user}
+              applications={applications}
+              onApplicationSubmitted={() => loadData(true)}
+            />
+          )}
 
-              {activeTab === 'APPLICATIONS' && (
-                <SeekerApplicationsTable applications={applications} />
-              )}
+          {activeTab === 'APPLICATIONS' && (
+            <SeekerApplicationsTable applications={applications} />
+          )}
 
-              {activeTab === 'ALERTS' && (
-                <SeekerJobAlerts />
-              )}
-            </>
+          {activeTab === 'ALERTS' && (
+            <SeekerJobAlerts />
           )}
         </main>
+
+        {/* Apply Job Popup Modal */}
+        {applyingJob && (
+          <ApplyJobModal
+            isOpen={true}
+            onClose={() => setApplyingJob(null)}
+            job={applyingJob}
+            currentUser={user}
+            onApplicationSubmitted={() => {
+              setApplyingJob(null);
+              loadData(true);
+            }}
+          />
+        )}
 
         {/* Unified Official Footer with Trust Strip */}
         <Footer />

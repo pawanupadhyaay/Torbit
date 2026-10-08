@@ -216,8 +216,12 @@ export default function RecruiterJobsTable({
                         }`}
                         title={isClosed ? 'Reopen Job' : 'Close Job'}
                       >
-                        <Power className="w-3 h-3" />
-                        <span>{isUpdating ? '...' : isClosed ? 'Reopen' : 'Close'}</span>
+                        {isUpdating ? (
+                          <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />
+                        ) : (
+                          <Power className="w-3 h-3" />
+                        )}
+                        <span>{isClosed ? 'Reopen' : 'Close'}</span>
                       </button>
                     </div>
                   </div>
@@ -308,8 +312,12 @@ export default function RecruiterJobsTable({
                                 : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
                             }`}
                           >
-                            <Power className="w-3 h-3" />
-                            <span>{isUpdating ? '...' : isClosed ? 'Reopen' : 'Close'}</span>
+                            {isUpdating ? (
+                              <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0" />
+                            ) : (
+                              <Power className="w-3 h-3" />
+                            )}
+                            <span>{isClosed ? 'Reopen' : 'Close'}</span>
                           </button>
                         </div>
                       </td>

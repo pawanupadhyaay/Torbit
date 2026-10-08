@@ -4,7 +4,6 @@ import { calculateSeekerProfileScore } from '@/lib/constants';
 import { Briefcase, ArrowRight, Sparkles } from 'lucide-react';
 import JobDetailsModal from '@/common/JobDetailsModal';
 import ApplyJobModal from './ApplyJobModal';
-import JobApplicationView from './JobApplicationView';
 
 interface SeekerOverviewProps {
   profile: any;
@@ -79,23 +78,6 @@ export default function SeekerOverview({
       title: job.company ? `${job.title} — ${job.company.companyName}` : job.title,
       tag: job.jobType || job.workMode || job.tag || 'Full Time'
     }));
-
-  if (selectedJobForApply) {
-    return (
-      <JobApplicationView
-        job={selectedJobForApply}
-        currentUser={profile}
-        onBack={() => setSelectedJobForApply(null)}
-        onApplicationSubmitted={() => {
-          setSelectedJobForApply(null);
-        }}
-        onViewApplications={() => {
-          setSelectedJobForApply(null);
-          setActiveTab('APPLICATIONS');
-        }}
-      />
-    );
-  }
 
   return (
     <div className="font-['Helvetica',Arial,sans-serif]">
@@ -445,11 +427,15 @@ export default function SeekerOverview({
       {selectedJobForApply && (
         <ApplyJobModal
           isOpen={applyModalOpen}
-          onClose={() => setApplyModalOpen(false)}
+          onClose={() => {
+            setApplyModalOpen(false);
+            setSelectedJobForApply(null);
+          }}
           job={selectedJobForApply}
           currentUser={profile}
           onApplicationSubmitted={() => {
             setApplyModalOpen(false);
+            setSelectedJobForApply(null);
           }}
         />
       )}

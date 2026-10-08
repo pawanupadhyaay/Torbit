@@ -28,7 +28,8 @@ import {
   RotateCcw,
   ArrowRight,
   ShieldAlert,
-  AlertCircle
+  AlertCircle,
+  ArrowUpDown
 } from 'lucide-react';
 
 interface Job {
@@ -90,6 +91,7 @@ function JobsContent() {
   const [selectedExp, setSelectedExp] = useState<string>('All Experience');
   const [selectedCompany, setSelectedCompany] = useState<string>('All Companies');
   const [searchKeyword, setSearchKeyword] = useState<string>('');
+  const [sortBy, setSortBy] = useState<string>('newest');
 
   // Data State
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -99,6 +101,7 @@ function JobsContent() {
   const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
 
   // Modals
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedJobForDetails, setSelectedJobForDetails] = useState<Job | null>(null);
   const [applyModalOpen, setApplyModalOpen] = useState(false);
@@ -125,6 +128,7 @@ function JobsContent() {
     const modeParam = searchParams.get('workMode');
     const expParam = searchParams.get('experience');
     const compParam = searchParams.get('company');
+    const sortParam = searchParams.get('sort');
 
     if (catParam) setSelectedCategory(catParam);
     if (locParam) setSelectedLocation(locParam);
@@ -133,6 +137,7 @@ function JobsContent() {
     if (modeParam) setSelectedWorkMode(modeParam);
     if (expParam) setSelectedExp(expParam);
     if (compParam) setSelectedCompany(compParam);
+    if (sortParam) setSortBy(sortParam);
   }, [searchParams]);
 
   // Fetch candidate's previous applications to lock applied jobs
@@ -181,6 +186,12 @@ function JobsContent() {
   useEffect(() => {
     fetchJobsData();
     fetchUserApplications();
+    try {
+      const userStr = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+      if (userStr) {
+        setCurrentUser(JSON.parse(userStr));
+      }
+    } catch (e) {}
   }, []);
 
   const handleFilterSubmit = () => {
@@ -192,6 +203,7 @@ function JobsContent() {
     if (selectedWorkMode && selectedWorkMode !== 'All Work Modes') params.set('workMode', selectedWorkMode);
     if (selectedExp && selectedExp !== 'All Experience') params.set('experience', selectedExp);
     if (selectedCompany && selectedCompany !== 'All Companies') params.set('company', selectedCompany);
+    if (sortBy && sortBy !== 'newest') params.set('sort', sortBy);
 
     const qs = params.toString();
     router.push(qs ? `/jobs?${qs}` : '/jobs');
@@ -284,9 +296,34 @@ function JobsContent() {
       if (isClosedA !== isClosedB) {
         return isClosedA ? 1 : -1;
       }
+
+      // Dynamic sorting options
+      if (sortBy === 'salary_high') {
+        const salA = a.salaryMax || a.salaryMin || 0;
+        const salB = b.salaryMax || b.salaryMin || 0;
+        if (salB !== salA) return salB - salA;
+      } else if (sortBy === 'salary_low') {
+        const salA = a.salaryMin || a.salaryMax || 0;
+        const salB = b.salaryMin || b.salaryMax || 0;
+        if (salA !== salB) return salA - salB;
+      } else if (sortBy === 'exp_low') {
+        const expA = a.expMin ?? 0;
+        const expB = b.expMin ?? 0;
+        if (expA !== expB) return expA - expB;
+      } else if (sortBy === 'exp_high') {
+        const expA = a.expMax ?? a.expMin ?? 0;
+        const expB = b.expMax ?? b.expMin ?? 0;
+        if (expB !== expA) return expB - expA;
+      } else if (sortBy === 'title_asc') {
+        const titleA = (a.title || '').toLowerCase();
+        const titleB = (b.title || '').toLowerCase();
+        const comp = titleA.localeCompare(titleB);
+        if (comp !== 0) return comp;
+      }
+
       return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
     });
-  }, [jobs, searchKeyword, selectedCategory, selectedLocation, selectedJobType, selectedWorkMode, selectedExp, selectedCompany]);
+  }, [jobs, searchKeyword, selectedCategory, selectedLocation, selectedJobType, selectedWorkMode, selectedExp, selectedCompany, sortBy]);
 
   // Compute category counts
   const categoryCounts = useMemo(() => {
@@ -308,6 +345,7 @@ function JobsContent() {
     setSelectedExp('All Experience');
     setSelectedCompany('All Companies');
     setSearchKeyword('');
+    setSortBy('newest');
     router.push('/jobs');
   };
 
@@ -369,8 +407,9 @@ function JobsContent() {
     }
 
     if (isSeekerLoggedIn) {
-      // Already logged in as Job Seeker -> Redirect directly to job application form
-      window.location.href = `/seeker/dashboard/${seekerId}?applyJobId=${encodeURIComponent(job.id)}`;
+      // Already logged in as Job Seeker -> Open Apply Job Popup Modal right here
+      setSelectedJobForApply(job);
+      setApplyModalOpen(true);
     } else {
       // Not logged in -> Store pending job and open common login/register modal
       try {
@@ -504,20 +543,74 @@ function JobsContent() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 w-full">
-        {/* Mobile Filter Trigger */}
-        <div className="lg:hidden flex items-center justify-between mb-4">
-          <button
-            onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
-            className="flex items-center gap-2 bg-white border border-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-800 shadow-xs"
-          >
-            <SlidersHorizontal className="w-4 h-4 text-[#b2c359]" />
-            <span>Filter Results {hasActiveFilters ? '• Active' : ''}</span>
-          </button>
+        {/* Mobile & Tablet Filter, Sort & Controls Toolbar */}
+        <div className="lg:hidden mb-4 bg-white rounded-2xl border border-slate-200/80 p-3 shadow-xs space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
+            {/* Filter Trigger Button */}
+            <button
+              onClick={() => setMobileFilterOpen(true)}
+              className="flex-1 flex items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100 active:scale-[0.98] border border-slate-200/80 px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-800 transition shadow-2xs cursor-pointer"
+            >
+              <SlidersHorizontal className="w-4 h-4 text-[#658A0D]" />
+              <span>Filters</span>
+              {hasActiveFilters && (
+                <span className="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-black bg-[#b2c359] text-slate-950 rounded-full">
+                  Active
+                </span>
+              )}
+            </button>
 
-          <span className="text-xs text-slate-500 font-medium">
-            {filteredJobs.length} {filteredJobs.length === 1 ? 'Job' : 'Jobs'} Found
-          </span>
+            {/* Mobile Sort Dropdown */}
+            <div className="flex-1 relative flex items-center bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-xl px-3 py-2.5 transition shadow-2xs">
+              <ArrowUpDown className="w-3.5 h-3.5 text-[#658A0D] shrink-0 mr-1.5" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer pr-4 appearance-none"
+              >
+                <option value="newest">Most Recent</option>
+                <option value="salary_high">Salary: High → Low</option>
+                <option value="salary_low">Salary: Low → High</option>
+                <option value="exp_low">Entry Level First</option>
+                <option value="exp_high">Senior First</option>
+                <option value="title_asc">Title: A to Z</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Mobile Quick Links & Count Row */}
+          <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px]">
+            <span className="text-slate-500 font-medium">
+              Showing <b className="text-slate-900">{filteredJobs.length}</b> verified jobs
+            </span>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/companies"
+                className="text-slate-600 hover:text-[#658A0D] font-bold flex items-center gap-0.5 transition"
+              >
+                <span>Brands</span>
+                <ChevronRight className="w-3 h-3 text-slate-400" />
+              </Link>
+              <span className="text-slate-300">•</span>
+              <Link
+                href="/categories"
+                className="text-slate-600 hover:text-[#658A0D] font-bold flex items-center gap-0.5 transition"
+              >
+                <span>Categories</span>
+                <ChevronRight className="w-3 h-3 text-slate-400" />
+              </Link>
+            </div>
+          </div>
         </div>
+
+        {/* Backdrop for Mobile/Tablet Filter Drawer */}
+        {mobileFilterOpen && (
+          <div
+            onClick={() => setMobileFilterOpen(false)}
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 lg:hidden transition-opacity"
+          />
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
           
@@ -526,8 +619,13 @@ function JobsContent() {
           {/* ========================================================= */}
           <aside className={`
             lg:col-span-4 xl:col-span-3 bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs space-y-6
-            ${mobileFilterOpen ? 'block fixed inset-x-4 top-20 z-50 max-h-[85vh] overflow-y-auto shadow-2xl border-2 border-[#b2c359]' : 'hidden lg:block'}
+            ${mobileFilterOpen 
+              ? 'block fixed inset-x-3 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 bottom-0 sm:bottom-auto sm:top-14 z-50 w-auto sm:w-full sm:max-w-md max-h-[85vh] rounded-t-3xl sm:rounded-2xl overflow-y-auto shadow-2xl border-t-2 sm:border border-[#b2c359] pb-6 animate-in slide-in-from-bottom sm:slide-in-from-top duration-200' 
+              : 'hidden lg:block'}
           `}>
+            {/* Mobile Sheet Handle */}
+            <div className="w-12 h-1 bg-slate-200 rounded-full mx-auto -mt-1 mb-2 lg:hidden" />
+
             {/* Header / Reset */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
@@ -535,23 +633,50 @@ function JobsContent() {
                 <h3 className="font-bold text-sm text-slate-900">Filter Jobs</h3>
               </div>
 
-              {hasActiveFilters && (
-                <button
-                  onClick={handleResetFilters}
-                  className="text-[11px] font-bold text-[#9eb047] hover:text-[#b2c359] flex items-center gap-1 transition"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>Reset All</span>
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                {(hasActiveFilters || sortBy !== 'newest') && (
+                  <button
+                    onClick={handleResetFilters}
+                    className="text-[11px] font-bold text-[#9eb047] hover:text-[#b2c359] flex items-center gap-1 transition cursor-pointer"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Reset All</span>
+                  </button>
+                )}
 
-              {/* Mobile Close */}
-              <button
-                onClick={() => setMobileFilterOpen(false)}
-                className="lg:hidden p-1 text-slate-400 hover:text-slate-700"
+                {/* Mobile Close */}
+                <button
+                  onClick={() => setMobileFilterOpen(false)}
+                  className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Sort Selector in Sidebar */}
+            <div className="space-y-2 pb-3 border-b border-slate-100">
+              <label className="text-xs font-bold text-slate-900 flex items-center justify-between uppercase tracking-wider">
+                <span className="flex items-center gap-1.5">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-[#658A0D]" />
+                  <span>Sort By</span>
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium normal-case">
+                  {filteredJobs.length} {filteredJobs.length === 1 ? 'job' : 'jobs'}
+                </span>
+              </label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#b2c359] focus:bg-white transition cursor-pointer"
               >
-                <X className="w-4 h-4" />
-              </button>
+                <option value="newest">Most Recent (Default)</option>
+                <option value="salary_high">Salary: High to Low</option>
+                <option value="salary_low">Salary: Low to High</option>
+                <option value="exp_low">Experience: Entry Level First</option>
+                <option value="exp_high">Experience: Senior Level First</option>
+                <option value="title_asc">Job Title: A to Z</option>
+              </select>
             </div>
 
             {/* 1. Job Categories Filter */}
@@ -675,14 +800,24 @@ function JobsContent() {
               </div>
             </div>
 
-            {/* Mobile Apply Button */}
+            {/* Mobile Apply Sticky Bar */}
             {mobileFilterOpen && (
-              <button
-                onClick={() => setMobileFilterOpen(false)}
-                className="w-full bg-[#b2c359] hover:bg-[#9eb047] text-[#080809] font-bold text-xs py-3 rounded-xl shadow-xs"
-              >
-                Apply Filters ({filteredJobs.length} Results)
-              </button>
+              <div className="sticky bottom-0 pt-3 bg-white/95 backdrop-blur-xs border-t border-slate-100 mt-4 flex items-center gap-2">
+                {(hasActiveFilters || sortBy !== 'newest') && (
+                  <button
+                    onClick={handleResetFilters}
+                    className="px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    Reset
+                  </button>
+                )}
+                <button
+                  onClick={() => setMobileFilterOpen(false)}
+                  className="flex-1 bg-[#b2c359] hover:bg-[#9eb047] active:scale-[0.98] text-[#080809] font-black text-xs py-2.5 rounded-xl shadow-xs transition cursor-pointer"
+                >
+                  Show {filteredJobs.length} Results
+                </button>
+              </div>
             )}
           </aside>
 
@@ -705,17 +840,35 @@ function JobsContent() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+                  {/* Desktop Sort Dropdown (Visible only on lg+) */}
+                  <div className="hidden lg:flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl px-3 py-1.5 transition">
+                    <ArrowUpDown className="w-3.5 h-3.5 text-[#658A0D] shrink-0" />
+                    <span className="text-[11px] font-semibold text-slate-500">Sort:</span>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer pr-1"
+                    >
+                      <option value="newest">Most Recent</option>
+                      <option value="salary_high">Salary: High to Low</option>
+                      <option value="salary_low">Salary: Low to High</option>
+                      <option value="exp_low">Experience: Entry First</option>
+                      <option value="exp_high">Experience: Senior First</option>
+                      <option value="title_asc">Title: A to Z</option>
+                    </select>
+                  </div>
+
                   <Link
                     href="/companies"
-                    className="text-xs font-bold text-[#658A0D] hover:text-[#b2c359] flex items-center gap-1 transition"
+                    className="hidden sm:inline-flex items-center gap-1 text-xs font-bold text-[#658A0D] hover:text-[#b2c359] px-2.5 py-1.5 rounded-xl hover:bg-slate-50 transition"
                   >
                     <span>All Brands</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </Link>
                   <Link
                     href="/categories"
-                    className="text-xs font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1 transition"
+                    className="hidden sm:inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-slate-900 px-2.5 py-1.5 rounded-xl hover:bg-slate-50 transition"
                   >
                     <span>Categories</span>
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -724,9 +877,27 @@ function JobsContent() {
               </div>
 
               {/* Active Filter Pills */}
-              {hasActiveFilters && (
+              {(hasActiveFilters || sortBy !== 'newest') && (
                 <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-slate-100">
                   <span className="text-[11px] text-slate-400 font-medium mr-1">Active:</span>
+
+                  {sortBy !== 'newest' && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-slate-800 border border-amber-200 rounded-lg text-[11px] font-bold">
+                      <ArrowUpDown className="w-3 h-3 text-amber-600" />
+                      <span>
+                        Sort: {
+                          sortBy === 'salary_high' ? 'Salary: High → Low' :
+                          sortBy === 'salary_low' ? 'Salary: Low → High' :
+                          sortBy === 'exp_low' ? 'Entry Level First' :
+                          sortBy === 'exp_high' ? 'Senior First' :
+                          sortBy === 'title_asc' ? 'Title: A → Z' : sortBy
+                        }
+                      </span>
+                      <button onClick={() => setSortBy('newest')} className="text-slate-400 hover:text-red-500">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
 
                   {selectedCompany !== 'All Companies' && (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#b2c359]/20 text-slate-900 border border-[#b2c359]/40 rounded-lg text-[11px] font-bold">
@@ -935,7 +1106,7 @@ function JobsContent() {
                         </div>
 
                         {/* Actions (Apply CTA) */}
-                        <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-100">
+                        <div className="flex sm:flex-col items-center sm:items-end justify-end sm:justify-start gap-2 shrink-0 pt-3 sm:pt-0 border-t sm:border-0 border-slate-100 w-full sm:w-auto">
                           {job.status === 'CLOSED' ? (
                             <button
                               type="button"
@@ -1004,6 +1175,7 @@ function JobsContent() {
           isOpen={applyModalOpen}
           onClose={() => setApplyModalOpen(false)}
           job={selectedJobForApply}
+          currentUser={currentUser}
           onApplicationSubmitted={() => {
             setApplyModalOpen(false);
             fetchJobsData();
