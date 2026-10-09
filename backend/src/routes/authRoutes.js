@@ -641,18 +641,10 @@ router.post("/google", async (req, res) => {
         return res.status(403).json({ error: "Your company account has been blocked by Administrator. Please contact support." });
       }
 
-      // Update avatar if not present
-      if (user.role === "JOB_SEEKER" && user.seekerProfile && !user.seekerProfile.avatarUrl && avatarUrl) {
-        try {
-          await prisma.seekerProfile.update({
-            where: { id: user.seekerProfile.id },
-            data: { avatarUrl }
-          });
-          user.seekerProfile.avatarUrl = avatarUrl;
-        } catch (e) {}
-      }
-
-      let name = user.role === "JOB_SEEKER" ? user.seekerProfile?.fullName : user.companyProfile?.companyName;
+      // Respect existing user's profile settings (never overwrite removed/custom avatar or profile name with Google data)
+      let name = user.role === "JOB_SEEKER" 
+        ? (user.seekerProfile?.fullName || fullName) 
+        : (user.companyProfile?.companyName || fullName);
       if (user.role === "ADMIN") name = "Torbit Admin";
 
       const token = jwt.sign({
@@ -1056,7 +1048,9 @@ const handleCompanyProfileUpdate = async (req, res) => {
     if (industry !== undefined && industry !== null) data.industry = industry.trim();
     if (phone !== undefined && phone !== null) data.phone = phone.trim();
     if (hqLocation !== undefined && hqLocation !== null) data.hqLocation = hqLocation.trim();
-    if (logoUrl !== undefined) data.logoUrl = logoUrl;
+    if (logoUrl !== undefined) {
+      data.logoUrl = logoUrl && typeof logoUrl === 'string' ? (logoUrl.trim() || null) : (logoUrl || null);
+    }
 
     const updated = await prisma.companyProfile.upsert({
       where: { userId: user.id },

@@ -49,7 +49,7 @@ export default function FeaturedJobs({ jobs, onApply, onViewDetails, appliedJobI
     return dateB - dateA;
   });
 
-  // 2. Filter by active job type tab and limit to max 6 recent jobs
+  // 2. Filter by active job type tab
   const MAX_FEATURED_JOBS = 6;
   const filteredAll = sortedJobs.filter((j) => {
     if (activeTab === 'All Jobs') return true;
@@ -57,7 +57,15 @@ export default function FeaturedJobs({ jobs, onApply, onViewDetails, appliedJobI
     const at = activeTab.toLowerCase().replace(/[\s\-_]/g, '');
     return jt.includes(at) || at.includes(jt);
   });
-  const filtered = filteredAll.slice(0, MAX_FEATURED_JOBS);
+
+  // Separate active and closed jobs so closed jobs are never truncated when active jobs >= 6
+  const activeJobs = filteredAll.filter((j) => j.status !== 'CLOSED');
+  const closedJobs = filteredAll.filter((j) => j.status === 'CLOSED');
+
+  // Show up to MAX_FEATURED_JOBS active jobs, plus up to 3 recent closed jobs at the bottom if present
+  const displayActive = activeJobs.slice(0, MAX_FEATURED_JOBS);
+  const displayClosed = closedJobs.slice(0, 3);
+  const filtered = [...displayActive, ...displayClosed];
 
   const formatSalary = (job: Job) => {
     if (job.hideSalary) return 'Disclosed upon request';
@@ -282,7 +290,7 @@ export default function FeaturedJobs({ jobs, onApply, onViewDetails, appliedJobI
         )}
       </div>
 
-      {!isLoading && filteredAll.length > MAX_FEATURED_JOBS && (
+      {!isLoading && filteredAll.length > filtered.length && (
         <div className="mt-4 text-center">
           <Link
             href={viewAllUrl}

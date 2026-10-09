@@ -340,6 +340,7 @@ export default function RecruiterDashboardPage() {
         companyName={company.companyName}
         workEmail={company.workEmail}
         applicantCount={unreadApplicantCount}
+        logoUrl={company.logoUrl}
       />
 
       {/* 3. Main Workspace with Exact Admin Responsive Padding */}

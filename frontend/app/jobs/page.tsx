@@ -95,6 +95,7 @@ function JobsContent() {
 
   // Data State
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [showClosedOnPortal, setShowClosedOnPortal] = useState<boolean>(false);
   const [allCategories, setAllCategories] = useState<Array<{ name: string; jobCount: number }>>([]);
   const [loading, setLoading] = useState(true);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
@@ -175,6 +176,9 @@ function JobsContent() {
         const data = await res.json();
         if (data.jobs) setJobs(data.jobs);
         if (data.categories) setAllCategories(data.categories);
+        if (data.showClosedJobsOnPortal !== undefined) {
+          setShowClosedOnPortal(Boolean(data.showClosedJobsOnPortal));
+        }
       }
     } catch (err) {
       console.error('Error fetching jobs:', err);
@@ -212,6 +216,9 @@ function JobsContent() {
   // Filter Jobs based on active selections
   const filteredJobs = useMemo(() => {
     const list = jobs.filter((job) => {
+      // Exclude closed jobs if portal setting disabled showing closed jobs
+      if (job.status === 'CLOSED' && !showClosedOnPortal) return false;
+
       // 1. Keyword search (title, company, description, category)
       if (searchKeyword.trim()) {
         const q = searchKeyword.toLowerCase().trim();
@@ -323,7 +330,7 @@ function JobsContent() {
 
       return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
     });
-  }, [jobs, searchKeyword, selectedCategory, selectedLocation, selectedJobType, selectedWorkMode, selectedExp, selectedCompany, sortBy]);
+  }, [jobs, searchKeyword, selectedCategory, selectedLocation, selectedJobType, selectedWorkMode, selectedExp, selectedCompany, sortBy, showClosedOnPortal]);
 
   // Compute category counts
   const categoryCounts = useMemo(() => {

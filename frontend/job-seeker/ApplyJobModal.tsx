@@ -16,7 +16,7 @@ interface ApplyJobModalProps {
   job: {
     id: string;
     title: string;
-    company?: { companyName?: string };
+    company?: { companyName?: string; logoUrl?: string };
     location?: string;
     jobType?: string;
     department?: string;
@@ -362,17 +362,36 @@ export default function ApplyJobModal({
             <X className="w-5 h-5" />
           </button>
 
-          <h2 className="text-base sm:text-xl font-bold text-white leading-snug tracking-tight pr-12">
-            <span>Apply — </span>
-            <span className="font-semibold text-neutral-100">{job.title}</span>
-          </h2>
+          <div className="flex items-start gap-3.5 pr-12">
+            {(job.company?.logoUrl || job.company?.companyName) && (
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-white font-bold text-xs shrink-0 overflow-hidden shadow-inner">
+                {job.company?.logoUrl ? (
+                  <img
+                    src={job.company.logoUrl}
+                    alt={job.company?.companyName || 'Company'}
+                    className="w-full h-full object-contain p-1"
+                  />
+                ) : (
+                  <span className="text-[#b2c359] font-black">
+                    {(job.company?.companyName || 'JOB').substring(0, 3).toUpperCase()}
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <h2 className="text-base sm:text-xl font-bold text-white leading-snug tracking-tight">
+                <span>Apply — </span>
+                <span className="font-semibold text-neutral-100">{job.title}</span>
+              </h2>
 
-          <div className="text-[11px] sm:text-xs font-semibold text-[#b2c359] mt-1 flex flex-wrap items-center gap-1.5">
-            <span>{job.company?.companyName || 'Employer'}</span>
-            <span>•</span>
-            <span>{job.location || 'India'}</span>
-            <span>•</span>
-            <span>{job.jobType || 'Full Time'}</span>
+              <div className="text-[11px] sm:text-xs font-semibold text-[#b2c359] mt-1 flex flex-wrap items-center gap-1.5">
+                <span>{job.company?.companyName || 'Employer'}</span>
+                <span>•</span>
+                <span>{job.location || 'India'}</span>
+                <span>•</span>
+                <span>{job.jobType || 'Full Time'}</span>
+              </div>
+            </div>
           </div>
         </div>
 

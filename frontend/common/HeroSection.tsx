@@ -51,14 +51,17 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
 
   return (
     <div className="relative bg-[#0c1424] text-white overflow-hidden py-6 sm:py-10 lg:py-14 font-['Helvetica',Arial,sans-serif]">
-      {/* Background Architectural Skyline Image with Subtle Vignette Overlay */}
+      {/* Background Architectural Panoramic Real Estate Skyline Image */}
       <div 
-        className="absolute inset-0 z-0 bg-cover bg-center opacity-15 mix-blend-luminosity"
+        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
         style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070&auto=format&fit=crop')`
+          backgroundImage: `url('/hero-bg.jpg')`
         }}
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-[#0c1424] via-[#0c1424]/95 to-[#0c1424]/80 z-0" />
+      {/* Premium dark gradient overlay: darker on the left for text legibility, open on the right for cityscape & sunset */}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#070e1c]/88 via-[#070e1c]/60 to-[#070e1c]/30 z-0" />
+      {/* Top and bottom subtle vignette to smoothly integrate with header and page flow */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#070e1c]/45 via-transparent to-[#070e1c]/65 z-0" />
 
       <div className="max-w-7xl mx-auto px-3.5 sm:px-6 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center">

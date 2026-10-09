@@ -133,6 +133,25 @@ function saveSettingsToDisk() {
 loadSettingsFromDisk();
 
 function getSettings() {
+  try {
+    if (fs.existsSync(settingsFilePath)) {
+      const raw = fs.readFileSync(settingsFilePath, 'utf8');
+      const parsed = JSON.parse(raw);
+      inMemorySettings = {
+        ...defaultSettings,
+        ...inMemorySettings,
+        ...parsed,
+        showClosedJobsOnPortal: parsed.showClosedJobsOnPortal !== undefined
+          ? Boolean(parsed.showClosedJobsOnPortal)
+          : Boolean(inMemorySettings.showClosedJobsOnPortal),
+        specialJobCompanies: Array.isArray(parsed.specialJobCompanies) && parsed.specialJobCompanies.length > 0
+          ? normalizeCompanies(parsed.specialJobCompanies)
+          : (inMemorySettings.specialJobCompanies || defaultSettings.specialJobCompanies)
+      };
+    }
+  } catch (err) {
+    // Fallback to inMemorySettings
+  }
   return inMemorySettings;
 }
 

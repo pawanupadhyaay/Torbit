@@ -50,6 +50,8 @@ router.get("/", async (req, res) => {
       const closedJobs = rawJobs.filter(j => j.status === "CLOSED");
       const otherJobs = rawJobs.filter(j => j.status !== "ACTIVE" && j.status !== "CLOSED");
       jobs = [...activeJobs, ...otherJobs, ...closedJobs];
+    } else {
+      jobs = rawJobs.filter(j => j.status === "ACTIVE");
     }
 
     // Enrich jobs with logo from specialJobCompanies if company logoUrl is missing

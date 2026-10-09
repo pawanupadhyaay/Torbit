@@ -295,7 +295,7 @@ const handleStatusOrEditCompany = async (req, res) => {
     const id = req.params.id || req.body.companyId;
     if (!id) return res.status(400).json({ error: "Company ID is required" });
 
-    const { status, reason, companyName, industry, hqLocation, gstNumber, phone, workEmail } = req.body;
+    const { status, reason, companyName, industry, hqLocation, gstNumber, phone, workEmail, logoUrl } = req.body;
     const data = {};
     if (status) {
       data.status = status;
@@ -312,6 +312,7 @@ const handleStatusOrEditCompany = async (req, res) => {
     if (gstNumber) data.gstNumber = gstNumber;
     if (phone) data.phone = phone;
     if (workEmail) data.workEmail = workEmail;
+    if (logoUrl !== undefined) data.logoUrl = logoUrl ? logoUrl.trim() : null;
 
     const company = await prisma.companyProfile.update({
       where: { id },

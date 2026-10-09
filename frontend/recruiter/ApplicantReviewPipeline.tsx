@@ -1,6 +1,23 @@
 'use client';
-import React, { useState } from 'react';
-import { Download, CheckCircle2, XCircle, Clock, User, IndianRupee, Loader2, FileQuestion, X, Check, HelpCircle } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { 
+  Download, 
+  CheckCircle2, 
+  XCircle, 
+  Clock, 
+  User, 
+  IndianRupee, 
+  Loader2, 
+  FileQuestion, 
+  X, 
+  Check, 
+  HelpCircle,
+  Search,
+  Filter,
+  ArrowUpDown,
+  RotateCcw,
+  Briefcase
+} from 'lucide-react';
 
 interface ApplicantReviewPipelineProps {
   applications: any[];
@@ -11,14 +28,116 @@ export default function ApplicantReviewPipeline({
   applications,
   onUpdateStatus
 }: ApplicantReviewPipelineProps) {
-  const [filter, setFilter] = useState('ALL');
+  const [jobFilter, setJobFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [noticeFilter, setNoticeFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('NEWEST');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedAppForAnswers, setSelectedAppForAnswers] = useState<any | null>(null);
 
-  const filtered = applications.filter((app) => {
-    if (filter === 'ALL') return true;
-    return app.status === filter;
-  });
+  // Extract unique jobs from applications list with counts
+  const uniqueJobs = useMemo(() => {
+    const map = new Map<string, { id: string; title: string; count: number }>();
+    applications.forEach((a) => {
+      const jId = a.job?.id || a.jobId || 'unknown';
+      const jTitle = a.job?.title || 'Job Listing';
+      if (!map.has(jId)) {
+        map.set(jId, { id: jId, title: jTitle, count: 0 });
+      }
+      map.get(jId)!.count++;
+    });
+    return Array.from(map.values()).sort((a, b) => a.title.localeCompare(b.title));
+  }, [applications]);
+
+  // Status counts for quick filter buttons
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      ALL: applications.length,
+      APPLIED: 0,
+      UNDER_REVIEW: 0,
+      SHORTLISTED: 0,
+      SELECTED: 0,
+      REJECTED: 0
+    };
+    applications.forEach((a) => {
+      if (counts[a.status] !== undefined) {
+        counts[a.status]++;
+      }
+    });
+    return counts;
+  }, [applications]);
+
+  const hasActiveFilters = jobFilter !== 'ALL' || statusFilter !== 'ALL' || noticeFilter !== 'ALL' || searchQuery.trim() !== '' || sortBy !== 'NEWEST';
+
+  const resetFilters = () => {
+    setJobFilter('ALL');
+    setStatusFilter('ALL');
+    setNoticeFilter('ALL');
+    setSearchQuery('');
+    setSortBy('NEWEST');
+  };
+
+  // Filter and sort applications
+  const filtered = useMemo(() => {
+    return applications
+      .filter((app) => {
+        // 1. Filter by specific Job
+        if (jobFilter !== 'ALL') {
+          const appId = app.job?.id || app.jobId;
+          if (appId !== jobFilter) return false;
+        }
+
+        // 2. Filter by Status
+        if (statusFilter !== 'ALL') {
+          if (app.status !== statusFilter) return false;
+        }
+
+        // 3. Filter by Notice Period
+        if (noticeFilter !== 'ALL') {
+          const np = (app.noticePeriod || '').toLowerCase();
+          if (noticeFilter === 'IMMEDIATE' && !np.includes('immediate') && !np.includes('0')) return false;
+          if (noticeFilter === '15' && !np.includes('15')) return false;
+          if (noticeFilter === '30' && !np.includes('30')) return false;
+          if (noticeFilter === '60+' && !np.includes('60') && !np.includes('90') && !np.includes('2 month') && !np.includes('3 month')) return false;
+        }
+
+        // 4. Live Search
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          const name = (app.seeker?.fullName || '').toLowerCase();
+          const email = (app.seeker?.email || app.seeker?.user?.email || '').toLowerCase();
+          const phone = (app.seeker?.phone || app.seeker?.user?.phone || '').toLowerCase();
+          const title = (app.job?.title || '').toLowerCase();
+          const dept = (app.job?.department || '').toLowerCase();
+          const loc = (app.seeker?.location || app.job?.location || '').toLowerCase();
+          const matches = name.includes(q) || email.includes(q) || phone.includes(q) || title.includes(q) || dept.includes(q) || loc.includes(q);
+          if (!matches) return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortBy === 'NEWEST') {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+        if (sortBy === 'OLDEST') {
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        }
+        if (sortBy === 'CTC_DESC') {
+          return (Number(b.expectedSalary) || 0) - (Number(a.expectedSalary) || 0);
+        }
+        if (sortBy === 'CTC_ASC') {
+          return (Number(a.expectedSalary) || 0) - (Number(b.expectedSalary) || 0);
+        }
+        if (sortBy === 'NAME_ASC') {
+          const nameA = (a.seeker?.fullName || a.seeker?.email || '').toLowerCase();
+          const nameB = (b.seeker?.fullName || b.seeker?.email || '').toLowerCase();
+          return nameA.localeCompare(nameB);
+        }
+        return 0;
+      });
+  }, [applications, jobFilter, statusFilter, noticeFilter, searchQuery, sortBy]);
 
   const handleStatusChange = async (appId: string, newStatus: string) => {
     setUpdatingId(`${appId}-${newStatus}`);
@@ -46,28 +165,113 @@ export default function ApplicantReviewPipeline({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-6 space-y-6 font-['Helvetica',Arial,sans-serif]">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+    <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-5 sm:p-6 space-y-5 font-['Helvetica',Arial,sans-serif]">
+      {/* Top Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-gray-100">
         <div>
-          <h2 className="text-base font-black text-gray-900">Applicant Review &amp; Hiring Pipeline</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-black text-gray-900">Applicant Review &amp; Hiring Pipeline</h2>
+            <span className="bg-slate-100 text-slate-700 text-[11px] font-extrabold px-2 py-0.5 rounded-full border border-slate-200">
+              {filtered.length} of {applications.length}
+            </span>
+          </div>
           <p className="text-xs text-gray-500 mt-0.5">
-            Review candidate experience, verified CTC metrics, screening question responses, and manage status.
+            Filter applications by job, status, or candidate details. Sort by CTC, date applied, or name.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="text-xs font-bold bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 focus:outline-none"
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={resetFilters}
+            className="self-start md:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
           >
-            <option value="ALL">All Applicants ({applications.length})</option>
-            <option value="APPLIED">Applied</option>
-            <option value="UNDER_REVIEW">Under Review</option>
-            <option value="SHORTLISTED">Shortlisted</option>
-            <option value="SELECTED">Selected</option>
-            <option value="REJECTED">Declined</option>
+            <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+            <span>Reset Filters</span>
+          </button>
+        )}
+      </div>
+
+      {/* Control Bar: Search + Filter as per Job + Status + Sorting */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+        {/* 1. Live Candidate Search */}
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search candidate, role, phone..."
+            className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-0.5"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* 2. Filter As Per Job Dropdown */}
+        <div className="relative">
+          <Briefcase className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <select
+            value={jobFilter}
+            onChange={(e) => setJobFilter(e.target.value)}
+            className="w-full pl-9 pr-7 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition cursor-pointer appearance-none truncate"
+          >
+            <option value="ALL">All Jobs ({applications.length})</option>
+            {uniqueJobs.map((j) => (
+              <option key={j.id} value={j.id}>
+                {j.title} ({j.count})
+              </option>
+            ))}
           </select>
+          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">
+            ▼
+          </div>
+        </div>
+
+        {/* 3. Filter by Status Dropdown */}
+        <div className="relative">
+          <Filter className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full pl-9 pr-7 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition cursor-pointer appearance-none"
+          >
+            <option value="ALL">All Statuses ({applications.length})</option>
+            <option value="APPLIED">Applied ({statusCounts.APPLIED})</option>
+            <option value="UNDER_REVIEW">Under Review ({statusCounts.UNDER_REVIEW})</option>
+            <option value="SHORTLISTED">Shortlisted ({statusCounts.SHORTLISTED})</option>
+            <option value="SELECTED">Selected / Hired ({statusCounts.SELECTED})</option>
+            <option value="REJECTED">Declined ({statusCounts.REJECTED})</option>
+          </select>
+          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">
+            ▼
+          </div>
+        </div>
+
+        {/* 4. Sort By Dropdown */}
+        <div className="relative">
+          <ArrowUpDown className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="w-full pl-9 pr-7 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] transition cursor-pointer appearance-none"
+          >
+            <option value="NEWEST">Applied: Newest First</option>
+            <option value="OLDEST">Applied: Oldest First</option>
+            <option value="CTC_DESC">Expected CTC: High to Low</option>
+            <option value="CTC_ASC">Expected CTC: Low to High</option>
+            <option value="NAME_ASC">Candidate: A to Z</option>
+          </select>
+          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">
+            ▼
+          </div>
         </div>
       </div>
 
@@ -86,8 +290,28 @@ export default function ApplicantReviewPipeline({
           <tbody className="divide-y divide-gray-100">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-gray-400 text-xs">
-                  No applicants matching this status filter.
+                <td colSpan={6} className="p-10 text-center text-slate-400 text-xs">
+                  <div className="max-w-xs mx-auto space-y-2">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                      <Search className="w-5 h-5" />
+                    </div>
+                    <div className="font-bold text-slate-800 text-sm">No Matching Applicants Found</div>
+                    <p className="text-slate-500 text-[11px]">
+                      {hasActiveFilters
+                        ? 'Try adjusting your job, status, or search filters to view applicants.'
+                        : 'No candidate applications have been received yet for your postings.'}
+                    </p>
+                    {hasActiveFilters && (
+                      <button
+                        type="button"
+                        onClick={resetFilters}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#b2c359] hover:bg-[#9eb047] text-slate-950 rounded-xl text-xs font-bold transition cursor-pointer mt-1 shadow-2xs"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Clear All Filters</span>
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ) : (

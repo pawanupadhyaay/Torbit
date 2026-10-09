@@ -25,6 +25,7 @@ interface RecruiterSidebarProps {
   companyName?: string;
   workEmail?: string;
   applicantCount?: number;
+  logoUrl?: string;
 }
 
 export default function RecruiterSidebar({
@@ -33,7 +34,8 @@ export default function RecruiterSidebar({
   isApproved,
   companyName = '',
   workEmail = '',
-  applicantCount = 0
+  applicantCount = 0,
+  logoUrl = ''
 }: RecruiterSidebarProps) {
   const cleanCompanyName = companyName.replace(/\bDIgital\b/g, 'Digital');
   const initials = (cleanCompanyName || workEmail || 'CP')
@@ -128,8 +130,25 @@ export default function RecruiterSidebar({
       {/* Company Bottom User Row matching Admin & Seeker Sidebars */}
       <div className="p-4 border-t border-gray-800/80 bg-[#121418] flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-gray-800 border border-gray-700 text-[#b2c359] font-black flex items-center justify-center text-xs shadow-xs shrink-0">
-            {initials || 'CP'}
+          <div className="w-9 h-9 rounded-xl bg-gray-800 border border-gray-700 text-[#b2c359] font-black flex items-center justify-center text-xs shadow-xs shrink-0 overflow-hidden">
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt={cleanCompanyName || 'Company Logo'}
+                className="w-full h-full object-contain p-1"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const fallback = e.currentTarget.parentElement?.querySelector('.sidebar-logo-fallback');
+                  if (fallback) (fallback as HTMLElement).style.display = 'flex';
+                }}
+              />
+            ) : null}
+            <span
+              style={{ display: logoUrl ? 'none' : 'flex' }}
+              className="sidebar-logo-fallback w-full h-full items-center justify-center text-[#b2c359] font-black"
+            >
+              {initials || 'CP'}
+            </span>
           </div>
           <div className="min-w-0">
             {cleanCompanyName ? (
