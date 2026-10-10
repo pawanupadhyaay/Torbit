@@ -182,4 +182,43 @@ export function calculateSeekerProfileScore(p: {
   if (p.resumeUrl && p.resumeUrl.trim().length > 0) score += 20;
 
   return Math.min(Math.max(score, 0), 100);
-}
+}
+
+/**
+ * Formats a CTC / Salary figure into a clean, human-friendly Indian currency format.
+ * - Handles full annual rupees (e.g. 750000 -> "₹7.5 LPA", 1100000 -> "₹11 LPA")
+ * - Handles direct LPA entries (e.g. 7.5 -> "₹7.5 LPA", 5 -> "₹5 LPA")
+ * - Handles stipend / monthly figures (e.g. 5000 -> "₹5,000", 50000 -> "₹50,000")
+ * - Completely avoids broken "L LPA" redundancy
+ */
+export function formatCtcMetric(amount: number | string | null | undefined, fallback = '—'): string {
+  if (amount === null || amount === undefined || amount === '') return fallback;
+  const num = typeof amount === 'number' ? amount : parseFloat(String(amount).replace(/[^0-9.]/g, ''));
+  if (isNaN(num) || num <= 0) return fallback;
+
+  // Case 1: Stored in full annual rupees (>= 1,00,000, e.g. 750000, 1100000)
+  if (num >= 100000) {
+    const lpa = num / 100000;
+    const formatted = lpa % 1 === 0 ? lpa.toString() : lpa.toFixed(1);
+    return `₹${formatted} LPA`;
+  }
+
+  // Case 2: Stored/entered directly in LPA (e.g. 1 to 99 LPA)
+  if (num >= 1 && num < 100) {
+    const formatted = num % 1 === 0 ? num.toString() : num.toFixed(1);
+    return `₹${formatted} LPA`;
+  }
+
+  // Case 3: Small decimal (< 1 LPA, e.g. 0.3 which was 30000 / 100000)
+  if (num > 0 && num < 1) {
+    const rupees = Math.round(num * 100000);
+    if (rupees >= 1000) {
+      return `₹${rupees.toLocaleString('en-IN')}`;
+    }
+    return `₹${num.toFixed(1)} LPA`;
+  }
+
+  // Case 4: Entered in thousands / monthly stipend / below 1 Lakh (e.g. 5000, 15000, 50000)
+  return `₹${num.toLocaleString('en-IN')}`;
+}
+

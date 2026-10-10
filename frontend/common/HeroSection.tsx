@@ -13,6 +13,7 @@ import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined
 import CorporateFareOutlinedIcon from '@mui/icons-material/CorporateFareOutlined';
 import NorthEastOutlinedIcon from '@mui/icons-material/NorthEastOutlined';
 import { DEPARTMENT_CATEGORIES } from '@/lib/constants';
+import CustomFilterSelect from './CustomFilterSelect';
 
 interface HeroSectionProps {
   categories?: Array<{ name: string; [key: string]: any } | string>;
@@ -50,18 +51,20 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
   };
 
   return (
-    <div className="relative bg-[#0c1424] text-white overflow-hidden py-6 sm:py-10 lg:py-14 font-['Helvetica',Arial,sans-serif]">
-      {/* Background Architectural Panoramic Real Estate Skyline Image */}
-      <div 
-        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: `url('/hero-bg.jpg')`
-        }}
-      />
-      {/* Premium dark gradient overlay: darker on the left for text legibility, open on the right for cityscape & sunset */}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#070e1c]/88 via-[#070e1c]/60 to-[#070e1c]/30 z-0" />
-      {/* Top and bottom subtle vignette to smoothly integrate with header and page flow */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#070e1c]/45 via-transparent to-[#070e1c]/65 z-0" />
+    <div className="relative bg-[#0c1424] text-white py-6 sm:py-10 lg:py-14 font-['Helvetica',Arial,sans-serif] z-20">
+      {/* Background Architectural Panoramic Real Estate Skyline Image Layer */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: `url('/hero-bg.jpg')`
+          }}
+        />
+        {/* Premium dark gradient overlay: darker on the left for text legibility, open on the right for cityscape & sunset */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#070e1c]/88 via-[#070e1c]/60 to-[#070e1c]/30" />
+        {/* Top and bottom subtle vignette to smoothly integrate with header and page flow */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#070e1c]/45 via-transparent to-[#070e1c]/65" />
+      </div>
 
       <div className="max-w-7xl mx-auto px-3.5 sm:px-6 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center">
@@ -92,7 +95,7 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
               className="bg-white p-2.5 sm:p-3 rounded-2xl shadow-2xl space-y-2 text-[#080809] border border-gray-100 font-['Helvetica',Arial,sans-serif]"
             >
               {/* Row 1: Keyword, Location, Category */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 relative z-20">
                 {/* 1. Keyword */}
                 <div className="flex items-center px-3 py-2.5 sm:py-3 bg-gray-50/80 rounded-xl border border-gray-200 min-h-[44px] sm:min-h-[48px]">
                   <SearchOutlinedIcon className="text-gray-400 mr-2 flex-shrink-0" sx={{ fontSize: 18 }} />
@@ -106,73 +109,54 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
                 </div>
 
                 {/* 2. Location */}
-                <div className="flex items-center px-3 py-2.5 sm:py-3 bg-gray-50/80 rounded-xl border border-gray-200 min-h-[44px] sm:min-h-[48px]">
-                  <LocationOnOutlinedIcon className="text-gray-400 mr-2 flex-shrink-0" sx={{ fontSize: 18 }} />
-                  <select
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="w-full text-xs sm:text-[13.5px] font-normal text-[#080809] focus:outline-none bg-transparent cursor-pointer truncate"
-                  >
-                    <option>All Locations</option>
-                    <option>Gurugram, Haryana</option>
-                    <option>Noida, Uttar Pradesh</option>
-                    <option>Delhi NCR</option>
-                    <option>Mumbai, Maharashtra</option>
-                    <option>Bengaluru, Karnataka</option>
-                    <option>Pune, Maharashtra</option>
-                    <option>Hyderabad, Telangana</option>
-                  </select>
-                </div>
+                <CustomFilterSelect
+                  value={location}
+                  onChange={setLocation}
+                  options={[
+                    'All Locations',
+                    'Gurugram, Haryana',
+                    'Noida, Uttar Pradesh',
+                    'Delhi NCR',
+                    'Mumbai, Maharashtra',
+                    'Bengaluru, Karnataka',
+                    'Pune, Maharashtra',
+                    'Hyderabad, Telangana'
+                  ]}
+                  icon={<LocationOnOutlinedIcon className="text-gray-400" sx={{ fontSize: 18 }} />}
+                  placeholder="All Locations"
+                />
 
                 {/* 3. Category */}
-                <div className="sm:col-span-2 lg:col-span-1 flex items-center px-3 py-2.5 sm:py-3 bg-gray-50/80 rounded-xl border border-gray-200 min-h-[44px] sm:min-h-[48px]">
-                  <LayersOutlinedIcon className="text-gray-400 mr-2 flex-shrink-0" sx={{ fontSize: 18 }} />
-                  <select
-                    suppressHydrationWarning
+                <div className="sm:col-span-2 lg:col-span-1">
+                  <CustomFilterSelect
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="w-full text-xs sm:text-[13.5px] font-normal text-[#080809] focus:outline-none bg-transparent truncate cursor-pointer"
-                  >
-                    <option>All Categories</option>
-                    {categoryList.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
+                    onChange={setCategory}
+                    options={['All Categories', ...categoryList.filter((cat) => cat !== 'All Categories')]}
+                    icon={<LayersOutlinedIcon className="text-gray-400" sx={{ fontSize: 18 }} />}
+                    placeholder="All Categories"
+                  />
                 </div>
               </div>
 
               {/* Row 2: Job Type, Work Mode, SEARCH CTA */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 items-center">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 items-center relative z-10">
                 {/* 4. Job Type */}
-                <div className="flex items-center px-3 py-2.5 sm:py-3 bg-gray-50/80 rounded-xl border border-gray-200 min-h-[44px] sm:min-h-[48px]">
-                  <WorkOutlineOutlinedIcon className="text-gray-400 mr-2 flex-shrink-0" sx={{ fontSize: 18 }} />
-                  <select
-                    value={jobType}
-                    onChange={(e) => setJobType(e.target.value)}
-                    className="w-full text-xs sm:text-[13.5px] font-normal text-[#080809] focus:outline-none bg-transparent truncate cursor-pointer"
-                  >
-                    <option>All Job Types</option>
-                    <option>Full Time</option>
-                    <option>Part Time</option>
-                    <option>Contract</option>
-                    <option>Internship</option>
-                  </select>
-                </div>
+                <CustomFilterSelect
+                  value={jobType}
+                  onChange={setJobType}
+                  options={['All Job Types', 'Full Time', 'Part Time', 'Contract', 'Internship']}
+                  icon={<WorkOutlineOutlinedIcon className="text-gray-400" sx={{ fontSize: 18 }} />}
+                  placeholder="All Job Types"
+                />
 
                 {/* 5. Work Mode */}
-                <div className="flex items-center px-3 py-2.5 sm:py-3 bg-gray-50/80 rounded-xl border border-gray-200 min-h-[44px] sm:min-h-[48px]">
-                  <HomeWorkOutlinedIcon className="text-gray-400 mr-2 flex-shrink-0" sx={{ fontSize: 18 }} />
-                  <select
-                    value={workMode}
-                    onChange={(e) => setWorkMode(e.target.value)}
-                    className="w-full text-xs sm:text-[13.5px] font-normal text-[#080809] focus:outline-none bg-transparent truncate cursor-pointer"
-                  >
-                    <option>All Work Modes</option>
-                    <option>On-site</option>
-                    <option>Hybrid</option>
-                    <option>Remote</option>
-                  </select>
-                </div>
+                <CustomFilterSelect
+                  value={workMode}
+                  onChange={setWorkMode}
+                  options={['All Work Modes', 'On-site', 'Hybrid', 'Remote']}
+                  icon={<HomeWorkOutlinedIcon className="text-gray-400" sx={{ fontSize: 18 }} />}
+                  placeholder="All Work Modes"
+                />
 
                 {/* 6. SEARCH CTA */}
                 <div className="sm:col-span-2 lg:col-span-1">

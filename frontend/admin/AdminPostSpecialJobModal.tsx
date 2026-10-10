@@ -19,6 +19,7 @@ import {
   Upload,
   Image as ImageIcon
 } from 'lucide-react';
+import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 
 export interface CustomQuestion {
   id: string;
@@ -137,9 +138,10 @@ export default function AdminPostSpecialJobModal({
     setMounted(true);
   }, []);
 
+  useBodyScrollLock(isOpen);
+
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
       // Default to first company if available and not yet set
       if (normalizedCompanies.length > 0 && !companyName) {
         const first = normalizedCompanies[0];
@@ -147,12 +149,7 @@ export default function AdminPostSpecialJobModal({
         setCompanyName(first.name);
         setCompanyLogoUrl(first.logoUrl || '');
       }
-    } else {
-      document.body.style.overflow = 'unset';
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
   }, [isOpen, normalizedCompanies]);
 
   const handleSelectCompany = (compName: string) => {
@@ -348,9 +345,9 @@ export default function AdminPostSpecialJobModal({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs overflow-y-auto font-['Helvetica',Arial,sans-serif]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-xs overflow-y-auto font-['Helvetica',Arial,sans-serif] [overscroll-behavior:contain]">
       <div 
-        className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200"
+        className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200 [overscroll-behavior:contain] [touch-action:pan-y]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

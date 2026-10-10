@@ -7,6 +7,7 @@ import WorkOutlineOutlinedIcon from '@mui/icons-material/WorkOutlineOutlined';
 import HomeWorkOutlinedIcon from '@mui/icons-material/HomeWorkOutlined';
 import ArrowForwardOutlinedIcon from '@mui/icons-material/ArrowForwardOutlined';
 import { DEPARTMENT_CATEGORIES } from '@/lib/constants';
+import CustomFilterSelect from './CustomFilterSelect';
 
 export const FILTER_LOCATIONS = [
   'All Locations',
@@ -76,7 +77,7 @@ export default function JobFilterBar({
       className={`bg-white p-2.5 sm:p-3 rounded-2xl shadow-2xl space-y-2 text-[#080809] border border-gray-100 font-['Helvetica',Arial,sans-serif] ${className}`}
     >
       {/* Row 1: Keyword, Location, Category */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 relative z-20">
         {/* 1. Keyword */}
         <div className="flex items-center px-3 py-2.5 sm:py-3 bg-gray-50/80 rounded-xl border border-gray-200 min-h-[44px] sm:min-h-[48px] focus-within:border-[#b2c359] focus-within:bg-white transition">
           <SearchOutlinedIcon className="text-gray-400 mr-2 shrink-0" sx={{ fontSize: 18 }} />
@@ -90,73 +91,45 @@ export default function JobFilterBar({
         </div>
 
         {/* 2. Location */}
-        <div className="flex items-center px-3 py-2.5 sm:py-3 bg-gray-50/80 rounded-xl border border-gray-200 min-h-[44px] sm:min-h-[48px] focus-within:border-[#b2c359] focus-within:bg-white transition">
-          <LocationOnOutlinedIcon className="text-gray-400 mr-2 shrink-0" sx={{ fontSize: 18 }} />
-          <select
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            className="w-full text-xs sm:text-[13.5px] font-normal text-[#080809] focus:outline-none bg-transparent cursor-pointer truncate"
-          >
-            {locationsList.map((loc) => (
-              <option key={loc} value={loc}>{loc}</option>
-            ))}
-            {location && location !== 'All Locations' && !locationsList.includes(location) && (
-              <option value={location}>{location}</option>
-            )}
-          </select>
-        </div>
+        <CustomFilterSelect
+          value={location}
+          onChange={setLocation}
+          options={Array.from(new Set([...locationsList, ...(location && location !== 'All Locations' ? [location] : [])]))}
+          icon={<LocationOnOutlinedIcon className="text-gray-400" sx={{ fontSize: 18 }} />}
+          placeholder="All Locations"
+        />
 
         {/* 3. Category */}
-        <div className="sm:col-span-2 lg:col-span-1 flex items-center px-3 py-2.5 sm:py-3 bg-gray-50/80 rounded-xl border border-gray-200 min-h-[44px] sm:min-h-[48px] focus-within:border-[#b2c359] focus-within:bg-white transition">
-          <LayersOutlinedIcon className="text-gray-400 mr-2 shrink-0" sx={{ fontSize: 18 }} />
-          <select
+        <div className="sm:col-span-2 lg:col-span-1">
+          <CustomFilterSelect
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full text-xs sm:text-[13.5px] font-normal text-[#080809] focus:outline-none bg-transparent truncate cursor-pointer"
-          >
-            <option value="All Categories">All Categories</option>
-            {catList.map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-            {category && category !== 'All Categories' && !catList.includes(category) && (
-              <option value={category}>{category}</option>
-            )}
-          </select>
+            onChange={setCategory}
+            options={Array.from(new Set(['All Categories', ...catList, ...(category && category !== 'All Categories' ? [category] : [])]))}
+            icon={<LayersOutlinedIcon className="text-gray-400" sx={{ fontSize: 18 }} />}
+            placeholder="All Categories"
+          />
         </div>
       </div>
 
       {/* Row 2: Job Type, Work Mode, SEARCH CTA */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 items-center">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 items-center relative z-10">
         {/* 4. Job Type */}
-        <div className="flex items-center px-3 py-2.5 sm:py-3 bg-gray-50/80 rounded-xl border border-gray-200 min-h-[44px] sm:min-h-[48px] focus-within:border-[#b2c359] focus-within:bg-white transition">
-          <WorkOutlineOutlinedIcon className="text-gray-400 mr-2 shrink-0" sx={{ fontSize: 18 }} />
-          <select
-            value={jobType}
-            onChange={(e) => setJobType(e.target.value)}
-            className="w-full text-xs sm:text-[13.5px] font-normal text-[#080809] focus:outline-none bg-transparent truncate cursor-pointer"
-          >
-            <option value="All Job Types">All Job Types</option>
-            <option value="Full Time">Full Time</option>
-            <option value="Part Time">Part Time</option>
-            <option value="Contract">Contract</option>
-            <option value="Internship">Internship</option>
-          </select>
-        </div>
+        <CustomFilterSelect
+          value={jobType}
+          onChange={setJobType}
+          options={['All Job Types', 'Full Time', 'Part Time', 'Contract', 'Internship']}
+          icon={<WorkOutlineOutlinedIcon className="text-gray-400" sx={{ fontSize: 18 }} />}
+          placeholder="All Job Types"
+        />
 
         {/* 5. Work Mode */}
-        <div className="flex items-center px-3 py-2.5 sm:py-3 bg-gray-50/80 rounded-xl border border-gray-200 min-h-[44px] sm:min-h-[48px] focus-within:border-[#b2c359] focus-within:bg-white transition">
-          <HomeWorkOutlinedIcon className="text-gray-400 mr-2 shrink-0" sx={{ fontSize: 18 }} />
-          <select
-            value={workMode}
-            onChange={(e) => setWorkMode(e.target.value)}
-            className="w-full text-xs sm:text-[13.5px] font-normal text-[#080809] focus:outline-none bg-transparent truncate cursor-pointer"
-          >
-            <option value="All Work Modes">All Work Modes</option>
-            <option value="On-site">On-site</option>
-            <option value="Hybrid">Hybrid</option>
-            <option value="Remote">Remote</option>
-          </select>
-        </div>
+        <CustomFilterSelect
+          value={workMode}
+          onChange={setWorkMode}
+          options={['All Work Modes', 'On-site', 'Hybrid', 'Remote']}
+          icon={<HomeWorkOutlinedIcon className="text-gray-400" sx={{ fontSize: 18 }} />}
+          placeholder="All Work Modes"
+        />
 
         {/* 6. SEARCH CTA */}
         <div className="sm:col-span-2 lg:col-span-1">

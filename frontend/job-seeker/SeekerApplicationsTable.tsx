@@ -12,6 +12,7 @@ import {
   X,
   Briefcase
 } from 'lucide-react';
+import { formatCtcMetric } from '@/lib/constants';
 
 interface SeekerApplicationsTableProps {
   applications: any[];
@@ -269,8 +270,10 @@ export default function SeekerApplicationsTable({ applications }: SeekerApplicat
                   {app.job?.department || 'Residential Sales'}
                 </span>
                 <span className="text-gray-400">•</span>
-                <span className="font-mono font-bold text-gray-800">
-                  {app.currentSalary ? `₹${(app.currentSalary / 100000).toFixed(1)}L` : '—'} → {app.expectedSalary ? `₹${(app.expectedSalary / 100000).toFixed(1)}L LPA` : 'Open'}
+                <span className="font-mono font-bold text-gray-800 flex items-center gap-1">
+                  <span title="Current CTC">{formatCtcMetric(app.currentSalary, '—')}</span>
+                  <span className="text-gray-400 font-normal">→</span>
+                  <span title="Expected CTC" className="text-[#556912]">{formatCtcMetric(app.expectedSalary, 'Open')}</span>
                 </span>
               </div>
 
@@ -350,10 +353,20 @@ export default function SeekerApplicationsTable({ applications }: SeekerApplicat
                     </span>
                   </td>
                   <td className="p-3">
-                    <div className="font-mono font-bold text-gray-900">
-                      {app.currentSalary ? `₹${(app.currentSalary / 100000).toFixed(1)}L` : '—'} → {app.expectedSalary ? `₹${(app.expectedSalary / 100000).toFixed(1)}L LPA` : 'Open'}
+                    <div className="font-mono font-bold text-gray-900 flex items-center gap-1.5 flex-wrap">
+                      <span title="Current CTC" className="text-gray-700">
+                        {formatCtcMetric(app.currentSalary, '—')}
+                      </span>
+                      <span className="text-gray-400 font-sans font-normal text-xs">→</span>
+                      <span title="Expected CTC" className="text-[#556912]">
+                        {formatCtcMetric(app.expectedSalary, 'Open')}
+                      </span>
                     </div>
-                    <div className="text-[10px] text-gray-400">Notice: {app.noticePeriod || 'Immediate'}</div>
+                    <div className="text-[10px] text-gray-500 font-medium flex items-center gap-1.5 mt-0.5">
+                      <span className="text-gray-400">Current → Expected</span>
+                      <span className="text-gray-300">•</span>
+                      <span>Notice: {app.noticePeriod || 'Immediate'}</span>
+                    </div>
                   </td>
                   <td className="p-3">
                     {app.resumeUrl ? (

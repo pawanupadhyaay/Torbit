@@ -7,6 +7,7 @@ import AuthModal from '@/common/AuthModal';
 import SeekerSignUpCard from '@/job-seeker/SeekerSignUpCard';
 import CompanySignUpCard from '@/recruiter/CompanySignUpCard';
 import { Clock, User, Building2 } from 'lucide-react';
+import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 
 export default function RegisterPage() {
   const [selectedRole, setSelectedRole] = useState<'JOB_SEEKER' | 'RECRUITER'>('JOB_SEEKER');
@@ -16,6 +17,8 @@ export default function RegisterPage() {
   const [verifiedRef, setVerifiedRef] = useState<string | null>(null);
   const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
   const [copiedRef, setCopiedRef] = useState(false);
+
+  useBodyScrollLock(Boolean(verifiedGst));
 
   // Sync role from query parameters if present
   useEffect(() => {
@@ -107,8 +110,8 @@ export default function RegisterPage() {
 
       {/* Recruiter 24-48h KYC Modal */}
       {verifiedGst && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 text-center shadow-2xl border border-lime-200 animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 [overscroll-behavior:contain]">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 text-center shadow-2xl border border-lime-200 animate-in fade-in zoom-in-95 duration-200 [overscroll-behavior:contain] [touch-action:pan-y]">
             <div className="w-14 h-14 bg-lime-100 text-[#b2c359] rounded-2xl flex items-center justify-center mx-auto mb-3">
               <Clock className="w-7 h-7 text-[#b2c359]" />
             </div>

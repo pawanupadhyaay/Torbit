@@ -816,6 +816,296 @@ async function sendMatchedJobsAlertEmail(toEmail, seekerName, alertTitle, matchi
   return transporter.sendMail(mailOptions);
 }
 
+/**
+ * 8. Send notification email to Admin when a new company registers for verification & approval
+ */
+async function sendAdminCompanyApprovalAlertEmail({ companyName, workEmail, phone, gstNumber, hqLocation, referenceId }) {
+  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || "torbitinsights@gmail.com";
+  const mailOptions = {
+    from: DEFAULT_FROM,
+    to: adminEmail,
+    replyTo: workEmail || "torbitinsights@gmail.com",
+    subject: `Action Required: New Company Approval Request - ${companyName}`,
+    headers: {
+      'X-Entity-Ref-ID': `ADMIN-ALERT-${Date.now()}`,
+      'Importance': 'high',
+      'X-Priority': '1'
+    },
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head><meta charset="utf-8"></head>
+      <body style="margin:0;padding:0;background-color:#f4f6f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1e293b;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="padding:30px 15px;">
+          <tr>
+            <td align="center">
+              <table width="100%" style="max-width:540px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06);border:1px solid #e2e8f0;">
+                <tr>
+                  <td style="background-color:#080809;padding:24px 32px;text-align:center;">
+                    <span style="color:#b2c359;font-weight:900;font-size:20px;letter-spacing:1px;">TORBIT</span>
+                    <span style="color:#ffffff;font-weight:700;font-size:20px;letter-spacing:1px;"> REALTY</span>
+                    <p style="margin:4px 0 0 0;color:#94a3b8;font-size:11px;font-weight:500;">Admin Governance Notification</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:32px;">
+                    <div style="display:inline-block;padding:4px 12px;background:#fef3c7;color:#92400e;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:12px;">
+                      NEW COMPANY PENDING VERIFICATION
+                    </div>
+                    <h2 style="margin:0 0 16px 0;font-size:18px;color:#0f172a;font-weight:800;">
+                      New Company Registration Request
+                    </h2>
+                    <p style="margin:0 0 20px 0;font-size:13px;color:#475569;line-height:1.6;">
+                      A new employer enterprise has submitted their company profile and GST documentation for approval on Torbit Realty:
+                    </p>
+                    <table width="100%" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:24px;font-size:13px;">
+                      <tr><td style="padding:6px 0;color:#64748b;font-weight:600;width:130px;">Company Name:</td><td style="padding:6px 0;color:#0f172a;font-weight:700;">${companyName}</td></tr>
+                      <tr><td style="padding:6px 0;color:#64748b;font-weight:600;">Work Email:</td><td style="padding:6px 0;color:#0f172a;"><a href="mailto:${workEmail}" style="color:#658A0D;">${workEmail}</a></td></tr>
+                      <tr><td style="padding:6px 0;color:#64748b;font-weight:600;">Phone:</td><td style="padding:6px 0;color:#0f172a;">${phone || 'N/A'}</td></tr>
+                      <tr><td style="padding:6px 0;color:#64748b;font-weight:600;">GST Number:</td><td style="padding:6px 0;color:#0f172a;font-family:monospace;font-weight:700;">${gstNumber || 'N/A'}</td></tr>
+                      <tr><td style="padding:6px 0;color:#64748b;font-weight:600;">HQ Location:</td><td style="padding:6px 0;color:#0f172a;">${hqLocation || 'India'}</td></tr>
+                      <tr><td style="padding:6px 0;color:#64748b;font-weight:600;">Ref ID:</td><td style="padding:6px 0;color:#64748b;font-family:monospace;">${referenceId || 'N/A'}</td></tr>
+                    </table>
+                    <div style="text-align:center;">
+                      <a href="http://localhost:3000/admin/dashboard" style="display:inline-block;background:#0f172a;color:#ffffff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;">
+                        Open Admin Dashboard to Review
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="background:#f8fafc;padding:16px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9;">
+                    Torbit Realty Automated Governance Engine
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `
+  };
+  return transporter.sendMail(mailOptions);
+}
+
+/**
+ * 9. Send notification email to Company/Recruiter when a Job Seeker applies
+ */
+async function sendCompanyNewApplicantEmail({ companyEmail, companyName, jobTitle, applicantName, applicantEmail, applicantPhone, noticePeriod, expectedSalary, resumeUrl }) {
+  if (!companyEmail) return null;
+  const mailOptions = {
+    from: DEFAULT_FROM,
+    to: companyEmail,
+    replyTo: applicantEmail || "torbitinsights@gmail.com",
+    subject: `New Application Received: ${applicantName} for "${jobTitle}" - Torbit Realty`,
+    headers: {
+      'X-Entity-Ref-ID': `APP-RECV-${Date.now()}`
+    },
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head><meta charset="utf-8"></head>
+      <body style="margin:0;padding:0;background-color:#f4f6f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1e293b;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="padding:30px 15px;">
+          <tr>
+            <td align="center">
+              <table width="100%" style="max-width:540px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06);border:1px solid #e2e8f0;">
+                <tr>
+                  <td style="background-color:#080809;padding:24px 32px;text-align:center;">
+                    <span style="color:#b2c359;font-weight:900;font-size:20px;letter-spacing:1px;">TORBIT</span>
+                    <span style="color:#ffffff;font-weight:700;font-size:20px;letter-spacing:1px;"> REALTY</span>
+                    <p style="margin:4px 0 0 0;color:#94a3b8;font-size:11px;font-weight:500;">Recruiter Hiring Updates</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:32px;">
+                    <div style="display:inline-block;padding:4px 12px;background:#ecfccb;color:#4d7c0f;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:12px;">
+                      NEW CANDIDATE APPLICATION
+                    </div>
+                    <h2 style="margin:0 0 16px 0;font-size:18px;color:#0f172a;font-weight:800;">
+                      New Applicant for ${jobTitle}
+                    </h2>
+                    <p style="margin:0 0 20px 0;font-size:13px;color:#475569;line-height:1.6;">
+                      Hello <strong>${companyName || 'Hiring Team'}</strong>, a verified candidate has just submitted an application for your vacancy:
+                    </p>
+                    <table width="100%" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:24px;font-size:13px;">
+                      <tr><td style="padding:6px 0;color:#64748b;font-weight:600;width:130px;">Job Role:</td><td style="padding:6px 0;color:#0f172a;font-weight:700;">${jobTitle}</td></tr>
+                      <tr><td style="padding:6px 0;color:#64748b;font-weight:600;">Candidate:</td><td style="padding:6px 0;color:#0f172a;font-weight:700;">${applicantName}</td></tr>
+                      <tr><td style="padding:6px 0;color:#64748b;font-weight:600;">Email:</td><td style="padding:6px 0;color:#0f172a;"><a href="mailto:${applicantEmail}" style="color:#658A0D;">${applicantEmail}</a></td></tr>
+                      <tr><td style="padding:6px 0;color:#64748b;font-weight:600;">Phone:</td><td style="padding:6px 0;color:#0f172a;">${applicantPhone || 'Available on resume'}</td></tr>
+                      <tr><td style="padding:6px 0;color:#64748b;font-weight:600;">Notice Period:</td><td style="padding:6px 0;color:#0f172a;">${noticePeriod || 'Immediate'}</td></tr>
+                      ${expectedSalary ? `<tr><td style="padding:6px 0;color:#64748b;font-weight:600;">Expected CTC:</td><td style="padding:6px 0;color:#0f172a;">₹${expectedSalary.toLocaleString('en-IN')}</td></tr>` : ''}
+                    </table>
+                    <div style="text-align:center;">
+                      <a href="http://localhost:3000/recruiter/dashboard" style="display:inline-block;background:#658A0D;color:#ffffff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;">
+                        Review Applicant in Recruiter Dashboard
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="background:#f8fafc;padding:16px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9;">
+                    Torbit Realty Hiring & Recruitment System
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `
+  };
+  return transporter.sendMail(mailOptions);
+}
+
+/**
+ * 10. Send status update / shortlist notification email to Job Seeker
+ */
+async function sendApplicantStatusUpdateEmail({ seekerEmail, seekerName, jobTitle, companyName, newStatus }) {
+  if (!seekerEmail) return null;
+
+  const statusLabel = {
+    'SHORTLISTED': 'Shortlisted 🌟',
+    'REVIEWING': 'Under Review 📋',
+    'INTERVIEW': 'Interview Scheduled 🎯',
+    'ACCEPTED': 'Offer / Accepted 🎉',
+    'REJECTED': 'Application Update'
+  }[newStatus] || newStatus;
+
+  const mailOptions = {
+    from: DEFAULT_FROM,
+    to: seekerEmail,
+    replyTo: "torbitinsights@gmail.com",
+    subject: `Application Update: ${statusLabel} for ${jobTitle} at ${companyName}`,
+    headers: {
+      'X-Entity-Ref-ID': `STATUS-UPDATE-${Date.now()}`
+    },
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head><meta charset="utf-8"></head>
+      <body style="margin:0;padding:0;background-color:#f4f6f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1e293b;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="padding:30px 15px;">
+          <tr>
+            <td align="center">
+              <table width="100%" style="max-width:540px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06);border:1px solid #e2e8f0;">
+                <tr>
+                  <td style="background-color:#080809;padding:24px 32px;text-align:center;">
+                    <span style="color:#b2c359;font-weight:900;font-size:20px;letter-spacing:1px;">TORBIT</span>
+                    <span style="color:#ffffff;font-weight:700;font-size:20px;letter-spacing:1px;"> REALTY</span>
+                    <p style="margin:4px 0 0 0;color:#94a3b8;font-size:11px;font-weight:500;">Career Application Updates</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:32px;">
+                    <h2 style="margin:0 0 16px 0;font-size:18px;color:#0f172a;font-weight:800;">
+                      Application Status Update
+                    </h2>
+                    <p style="margin:0 0 20px 0;font-size:13px;color:#475569;line-height:1.6;">
+                      Hello <strong>${seekerName || 'Job Seeker'}</strong>, the hiring team at <strong>${companyName}</strong> has updated the status of your application:
+                    </p>
+                    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px;margin-bottom:24px;text-align:center;">
+                      <div style="font-size:12px;color:#64748b;margin-bottom:6px;font-weight:600;">Position & Enterprise:</div>
+                      <div style="font-size:15px;color:#0f172a;font-weight:800;margin-bottom:12px;">${jobTitle} • ${companyName}</div>
+                      <div style="display:inline-block;padding:6px 18px;background:${newStatus === 'SHORTLISTED' ? '#ecfccb' : newStatus === 'REJECTED' ? '#fee2e2' : '#e0f2fe'};color:${newStatus === 'SHORTLISTED' ? '#3f6212' : newStatus === 'REJECTED' ? '#991b1b' : '#0369a1'};border-radius:24px;font-size:13px;font-weight:800;letter-spacing:0.5px;">
+                        ${statusLabel}
+                      </div>
+                    </div>
+                    <div style="text-align:center;">
+                      <a href="http://localhost:3000/job-seeker/dashboard" style="display:inline-block;background:#0f172a;color:#ffffff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;">
+                        View in Job Seeker Dashboard
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="background:#f8fafc;padding:16px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9;">
+                    Torbit Realty Job Applications Engine
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `
+  };
+  return transporter.sendMail(mailOptions);
+}
+
+/**
+ * 11. Send instant match notification email when a new job matching an alert is posted
+ */
+async function sendNewJobAlertMatchEmail({ seekerEmail, seekerName, alertTitle, job }) {
+  if (!seekerEmail) return null;
+  const mailOptions = {
+    from: DEFAULT_FROM,
+    to: seekerEmail,
+    replyTo: "torbitinsights@gmail.com",
+    subject: `New Job Match: "${job.title}" matching your alert "${alertTitle}"`,
+    headers: {
+      'X-Entity-Ref-ID': `JOB-ALERT-MATCH-${Date.now()}`
+    },
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head><meta charset="utf-8"></head>
+      <body style="margin:0;padding:0;background-color:#f4f6f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1e293b;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="padding:30px 15px;">
+          <tr>
+            <td align="center">
+              <table width="100%" style="max-width:540px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.06);border:1px solid #e2e8f0;">
+                <tr>
+                  <td style="background-color:#080809;padding:24px 32px;text-align:center;">
+                    <span style="color:#b2c359;font-weight:900;font-size:20px;letter-spacing:1px;">TORBIT</span>
+                    <span style="color:#ffffff;font-weight:700;font-size:20px;letter-spacing:1px;"> REALTY</span>
+                    <p style="margin:4px 0 0 0;color:#94a3b8;font-size:11px;font-weight:500;">Instant Job Alert Match</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:32px;">
+                    <div style="display:inline-block;padding:4px 12px;background:#fef3c7;color:#92400e;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:12px;">
+                      NEW MATCHING OPENING
+                    </div>
+                    <h2 style="margin:0 0 16px 0;font-size:18px;color:#0f172a;font-weight:800;">
+                      ${job.title}
+                    </h2>
+                    <p style="margin:0 0 20px 0;font-size:13px;color:#475569;line-height:1.6;">
+                      Hello <strong>${seekerName || 'Job Seeker'}</strong>, a new real estate opening matching your saved alert <strong>"${alertTitle}"</strong> has just been published:
+                    </p>
+                    <table width="100%" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:24px;font-size:13px;">
+                      <tr><td style="padding:6px 0;color:#64748b;font-weight:600;width:120px;">Role:</td><td style="padding:6px 0;color:#0f172a;font-weight:700;">${job.title}</td></tr>
+                      <tr><td style="padding:6px 0;color:#64748b;font-weight:600;">Enterprise:</td><td style="padding:6px 0;color:#0f172a;font-weight:700;">${job.companyName || 'Verified Real Estate Developer'}</td></tr>
+                      <tr><td style="padding:6px 0;color:#64748b;font-weight:600;">Location:</td><td style="padding:6px 0;color:#0f172a;">${job.location || 'India'}</td></tr>
+                      <tr><td style="padding:6px 0;color:#64748b;font-weight:600;">Job Type:</td><td style="padding:6px 0;color:#0f172a;">${job.jobType || 'Full Time'} • ${job.workMode || 'On-site'}</td></tr>
+                      ${job.salaryMin ? `<tr><td style="padding:6px 0;color:#64748b;font-weight:600;">Compensation:</td><td style="padding:6px 0;color:#0f172a;">₹${job.salaryMin.toLocaleString('en-IN')} - ₹${job.salaryMax ? job.salaryMax.toLocaleString('en-IN') : 'Competitive'}</td></tr>` : ''}
+                    </table>
+                    <div style="text-align:center;">
+                      <a href="http://localhost:3000/jobs?q=${encodeURIComponent(job.title)}" style="display:inline-block;background:#658A0D;color:#ffffff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;">
+                        View Opening & Apply Now
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="background:#f8fafc;padding:16px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #f1f5f9;">
+                    Torbit Realty Instant Job Matching Engine
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `
+  };
+  return transporter.sendMail(mailOptions);
+}
+
 module.exports = {
   transporter,
   sendOtpEmail,
@@ -824,7 +1114,11 @@ module.exports = {
   sendCompanyRejectionEmail,
   sendCompanyRegistrationAckEmail,
   sendJobAlertConfirmationEmail,
-  sendMatchedJobsAlertEmail
+  sendMatchedJobsAlertEmail,
+  sendAdminCompanyApprovalAlertEmail,
+  sendCompanyNewApplicantEmail,
+  sendApplicantStatusUpdateEmail,
+  sendNewJobAlertMatchEmail
 };
 
 

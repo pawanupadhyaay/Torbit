@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { AlertTriangle, X, Loader2 } from 'lucide-react';
+import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 
 interface ActionModalProps {
   isOpen: boolean;
@@ -24,6 +25,8 @@ export default function ActionModal({
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  useBodyScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   const handleConfirm = async () => {
@@ -37,8 +40,8 @@ export default function ActionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 font-['Helvetica',Arial,sans-serif]">
-      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200 relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 font-['Helvetica',Arial,sans-serif] [overscroll-behavior:contain]">
+      <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200 relative [overscroll-behavior:contain] [touch-action:pan-y]">
         <button
           onClick={onClose}
           className="absolute right-4 top-4 p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition cursor-pointer"

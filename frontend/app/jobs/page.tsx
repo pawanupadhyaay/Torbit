@@ -9,6 +9,8 @@ import ApplyJobModal from '@/job-seeker/ApplyJobModal';
 import JobDetailsModal from '@/common/JobDetailsModal';
 import MobileBottomBar from '@/common/MobileBottomBar';
 import JobFilterBar from '@/common/JobFilterBar';
+import CustomFilterSelect from '@/common/CustomFilterSelect';
+import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 import { DEPARTMENT_CATEGORIES, JOB_TYPES, WORK_MODES } from '@/lib/constants';
 import {
   Search,
@@ -114,6 +116,8 @@ function JobsContent() {
   // Role Notice Modal & Toast state (for Admin / Recruiter attempting to apply)
   const [roleNotice, setRoleNotice] = useState<{ title: string; message: string; role: 'ADMIN' | 'RECRUITER' } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useBodyScrollLock(Boolean(roleNotice));
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -482,7 +486,7 @@ function JobsContent() {
       <Header onOpenAuth={handleOpenAuth} />
 
       {/* Top Search & Filter Banner */}
-      <section className="bg-[#0c1424] text-white py-6 sm:py-8 relative overflow-hidden">
+      <section className="bg-[#0c1424] text-white py-6 sm:py-8 relative z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
           {/* Breadcrumbs */}
           <div className="flex items-center gap-2 text-xs text-slate-400 mb-3">
@@ -568,21 +572,22 @@ function JobsContent() {
             </button>
 
             {/* Mobile Sort Dropdown */}
-            <div className="flex-1 relative flex items-center bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-xl px-3 py-2.5 transition shadow-2xs">
-              <ArrowUpDown className="w-3.5 h-3.5 text-[#658A0D] shrink-0 mr-1.5" />
-              <select
+            <div className="flex-1">
+              <CustomFilterSelect
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer pr-4 appearance-none"
-              >
-                <option value="newest">Most Recent</option>
-                <option value="salary_high">Salary: High → Low</option>
-                <option value="salary_low">Salary: Low → High</option>
-                <option value="exp_low">Entry Level First</option>
-                <option value="exp_high">Senior First</option>
-                <option value="title_asc">Title: A to Z</option>
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 pointer-events-none" />
+                onChange={setSortBy}
+                options={[
+                  { label: 'Most Recent', value: 'newest' },
+                  { label: 'Salary: High → Low', value: 'salary_high' },
+                  { label: 'Salary: Low → High', value: 'salary_low' },
+                  { label: 'Entry Level First', value: 'exp_low' },
+                  { label: 'Senior First', value: 'exp_high' },
+                  { label: 'Title: A to Z', value: 'title_asc' }
+                ]}
+                icon={<ArrowUpDown className="w-3.5 h-3.5 text-[#658A0D]" />}
+                searchable={false}
+                placeholder="Sort By"
+              />
             </div>
           </div>
 
@@ -672,18 +677,20 @@ function JobsContent() {
                   {filteredJobs.length} {filteredJobs.length === 1 ? 'job' : 'jobs'}
                 </span>
               </label>
-              <select
+              <CustomFilterSelect
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-[#b2c359] focus:bg-white transition cursor-pointer"
-              >
-                <option value="newest">Most Recent (Default)</option>
-                <option value="salary_high">Salary: High to Low</option>
-                <option value="salary_low">Salary: Low to High</option>
-                <option value="exp_low">Experience: Entry Level First</option>
-                <option value="exp_high">Experience: Senior Level First</option>
-                <option value="title_asc">Job Title: A to Z</option>
-              </select>
+                onChange={setSortBy}
+                options={[
+                  { label: 'Most Recent (Default)', value: 'newest' },
+                  { label: 'Salary: High to Low', value: 'salary_high' },
+                  { label: 'Salary: Low to High', value: 'salary_low' },
+                  { label: 'Experience: Entry Level First', value: 'exp_low' },
+                  { label: 'Experience: Senior Level First', value: 'exp_high' },
+                  { label: 'Job Title: A to Z', value: 'title_asc' }
+                ]}
+                searchable={false}
+                placeholder="Sort By"
+              />
             </div>
 
             {/* 1. Job Categories Filter */}
@@ -849,21 +856,22 @@ function JobsContent() {
 
                 <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
                   {/* Desktop Sort Dropdown (Visible only on lg+) */}
-                  <div className="hidden lg:flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-xl px-3 py-1.5 transition">
-                    <ArrowUpDown className="w-3.5 h-3.5 text-[#658A0D] shrink-0" />
-                    <span className="text-[11px] font-semibold text-slate-500">Sort:</span>
-                    <select
+                  <div className="hidden lg:block w-52">
+                    <CustomFilterSelect
                       value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
-                      className="bg-transparent text-xs font-bold text-slate-800 outline-none cursor-pointer pr-1"
-                    >
-                      <option value="newest">Most Recent</option>
-                      <option value="salary_high">Salary: High to Low</option>
-                      <option value="salary_low">Salary: Low to High</option>
-                      <option value="exp_low">Experience: Entry First</option>
-                      <option value="exp_high">Experience: Senior First</option>
-                      <option value="title_asc">Title: A to Z</option>
-                    </select>
+                      onChange={setSortBy}
+                      options={[
+                        { label: 'Most Recent', value: 'newest' },
+                        { label: 'Salary: High → Low', value: 'salary_high' },
+                        { label: 'Salary: Low → High', value: 'salary_low' },
+                        { label: 'Entry First', value: 'exp_low' },
+                        { label: 'Senior First', value: 'exp_high' },
+                        { label: 'Title: A to Z', value: 'title_asc' }
+                      ]}
+                      icon={<ArrowUpDown className="w-3.5 h-3.5 text-[#658A0D]" />}
+                      searchable={false}
+                      placeholder="Sort By"
+                    />
                   </div>
 
                   <Link
@@ -1202,11 +1210,11 @@ function JobsContent() {
       {/* Admin / Employer Role Notice Modal */}
       {roleNotice && (
         <div 
-          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200 [overscroll-behavior:contain]"
           onClick={() => setRoleNotice(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-150 relative"
+            className="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-150 relative [overscroll-behavior:contain] [touch-action:pan-y]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-3">

@@ -13,6 +13,7 @@ import AuthModal from '@/common/AuthModal';
 import ApplyJobModal from '@/job-seeker/ApplyJobModal';
 import JobDetailsModal from '@/common/JobDetailsModal';
 import MobileBottomBar from '@/common/MobileBottomBar';
+import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 
 export default function HomePage() {
   const router = useRouter();
@@ -36,6 +37,8 @@ export default function HomePage() {
   // Role Notice Modal & Toast state (for Admin / Recruiter attempting to apply)
   const [roleNotice, setRoleNotice] = useState<{ title: string; message: string; role: 'ADMIN' | 'RECRUITER' } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useBodyScrollLock(Boolean(roleNotice));
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -347,11 +350,11 @@ export default function HomePage() {
       {/* Admin / Employer Role Notice Modal */}
       {roleNotice && (
         <div 
-          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200 [overscroll-behavior:contain]"
           onClick={() => setRoleNotice(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-150 relative"
+            className="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl border border-gray-100 animate-in zoom-in-95 duration-150 relative [overscroll-behavior:contain] [touch-action:pan-y]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-3">

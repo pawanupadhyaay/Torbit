@@ -14,6 +14,7 @@ import {
   Layers,
   Sparkles
 } from 'lucide-react';
+import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 
 interface EditJobModalProps {
   isOpen: boolean;
@@ -135,16 +136,7 @@ export default function EditJobModal({
     }
   }, [job]);
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
+  useBodyScrollLock(isOpen);
 
   if (!isOpen || !job) return null;
 
@@ -214,11 +206,11 @@ export default function EditJobModal({
 
   const modalContent = (
     <div 
-      className="fixed inset-0 z-[99999] w-screen h-screen min-h-screen flex items-center justify-center bg-black/80 backdrop-blur-md p-3.5 sm:p-5 overflow-y-auto font-sans antialiased"
+      className="fixed inset-0 z-[99999] w-screen h-screen min-h-screen flex items-center justify-center bg-black/80 backdrop-blur-md p-3.5 sm:p-5 overflow-y-auto font-sans antialiased [overscroll-behavior:contain]"
       onClick={onClose}
     >
       <div 
-        className="bg-white rounded-2xl sm:rounded-3xl max-w-2xl w-full shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] relative overflow-hidden max-h-[92vh] flex flex-col my-auto border border-neutral-800/20 animate-in fade-in zoom-in-95 duration-200"
+        className="bg-white rounded-2xl sm:rounded-3xl max-w-2xl w-full shadow-[0_25px_60px_-15px_rgba(0,0,0,0.6)] relative overflow-hidden max-h-[92vh] flex flex-col my-auto border border-neutral-800/20 animate-in fade-in zoom-in-95 duration-200 [overscroll-behavior:contain] [touch-action:pan-y]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Dark Top Header */}

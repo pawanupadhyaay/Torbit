@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { X, Briefcase, PlusCircle, AlertCircle, Calendar, Users, IndianRupee, MapPin, CheckCircle2 } from 'lucide-react';
+import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 
 interface CreateJobModalProps {
   isOpen: boolean;
@@ -85,16 +86,7 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
   const [error, setError] = useState('');
   const [showThankYou, setShowThankYou] = useState(false);
 
-  React.useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
+  useBodyScrollLock(isOpen);
 
   if (!isOpen) return null;
 
@@ -132,8 +124,8 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in overflow-y-auto">
-      <div className="bg-white rounded-2xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-gray-200 relative my-6 max-h-[92vh] overflow-y-auto font-sans">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in overflow-y-auto [overscroll-behavior:contain]">
+      <div className="bg-white rounded-2xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl border border-gray-200 relative my-6 max-h-[92vh] overflow-y-auto font-sans [overscroll-behavior:contain] [touch-action:pan-y]">
         <button
           onClick={onClose}
           className="absolute right-4 top-4 p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition cursor-pointer"

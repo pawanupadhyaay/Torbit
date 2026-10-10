@@ -18,6 +18,8 @@ import {
   RotateCcw,
   Briefcase
 } from 'lucide-react';
+import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
+import { formatCtcMetric } from '@/lib/constants';
 
 interface ApplicantReviewPipelineProps {
   applications: any[];
@@ -35,6 +37,8 @@ export default function ApplicantReviewPipeline({
   const [sortBy, setSortBy] = useState('NEWEST');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [selectedAppForAnswers, setSelectedAppForAnswers] = useState<any | null>(null);
+
+  useBodyScrollLock(Boolean(selectedAppForAnswers));
 
   // Extract unique jobs from applications list with counts
   const uniqueJobs = useMemo(() => {
@@ -329,14 +333,20 @@ export default function ApplicantReviewPipeline({
                       <div className="text-[10px] text-gray-500">{app.job?.department || ''}</div>
                     </td>
                     <td className="p-3">
-                      <div className="font-mono font-bold text-gray-900">
-                        {app.currentSalary && app.expectedSalary
-                          ? `₹${app.currentSalary / 100000}L → ₹${app.expectedSalary / 100000}L LPA`
-                          : app.expectedSalary
-                            ? `Expected: ₹${app.expectedSalary / 100000}L LPA`
-                            : 'Not specified'}
+                      <div className="font-mono font-bold text-gray-900 flex items-center gap-1.5 flex-wrap">
+                        {app.currentSalary ? (
+                          <>
+                            <span title="Current CTC" className="text-gray-700">{formatCtcMetric(app.currentSalary)}</span>
+                            <span className="text-gray-400 font-sans font-normal text-xs">→</span>
+                            <span title="Expected CTC" className="text-[#556912]">{formatCtcMetric(app.expectedSalary, 'Open')}</span>
+                          </>
+                        ) : (
+                          <span title="Expected CTC" className="text-[#556912]">
+                            {app.expectedSalary ? `Expected: ${formatCtcMetric(app.expectedSalary)}` : 'Not specified'}
+                          </span>
+                        )}
                       </div>
-                      <div className="text-[10px] text-gray-400 font-medium">Notice: {app.noticePeriod || 'Immediate'}</div>
+                      <div className="text-[10px] text-gray-400 font-medium mt-0.5">Notice: {app.noticePeriod || 'Immediate'}</div>
                     </td>
                     <td className="p-3 space-y-1">
                       <div>
@@ -450,11 +460,11 @@ export default function ApplicantReviewPipeline({
       {/* Screener Answers Details Modal */}
       {selectedAppForAnswers && (
         <div 
-          className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-in fade-in duration-200 [overscroll-behavior:contain]"
           onClick={() => setSelectedAppForAnswers(null)}
         >
           <div 
-            className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]"
+            className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh] [overscroll-behavior:contain] [touch-action:pan-y]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}

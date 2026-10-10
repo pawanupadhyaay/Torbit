@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { authenticateToken } = require("../middleware/authMiddleware");
-const { sendOtpEmail, sendPasswordResetOtpEmail, sendCompanyRegistrationAckEmail } = require("../services/emailService");
+const { sendOtpEmail, sendPasswordResetOtpEmail, sendCompanyRegistrationAckEmail, sendAdminCompanyApprovalAlertEmail } = require("../services/emailService");
 
 const JWT_SECRET = process.env.JWT_SECRET || "torbit-realty-super-secret-key-2026";
 
@@ -487,6 +487,18 @@ router.post("/register-recruiter", async (req, res) => {
       console.error("⚠️ Error sending registration acknowledgment email:", mailErr.message);
     });
 
+    // Send instant notification email to Admin about the new company awaiting approval
+    sendAdminCompanyApprovalAlertEmail({
+      companyName: companyName.trim(),
+      workEmail: cleanEmail,
+      phone: cleanPhone,
+      gstNumber: cleanGst,
+      hqLocation: hqLocation ? hqLocation.trim() : "India",
+      referenceId
+    }).catch((adminMailErr) => {
+      console.error("⚠️ Error sending admin company approval alert email:", adminMailErr.message);
+    });
+
     res.json({
       success: true,
       status: "PENDING",
@@ -637,10 +649,6 @@ router.post("/google", async (req, res) => {
 
     if (user) {
       // Existing User Sign In
-      if (user.companyProfile?.status === "BLOCKED") {
-        return res.status(403).json({ error: "Your company account has been blocked by Administrator. Please contact support." });
-      }
-
       // Respect existing user's profile settings (never overwrite removed/custom avatar or profile name with Google data)
       let name = user.role === "JOB_SEEKER" 
         ? (user.seekerProfile?.fullName || fullName) 

@@ -41,6 +41,8 @@ import SmsOutlinedIcon from '@mui/icons-material/SmsOutlined';
 import AdminPostSpecialJobModal from '../../AdminPostSpecialJobModal';
 import { Building2 } from 'lucide-react';
 import Footer from '../../../common/Footer';
+import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
+import { formatCtcMetric } from '@/lib/constants';
 
 export interface SpecialCompanyItem {
   name: string;
@@ -413,6 +415,21 @@ export default function AdminDashboardPage() {
   const [companyFormName, setCompanyFormName] = useState('');
   const [companyFormLogoUrl, setCompanyFormLogoUrl] = useState('');
   const [companyFormWebsiteUrl, setCompanyFormWebsiteUrl] = useState('');
+
+  const hasOpenAdminModal = Boolean(
+    selectedSeekerForModal ||
+    selectedCompanyForView ||
+    rejectModalCompany ||
+    selectedCompanyForEdit ||
+    selectedJobForView ||
+    jobToRemove ||
+    isSubAdminModalOpen ||
+    isCategoryModalOpen ||
+    isSpecialCompanyModalOpen ||
+    isPostSpecialJobOpen ||
+    editingTemplate
+  );
+  useBodyScrollLock(hasOpenAdminModal);
 
   // Settings tab state
   const [notificationSettings, setNotificationSettings] = useState({
@@ -5878,13 +5895,13 @@ export default function AdminDashboardPage() {
                               <div className="bg-white p-2 rounded-xl border border-slate-200">
                                 <span className="text-[10px] text-slate-400 block font-bold uppercase">CURRENT CTC</span>
                                 <span className="font-bold text-slate-900">
-                                  {app.currentSalary ? `₹${(app.currentSalary / 100000).toFixed(1)} LPA` : 'Not Disclosed'}
+                                  {formatCtcMetric(app.currentSalary, 'Not Disclosed')}
                                 </span>
                               </div>
                               <div className="bg-white p-2 rounded-xl border border-slate-200">
                                 <span className="text-[10px] text-slate-400 block font-bold uppercase">EXPECTED CTC</span>
                                 <span className="font-bold text-emerald-700">
-                                  {app.expectedSalary ? `₹${(app.expectedSalary / 100000).toFixed(1)} LPA` : 'Open'}
+                                  {formatCtcMetric(app.expectedSalary, 'Open')}
                                 </span>
                               </div>
                               <div className="bg-white p-2 rounded-xl border border-slate-200">
@@ -6396,13 +6413,13 @@ export default function AdminDashboardPage() {
                         <div className="bg-white p-2 rounded-xl border border-slate-200">
                           <span className="text-[10px] text-slate-400 block font-bold uppercase">CURRENT CTC</span>
                           <span className="font-bold text-slate-900">
-                            {app.currentSalary ? `₹${(app.currentSalary / 100000).toFixed(1)} LPA` : 'Not Disclosed'}
+                            {formatCtcMetric(app.currentSalary, 'Not Disclosed')}
                           </span>
                         </div>
                         <div className="bg-white p-2 rounded-xl border border-slate-200">
                           <span className="text-[10px] text-slate-400 block font-bold uppercase">EXPECTED CTC</span>
                           <span className="font-bold text-emerald-700">
-                            {app.expectedSalary ? `₹${(app.expectedSalary / 100000).toFixed(1)} LPA` : 'Open'}
+                            {formatCtcMetric(app.expectedSalary, 'Open')}
                           </span>
                         </div>
                         <div className="bg-white p-2 rounded-xl border border-slate-200">

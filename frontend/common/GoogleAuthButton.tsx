@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { User, Building2, AlertCircle, X, Loader2 } from 'lucide-react';
+import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 
 interface GoogleAuthButtonProps {
   role?: 'JOB_SEEKER' | 'RECRUITER' | null;
@@ -41,6 +42,8 @@ export default function GoogleAuthButton({
   // Existing Account Alert Modal (when clicking Sign Up with already registered Google email)
   const [showAlreadyExistsModal, setShowAlreadyExistsModal] = useState(false);
   const [existingAccountData, setExistingAccountData] = useState<any>(null);
+
+  useBodyScrollLock(showRoleModal || showCompanyModal || showAlreadyExistsModal);
 
   // Recruiter fields
   const [companyName, setCompanyName] = useState('');
@@ -339,8 +342,8 @@ export default function GoogleAuthButton({
 
       {/* Role Selection Modal (For new users signing in from common login) */}
       {showRoleModal && (
-        <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-gray-200 space-y-4 font-['Helvetica',Arial,sans-serif]">
+        <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150 [overscroll-behavior:contain]">
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-gray-200 space-y-4 font-['Helvetica',Arial,sans-serif] [overscroll-behavior:contain] [touch-action:pan-y]">
             <div className="text-center space-y-1">
               <div className="w-12 h-12 rounded-full bg-[#b2c359]/20 text-[#718025] flex items-center justify-center mx-auto mb-2">
                 <User className="w-6 h-6" />
@@ -398,8 +401,8 @@ export default function GoogleAuthButton({
 
       {/* Recruiter Details Modal (When signing up as recruiter with Google) */}
       {showCompanyModal && (
-        <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-gray-200 space-y-4 font-['Helvetica',Arial,sans-serif]">
+        <div className="fixed inset-0 z-[99999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150 [overscroll-behavior:contain]">
+          <div className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-gray-200 space-y-4 font-['Helvetica',Arial,sans-serif] [overscroll-behavior:contain] [touch-action:pan-y]">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="font-bold text-base text-gray-900">Complete Company Details</h3>
@@ -490,8 +493,8 @@ export default function GoogleAuthButton({
 
       {/* Modal: Account Already Exists Alert (When user clicks Sign Up with already registered Google email) */}
       {showAlreadyExistsModal && existingAccountData && (
-        <div className="fixed inset-0 z-[99999] bg-black/65 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150 font-['Helvetica',Arial,sans-serif]">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-gray-200 space-y-4 animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-[99999] bg-black/65 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150 font-['Helvetica',Arial,sans-serif] [overscroll-behavior:contain]">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-gray-200 space-y-4 animate-in zoom-in-95 duration-150 [overscroll-behavior:contain] [touch-action:pan-y]">
             {/* Top Icon Badge */}
             <div className="flex items-start justify-between">
               <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shadow-xs">

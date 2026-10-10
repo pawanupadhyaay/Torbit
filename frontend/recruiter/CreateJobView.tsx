@@ -24,6 +24,7 @@ import {
   HelpCircle,
   ChevronDown
 } from 'lucide-react';
+import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 
 export interface CustomQuestion {
   id: string;
@@ -125,6 +126,8 @@ export default function CreateJobView({
   const [successMessage, setSuccessMessage] = useState('');
   const [showThankYouModal, setShowThankYouModal] = useState(false);
   const [publishedJobData, setPublishedJobData] = useState<any>(null);
+
+  useBodyScrollLock(showThankYouModal);
 
   // Pre-fill form if editing an existing job
   useEffect(() => {
@@ -1014,8 +1017,8 @@ export default function CreateJobView({
 
       {/* LinkedIn-styled Thank You / Success Modal */}
       {showThankYouModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 animate-in fade-in duration-200 font-sans">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-100 text-center space-y-5 animate-in zoom-in-95 duration-200 relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 animate-in fade-in duration-200 font-sans [overscroll-behavior:contain]">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-100 text-center space-y-5 animate-in zoom-in-95 duration-200 relative [overscroll-behavior:contain] [touch-action:pan-y]">
             {/* Top Celebration Icon */}
             <div className="relative mx-auto w-16 h-16 rounded-2xl bg-[#EBF7EE] border border-[#C3E8CC] flex items-center justify-center text-[#28A745] shadow-xs">
               <CheckCircle2 className="w-9 h-9" />

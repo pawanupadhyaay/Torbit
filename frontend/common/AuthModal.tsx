@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Eye, EyeOff, AlertCircle, Clock, ShieldCheck, User, Building2, ArrowRight, ArrowLeft, CheckCircle2, Mail, RefreshCw, Lock, KeyRound, FileText, Upload, Check, Copy, Loader2 } from 'lucide-react';
 import { QUALIFICATIONS, QUALIFICATION_CATEGORIES, EXPERIENCE_RANGES } from '@/lib/constants';
 import GoogleAuthButton from '@/common/GoogleAuthButton';
+import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -138,17 +139,13 @@ export default function AuthModal({
       setShowPasswordChangeModal(false);
       setError(null);
       setSeekerOtpNotice(null);
-      document.body.style.overflow = 'hidden';
     } else {
       setShowVerificationPopup(false);
       setRegistrationRefId(null);
-      document.body.style.overflow = 'unset';
     }
-
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
   }, [isOpen, defaultTab, defaultRole]);
+
+  useBodyScrollLock(isOpen);
 
   const getApiEndpoint = (path: string) => {
     const base = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
@@ -792,7 +789,7 @@ export default function AuthModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto [overscroll-behavior:contain]">
       
       {/* 0. Forgot Password Modal Screen (OTP Reset Flow) */}
       {forgotStep !== 'CLOSED' ? (

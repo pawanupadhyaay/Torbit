@@ -3,6 +3,7 @@ const router = express.Router();
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { authenticateToken } = require("../middleware/authMiddleware");
+const { sendCompanyNewApplicantEmail, sendApplicantStatusUpdateEmail } = require("../services/emailService");
 
 // POST Apply to Job
 router.post("/", authenticateToken, async (req, res) => {
@@ -26,7 +27,10 @@ router.post("/", authenticateToken, async (req, res) => {
       customAnswers
     } = req.body;
 
-    const job = await prisma.job.findUnique({ where: { id: jobId } });
+    const job = await prisma.job.findUnique({ 
+      where: { id: jobId },
+      include: { company: { include: { user: true } } }
+    });
     if (!job) return res.status(404).json({ error: "Job listing not found" });
 
     if (job.status === "CLOSED") {
@@ -72,6 +76,24 @@ router.post("/", authenticateToken, async (req, res) => {
         status: "APPLIED"
       }
     });
+
+    // Send instant notification email to the hiring company
+    const companyEmail = job.company?.workEmail || job.company?.user?.email;
+    if (companyEmail) {
+      sendCompanyNewApplicantEmail({
+        companyEmail,
+        companyName: job.company?.companyName || "Hiring Team",
+        jobTitle: job.title,
+        applicantName: seeker.fullName || "Candidate",
+        applicantEmail: req.user.email,
+        applicantPhone: seeker.phone || "",
+        noticePeriod: noticePeriod || "Immediate",
+        expectedSalary: expectedSalary ? Number(expectedSalary) : null,
+        resumeUrl
+      }).catch((mailErr) => {
+        console.error("⚠️ Error sending new applicant notification email to company:", mailErr.message);
+      });
+    }
 
     res.json({ success: true, message: "Application submitted successfully!", application });
   } catch (err) {
@@ -139,8 +161,27 @@ const handleStatusUpdate = async (req, res) => {
 
     const updated = await prisma.application.update({
       where: { id: applicationId },
-      data: { status }
+      data: { status },
+      include: {
+        seeker: { include: { user: true } },
+        job: { include: { company: true } }
+      }
     });
+
+    // Send instant status update notification email to Job Seeker
+    const seekerEmail = updated.seeker?.user?.email;
+    if (seekerEmail) {
+      sendApplicantStatusUpdateEmail({
+        seekerEmail,
+        seekerName: updated.seeker?.fullName || "Job Seeker",
+        jobTitle: updated.job?.title || "Job Application",
+        companyName: updated.job?.company?.companyName || "Hiring Enterprise",
+        newStatus: status
+      }).catch((mailErr) => {
+        console.error("⚠️ Error sending status update email to job seeker:", mailErr.message);
+      });
+    }
+
     res.json({ success: true, application: updated });
   } catch (err) {
     console.error("Error updating application status:", err);

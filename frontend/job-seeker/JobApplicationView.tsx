@@ -21,7 +21,7 @@ import {
   User,
   Check
 } from 'lucide-react';
-import { NOTICE_PERIODS } from '@/lib/constants';
+import { NOTICE_PERIODS, formatCtcMetric } from '@/lib/constants';
 
 interface JobApplicationViewProps {
   job: {
@@ -62,6 +62,7 @@ export default function JobApplicationView({
   const [applicantPhone, setApplicantPhone] = useState('');
   const [resumeUrl, setResumeUrl] = useState('');
   const [resumeName, setResumeName] = useState('');
+  const [currentSalary, setCurrentSalary] = useState('');
   const [expectedSalary, setExpectedSalary] = useState('');
   const [noticeChoice, setNoticeChoice] = useState('30 days');
   const [customDays, setCustomDays] = useState('');
@@ -174,6 +175,9 @@ export default function JobApplicationView({
     if (profile.resumeUrl && !resumeUrl) {
       setResumeUrl(profile.resumeUrl);
       setResumeName(profile.resumeOriginalName || 'Resume.pdf');
+    }
+    if (profile.currentSalary && !currentSalary) {
+      setCurrentSalary(String(profile.currentSalary));
     }
     if (profile.expectedSalary && !expectedSalary) {
       setExpectedSalary(String(profile.expectedSalary));
@@ -334,11 +338,21 @@ export default function JobApplicationView({
         finalNoticePeriod = noticeChoice || '30 days';
       }
 
+      // Parse salary inputs safely (if entered in LPA e.g. 7.5, normalize to 750000; if in full rupees or thousands, preserve)
+      const parseSalaryInput = (val: string) => {
+        if (!val || !val.trim()) return null;
+        const num = parseFloat(val.replace(/[^0-9.]/g, ''));
+        if (isNaN(num) || num <= 0) return null;
+        if (num >= 1 && num < 100) return num * 100000; // entered in LPA, e.g. 7.5 -> 750000
+        return num; // entered in full rupees or stipend, e.g. 750000 or 5000
+      };
+
       const payload = {
         jobId: job.id,
         resumeUrl,
         resumeOriginalName: resumeName || 'Resume.pdf',
-        expectedSalary: expectedSalary ? parseFloat(expectedSalary) : null,
+        currentSalary: parseSalaryInput(currentSalary) ?? (profile.currentSalary ? Number(profile.currentSalary) : null),
+        expectedSalary: parseSalaryInput(expectedSalary),
         noticePeriod: finalNoticePeriod,
         coverLetter,
         portfolioUrl,
@@ -765,20 +779,52 @@ export default function JobApplicationView({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Expected Salary */}
+                {/* Current CTC */}
                 <div>
-                  <label className="block text-[11px] sm:text-xs font-bold text-gray-700 uppercase mb-1">
-                    Expected Salary (₹ per annum)
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] sm:text-xs font-bold text-gray-700 uppercase">
+                      Current CTC
+                    </label>
+                    {currentSalary && (
+                      <span className="text-[10px] font-bold text-[#657914] bg-[#f4f7e5] px-1.5 py-0.5 rounded">
+                        {formatCtcMetric(currentSalary)}
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="number"
-                    value={expectedSalary}
-                    onChange={(e) => setExpectedSalary(e.target.value)}
-                    placeholder="e.g. 850000 (optional)"
+                    step="any"
+                    value={currentSalary}
+                    onChange={(e) => setCurrentSalary(e.target.value)}
+                    placeholder="e.g. 7.5 LPA or 750000"
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-[13px] text-gray-900 font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] focus:border-[#b2c359] transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
-                  <p className="text-[10px] text-gray-400 mt-1">Numerical value only (e.g. 800000 for 8 LPA)</p>
+                  <p className="text-[10px] text-gray-400 mt-1">Optional • e.g. 7.5 LPA or ₹7,50,000</p>
                 </div>
+
+                {/* Expected CTC */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] sm:text-xs font-bold text-gray-700 uppercase">
+                      Expected CTC
+                    </label>
+                    {expectedSalary && (
+                      <span className="text-[10px] font-bold text-[#657914] bg-[#f4f7e5] px-1.5 py-0.5 rounded">
+                        {formatCtcMetric(expectedSalary)}
+                      </span>
+                    )}
+                  </div>
+                  <input
+                    type="number"
+                    step="any"
+                    value={expectedSalary}
+                    onChange={(e) => setExpectedSalary(e.target.value)}
+                    placeholder="e.g. 10 LPA or 1000000"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-[13px] text-gray-900 font-semibold focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] focus:border-[#b2c359] transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-1">Optional • e.g. 10 LPA or ₹10,00,000</p>
+                </div>
+              </div>
 
                 {/* Notice Period */}
                 <div>
@@ -818,7 +864,6 @@ export default function JobApplicationView({
                     </div>
                   )}
                 </div>
-              </div>
 
               {/* Portfolio / LinkedIn */}
               <div>

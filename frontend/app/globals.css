@@ -67,6 +67,25 @@
   background: #94a3b8;
 }
 
+/* Modern sleek custom dropdown scrollbar */
+.dropdown-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.dropdown-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dropdown-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+.dropdown-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+.dropdown-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
 /* Zero-delay instant auth header slot visibility */
 .auth-user-slot {
   display: none !important;
@@ -96,4 +115,19 @@ html[data-auth-role="RECRUITER"] .auth-link-recruiter {
 
 html:not([data-auth-role="ADMIN"]):not([data-auth-role="RECRUITER"]) .auth-link-seeker {
   display: flex !important;
+}
+
+/* Modal Open: Strict background scroll lock across Desktop, Tablet, and Mobile iOS/Android */
+html.modal-open-scroll-locked,
+body.modal-open-scroll-locked {
+  overflow: hidden !important;
+  overscroll-behavior: contain !important;
+  touch-action: none;
+}
+
+/* Allow modal dialog cards and inner scrollable containers to scroll smoothly on touch devices */
+.modal-open-scroll-locked [class*="overflow-y-auto"],
+.modal-open-scroll-locked [class*="overflow-auto"] {
+  touch-action: pan-y !important;
+  -webkit-overflow-scrolling: touch;
 }

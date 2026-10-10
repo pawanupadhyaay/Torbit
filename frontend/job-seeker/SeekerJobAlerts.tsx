@@ -23,6 +23,7 @@ import {
 import ApplyJobModal from './ApplyJobModal';
 import JobDetailsModal from '@/common/JobDetailsModal';
 import JobApplicationView from './JobApplicationView';
+import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 
 interface JobAlertItem {
   id: string;
@@ -127,6 +128,8 @@ export default function SeekerJobAlerts() {
 
   // Apply Modal state
   const [selectedJobToApply, setSelectedJobToApply] = useState<any | null>(null);
+
+  useBodyScrollLock(Boolean(selectedAlertForMatches));
 
   const showToast = (type: 'success' | 'error' | 'info', message: string) => {
     setNotification({ type, message });
@@ -721,8 +724,8 @@ export default function SeekerJobAlerts() {
       {/* 3. MODAL: MATCHING REAL JOBS PREVIEW MODAL */}
       {/* ========================================================= */}
       {selectedAlertForMatches && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150 [overscroll-behavior:contain]">
+          <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-150 [overscroll-behavior:contain] [touch-action:pan-y]">
             
             {/* Modal Header */}
             <div className="p-4 sm:p-6 bg-[#080809] text-white flex items-center justify-between">
