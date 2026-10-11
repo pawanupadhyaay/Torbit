@@ -313,19 +313,19 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
   };
 
   return (
-    <div className="relative bg-[#0c1424] text-white py-6 sm:py-10 lg:py-14 font-['Helvetica',Arial,sans-serif] z-20">
+    <div className="relative bg-[#0c1424] text-white py-7 sm:py-12 lg:py-16 font-['Helvetica',Arial,sans-serif] z-20">
       {/* Background Architectural Panoramic Real Estate Skyline Image Layer */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-1000 scale-[1.01]"
           style={{
             backgroundImage: `url('/hero-bg.jpg')`
           }}
         />
-        {/* Premium dark gradient overlay: darker on the left for text legibility, open on the right for cityscape & sunset */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#060c18]/94 via-[#060c18]/75 to-[#060c18]/40" />
+        {/* Balanced cinematic gradient overlay: keeps skyline vivid and warm while text stays razor-sharp */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#060c18]/88 via-[#060c18]/55 to-[#060c18]/25" />
         {/* Top and bottom subtle vignette to smoothly integrate with header and page flow */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#060c18]/50 via-transparent to-[#060c18]/70" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#060c18]/45 via-transparent to-[#060c18]/65" />
       </div>
 
       <div className="max-w-7xl xl:max-w-[1360px] 2xl:max-w-[1440px] mx-auto px-3.5 sm:px-6 relative z-10">
@@ -336,25 +336,25 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
           {/* ========================================================= */}
           <div className="lg:col-span-8 space-y-4 sm:space-y-6">
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#060c18]/80 backdrop-blur-md border border-white/15 text-[11px] sm:text-xs font-semibold text-[#b2c359] mb-2 sm:mb-3 shadow-xs">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#060c18]/70 backdrop-blur-md border border-white/20 text-[11px] sm:text-xs font-semibold text-[#c7dd3c] mb-2 sm:mb-3 shadow-md">
                 <AutoAwesomeOutlinedIcon sx={{ fontSize: 14 }} />
                 <span>India&apos;s #1 Dedicated Real Estate Job Portal</span>
               </div>
               
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[34px] xl:text-[40px] font-['Helvetica',Arial,sans-serif] font-bold text-white tracking-tight leading-tight lg:whitespace-nowrap drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
-                Find Your Next Career in <span className="text-[#b2c359]">Real Estate</span>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[34px] xl:text-[40px] font-['Helvetica',Arial,sans-serif] font-black text-white tracking-tight leading-tight lg:whitespace-nowrap drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
+                Find Your Next Career in <span className="text-[#c7dd3c] drop-shadow-[0_2px_12px_rgba(199,221,60,0.4)]">Real Estate</span>
               </h1>
               
-              <p className="text-xs sm:text-sm lg:text-[14.5px] xl:text-[15.5px] text-white font-medium mt-1.5 sm:mt-2.5 max-w-none lg:whitespace-nowrap leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)]">
+              <p className="text-xs sm:text-sm lg:text-[14.5px] xl:text-[15.5px] text-slate-100 font-medium mt-1.5 sm:mt-2.5 max-w-none lg:whitespace-nowrap leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
                 Connect directly with India&apos;s premier developers, builders, and infrastructure enterprises.
               </p>
             </div>
 
-            {/* Clean Multi-Filter Search Bar */}
+            {/* Clean Multi-Filter Search Bar with Frosted Glass */}
             <form 
               id="hero-search" 
               onSubmit={handleSearchSubmit} 
-              className="bg-white p-2.5 sm:p-3 rounded-2xl shadow-2xl space-y-2 text-[#080809] border border-gray-100 font-['Helvetica',Arial,sans-serif]"
+              className="bg-white/95 backdrop-blur-xl p-3 sm:p-3.5 rounded-2xl sm:rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.45)] space-y-2.5 text-[#080809] border border-white/80 font-['Helvetica',Arial,sans-serif]"
             >
               {/* Row 1: Keyword, Location, Category */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 relative z-20">
@@ -526,7 +526,7 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
                 <div className="sm:col-span-2 lg:col-span-1">
                   <button
                     type="submit"
-                    className="w-full min-h-[44px] sm:min-h-[48px] bg-[#b2c359] hover:bg-[#9eb047] text-white font-['Helvetica',Arial,sans-serif] font-bold text-xs sm:text-[14px] uppercase px-4 py-2.5 sm:py-3 rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm active:scale-[0.99] whitespace-nowrap cursor-pointer"
+                    className="w-full min-h-[44px] sm:min-h-[48px] bg-[#b2c359] hover:bg-[#a1b34a] text-slate-950 font-['Helvetica',Arial,sans-serif] font-black text-xs sm:text-[14px] uppercase px-4 py-2.5 sm:py-3 rounded-xl transition flex items-center justify-center gap-1.5 shadow-md active:scale-[0.99] whitespace-nowrap cursor-pointer"
                   >
                     <span>SEARCH</span>
                     <ArrowForwardOutlinedIcon sx={{ fontSize: 16 }} />
@@ -536,8 +536,8 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
             </form>
 
             {/* Trending Keywords */}
-            <div className="flex items-center gap-1.5 pt-0.5 text-xs text-gray-400 overflow-x-auto pb-1 scrollbar-none flex-nowrap sm:flex-wrap">
-              <span className="font-semibold text-gray-300 shrink-0 text-[11px] sm:text-xs">Trending:</span>
+            <div className="flex items-center gap-1.5 pt-1 text-xs overflow-x-auto pb-1 scrollbar-none flex-nowrap sm:flex-wrap">
+              <span className="font-bold text-white shrink-0 text-[11px] sm:text-xs drop-shadow-sm">Trending:</span>
               {['Sales & BD', 'Marketing', 'Civil Engineering', 'Architecture', 'Legal'].map((tag) => (
                 <button
                   key={tag}
@@ -547,7 +547,7 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
                     setCategory(fullCat);
                     router.push(`/jobs?category=${encodeURIComponent(fullCat)}`);
                   }}
-                  className="px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 text-gray-200 hover:text-white transition shrink-0 text-[10.5px] sm:text-xs active:scale-95"
+                  className="px-2.5 py-1 rounded-lg bg-slate-950/60 backdrop-blur-md border border-white/20 text-slate-200 hover:text-white hover:bg-white/20 hover:border-white/40 transition shrink-0 text-[10.5px] sm:text-xs active:scale-95 shadow-xs font-medium"
                 >
                   {tag}
                 </button>
@@ -559,7 +559,7 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
           {/* RIGHT ROLE SELECTION CARD (4 Cols - Desktop Only) */}
           {/* ========================================================= */}
           <div className="hidden lg:block lg:col-span-4">
-            <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-[#080809] shadow-2xl border border-gray-100 w-full max-w-[380px] xl:max-w-[400px] ml-auto">
+            <div className="bg-white/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-[#080809] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.45)] border border-white/80 w-full max-w-[380px] xl:max-w-[400px] ml-auto">
               
               <div className="text-left mb-4 sm:mb-4.5">
                 <h3 className="text-base sm:text-lg xl:text-xl font-['Helvetica',Arial,sans-serif] font-bold tracking-tight text-gray-900">
