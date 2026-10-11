@@ -185,40 +185,124 @@ export function calculateSeekerProfileScore(p: {
 }
 
 /**
- * Formats a CTC / Salary figure into a clean, human-friendly Indian currency format.
+ * Formats a single CTC / Salary figure into a clean, human-friendly Indian currency format.
  * - Handles full annual rupees (e.g. 750000 -> "₹7.5 LPA", 1100000 -> "₹11 LPA")
  * - Handles direct LPA entries (e.g. 7.5 -> "₹7.5 LPA", 5 -> "₹5 LPA")
- * - Handles stipend / monthly figures (e.g. 5000 -> "₹5,000", 50000 -> "₹50,000")
- * - Completely avoids broken "L LPA" redundancy
+ * - Handles figures >= 1 Crore (e.g. 15000000 -> "₹1.5 Cr / yr", 50000000 -> "₹5 Cr / yr")
+ * - Handles stipend / monthly figures (e.g. 5000 -> "₹5,000", 25000 -> "₹25,000")
+ * - Completely avoids broken "5000 L", "5 Lakh", "5000 LPA" anomalies
  */
 export function formatCtcMetric(amount: number | string | null | undefined, fallback = '—'): string {
   if (amount === null || amount === undefined || amount === '') return fallback;
   const num = typeof amount === 'number' ? amount : parseFloat(String(amount).replace(/[^0-9.]/g, ''));
   if (isNaN(num) || num <= 0) return fallback;
 
-  // Case 1: Stored in full annual rupees (>= 1,00,000, e.g. 750000, 1100000)
+  // Case 1: Executive / High CTC >= 1 Crore (>= 1,00,00,000)
+  if (num >= 10000000) {
+    const cr = num / 10000000;
+    const formatted = cr % 1 === 0 ? cr.toString() : Number(cr.toFixed(1)).toString();
+    return `₹${formatted} Cr / yr`;
+  }
+
+  // Case 2: Stored in full annual rupees (>= 1,00,000, e.g. 750000 -> ₹7.5 LPA, 1100000 -> ₹11 LPA)
   if (num >= 100000) {
     const lpa = num / 100000;
-    const formatted = lpa % 1 === 0 ? lpa.toString() : lpa.toFixed(1);
+    const formatted = lpa % 1 === 0 ? lpa.toString() : Number(lpa.toFixed(1)).toString();
     return `₹${formatted} LPA`;
   }
 
-  // Case 2: Stored/entered directly in LPA (e.g. 1 to 99 LPA)
+  // Case 3: Stored/entered directly in LPA (e.g. 1 to 99 LPA)
   if (num >= 1 && num < 100) {
-    const formatted = num % 1 === 0 ? num.toString() : num.toFixed(1);
+    const formatted = num % 1 === 0 ? num.toString() : Number(num.toFixed(1)).toString();
     return `₹${formatted} LPA`;
   }
 
-  // Case 3: Small decimal (< 1 LPA, e.g. 0.3 which was 30000 / 100000)
+  // Case 4: Small decimal (< 1 LPA, e.g. 0.3 which was 30000 / 100000)
   if (num > 0 && num < 1) {
     const rupees = Math.round(num * 100000);
     if (rupees >= 1000) {
       return `₹${rupees.toLocaleString('en-IN')}`;
     }
-    return `₹${num.toFixed(1)} LPA`;
+    return `₹${Number(num.toFixed(1))} LPA`;
   }
 
-  // Case 4: Entered in thousands / monthly stipend / below 1 Lakh (e.g. 5000, 15000, 50000)
+  // Case 5: Entered in monthly stipend / thousands below 1 Lakh (e.g. 5000, 25000, 35000)
   return `₹${num.toLocaleString('en-IN')}`;
 }
+
+/**
+ * Formats a min & max salary range into industry-standard Indian LPA convention.
+ * e.g.:
+ * - (200000, 300000) -> "₹2 - ₹3 LPA"
+ * - (800000, 1200000) -> "₹8 - ₹12 LPA"
+ * - (750000, 1000000) -> "₹7.5 - ₹10 LPA"
+ * - (8000004, 1200000) -> "₹8 - ₹12 LPA" (floating point / typos safely rounded)
+ * - (600000, null) -> "₹6 LPA+"
+ * - (null, 1200000) -> "Up to ₹12 LPA"
+ * - hideSalary or null -> "Competitive CTC"
+ */
+export function formatSalaryRange(
+  min?: number | string | null,
+  max?: number | string | null,
+  hideSalary?: boolean
+): string {
+  if (hideSalary) return 'Competitive CTC';
+
+  const parseToLPA = (val: number | string | null | undefined): { val: number; isCr?: boolean } | null => {
+    if (val === null || val === undefined || val === '') return null;
+    const num = typeof val === 'number' ? val : parseFloat(String(val).replace(/[^0-9.]/g, ''));
+    if (isNaN(num) || num <= 0) return null;
+    if (num >= 10000000) {
+      const cr = num / 10000000;
+      return { val: Number(cr.toFixed(1)), isCr: true };
+    }
+    if (num >= 100000) {
+      const rawLpa = num / 100000;
+      return { val: Number(rawLpa.toFixed(1)) };
+    }
+    if (num > 0 && num < 1000) {
+      return { val: Number(num.toFixed(1)) };
+    }
+    return { val: Number((num / 100000).toFixed(1)) };
+  };
+
+  const minObj = parseToLPA(min);
+  const maxObj = parseToLPA(max);
+
+  if (minObj && maxObj) {
+    if (minObj.isCr || maxObj.isCr) {
+      const minText = minObj.isCr ? `₹${minObj.val} Cr` : `₹${minObj.val} LPA`;
+      const maxText = maxObj.isCr ? `₹${maxObj.val} Cr` : `₹${maxObj.val} LPA`;
+      return `${minText} - ${maxText}`;
+    }
+    if (minObj.val === maxObj.val) return `₹${minObj.val} LPA`;
+    return `₹${minObj.val} - ₹${maxObj.val} LPA`;
+  }
+  if (minObj) {
+    return minObj.isCr ? `₹${minObj.val} Cr+` : `₹${minObj.val} LPA+`;
+  }
+  if (maxObj) {
+    return maxObj.isCr ? `Up to ₹${maxObj.val} Cr` : `Up to ₹${maxObj.val} LPA`;
+  }
+  return 'Competitive CTC';
+}
+
+/**
+ * Standard Industry Experience Ranges for Job Postings
+ */
+export const JOB_EXPERIENCE_RANGES = [
+  'Fresher (0 Years)',
+  '0 – 1 Years',
+  '1 – 3 Years',
+  '2 – 4 Years',
+  '2 – 5 Years',
+  '3 – 5 Years',
+  '4 – 6 Years',
+  '5 – 8 Years',
+  '6 – 10 Years',
+  '8 – 12 Years',
+  '10 – 15 Years',
+  '12 – 18 Years',
+  '15+ Years'
+];
 

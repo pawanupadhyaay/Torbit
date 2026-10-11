@@ -3,6 +3,7 @@ const dotenv = require("dotenv");
 const fs = require("fs");
 
 // Load .env, .env.local, or .env.production
+// Auto-reload trigger: Applications fixed
 const envFile = process.env.NODE_ENV === "production" ? ".env.production" : ".env.local";
 dotenv.config({ path: path.join(__dirname, "../", envFile) });
 dotenv.config({ path: path.join(__dirname, "../.env") });

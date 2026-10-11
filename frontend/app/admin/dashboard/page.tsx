@@ -43,7 +43,7 @@ import AdminPostSpecialJobModal from '@/common/AdminPostSpecialJobModal';
 import { Building2 } from 'lucide-react';
 import Footer from '@/common/Footer';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
-import { formatCtcMetric } from '@/lib/constants';
+import { formatCtcMetric, formatSalaryRange } from '@/lib/constants';
 
 export interface SpecialCompanyItem {
   name: string;
@@ -158,6 +158,11 @@ export default function AdminDashboardPage() {
   const [jobStatusFilter, setJobStatusFilter] = useState<'ACTIVE' | 'DRAFT' | 'CLOSED' | 'EXPIRED'>('ACTIVE');
   const [jobCategoryFilter, setJobCategoryFilter] = useState('ALL');
   const [jobCompanyFilter, setJobCompanyFilter] = useState('ALL');
+  const [jobSearchQuery, setJobSearchQuery] = useState('');
+  const [jobWorkModeFilter, setJobWorkModeFilter] = useState('ALL');
+  const [jobTypeFilter, setJobTypeFilter] = useState('ALL');
+  const [jobFeaturedFilter, setJobFeaturedFilter] = useState<'ALL' | 'FEATURED' | 'STANDARD'>('ALL');
+  const [jobSortBy, setJobSortBy] = useState<'NEWEST' | 'OLDEST' | 'APPLICANTS_DESC' | 'APPLICANTS_ASC' | 'TITLE_ASC' | 'COMPANY_ASC'>('NEWEST');
   const [flaggedJobs, setFlaggedJobs] = useState<any[]>([
     { id: 'fj-1', title: 'Senior Property Advisor - Duplicate', company: 'Global Skyline Properties', reason: 'Repeated posting within 24 hours' }
   ]);
@@ -239,10 +244,13 @@ export default function AdminDashboardPage() {
         },
         body: JSON.stringify({ status: newStatus })
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setJobApplicants(prev => prev.map(a => (a.id === appId || a._id === appId) ? { ...a, status: newStatus } : a));
         setAllApplications(prev => prev.map(a => (a.id === appId || a._id === appId) ? { ...a, status: newStatus } : a));
         showToast(`Applicant status updated to ${newStatus}`);
+      } else {
+        showToast(data.error || 'Failed to update status');
       }
     } catch (e) {
       showToast('Failed to update status');
@@ -497,6 +505,15 @@ export default function AdminDashboardPage() {
   const [jobsList, setJobsList] = useState<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
+  const allJobCompanies = useMemo(() => {
+    const set = new Set<string>();
+    jobsList.forEach((j: any) => {
+      if (j.company && typeof j.company === 'string' && j.company.trim()) {
+        set.add(j.company.trim());
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [jobsList]);
 
   // Refs for tracking changes and avoiding redundant / overlapping fetches
   const isFetchingRef = React.useRef(false);
@@ -541,6 +558,7 @@ export default function AdminDashboardPage() {
           if (parsed.rejectedCompanies) setRejectedCompanies(parsed.rejectedCompanies);
           if (parsed.seekersList) setSeekersList(parsed.seekersList);
           if (parsed.jobsList) setJobsList(parsed.jobsList);
+          if (parsed.allApplications && Array.isArray(parsed.allApplications)) setAllApplications(parsed.allApplications);
         } catch (e) {}
       }
 
@@ -764,6 +782,7 @@ export default function AdminDashboardPage() {
           skills: j.skills || 'Real Estate, Sales, Negotiations',
           applicants: j.applicants ?? 0,
           postedOn: j.postedOn || (j.createdAt ? new Date(j.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recent'),
+          rawCreatedAt: j.createdAt || null,
           status: j.status || (j.rawStatus === 'ACTIVE' ? 'Active' : j.rawStatus === 'CLOSED' ? 'Closed' : j.rawStatus === 'DRAFT' ? 'Draft' : 'Active'),
           isFeatured: !!j.isFeatured
         }));
@@ -835,7 +854,8 @@ export default function AdminDashboardPage() {
             approvedCompanies: approved,
             rejectedCompanies: rejected,
             seekersList: mappedSeekers,
-            jobsList: mappedJobs
+            jobsList: mappedJobs,
+            allApplications: appsResult.status === 'fulfilled' && appsResult.value?.applications ? appsResult.value.applications : []
           }));
         }
       } catch (cacheErr) {}
@@ -3948,22 +3968,107 @@ export default function AdminDashboardPage() {
           {/* 6.5 TAB: JOB LISTINGS */}
           {/* ========================================================= */}
           {activeTab === 'JOBS' && (() => {
-            const filteredJobs = jobsList.filter((j) => {
-              let matchStatus = true;
+            const jobsInCurrentStatus = jobsList.filter((j) => {
               if (jobStatusFilter === 'ACTIVE') {
-                matchStatus = j.status === 'Active' || j.status === 'Blocked co.';
+                return j.status === 'Active' || j.status === 'Blocked co.';
               } else if (jobStatusFilter === 'DRAFT') {
-                matchStatus = j.status === 'Draft';
+                return j.status === 'Draft';
               } else if (jobStatusFilter === 'CLOSED') {
-                matchStatus = j.status === 'Closed';
+                return j.status === 'Closed';
               } else if (jobStatusFilter === 'EXPIRED') {
-                matchStatus = j.status === 'Expired';
+                return j.status === 'Expired';
+              }
+              return true;
+            });
+
+            const hasActiveJobFilters = Boolean(
+              jobSearchQuery.trim() ||
+              jobCategoryFilter !== 'ALL' ||
+              jobCompanyFilter !== 'ALL' ||
+              jobWorkModeFilter !== 'ALL' ||
+              jobTypeFilter !== 'ALL' ||
+              jobFeaturedFilter !== 'ALL' ||
+              jobSortBy !== 'NEWEST'
+            );
+
+            const handleResetJobFilters = () => {
+              setJobSearchQuery('');
+              setJobCategoryFilter('ALL');
+              setJobCompanyFilter('ALL');
+              setJobWorkModeFilter('ALL');
+              setJobTypeFilter('ALL');
+              setJobFeaturedFilter('ALL');
+              setJobSortBy('NEWEST');
+            };
+
+            const filteredJobs = jobsInCurrentStatus.filter((j) => {
+              // 1. Search Query (Job Title, Company, Location, Skills, Category)
+              if (jobSearchQuery.trim()) {
+                const q = jobSearchQuery.toLowerCase().trim();
+                const title = (j.title || '').toLowerCase();
+                const company = (j.company || '').toLowerCase();
+                const loc = (j.location || '').toLowerCase();
+                const cat = (j.category || '').toLowerCase();
+                const skills = (j.skills || '').toLowerCase();
+                const matches = title.includes(q) || company.includes(q) || loc.includes(q) || cat.includes(q) || skills.includes(q);
+                if (!matches) return false;
               }
 
-              const matchCategory = jobCategoryFilter === 'ALL' || j.category === jobCategoryFilter;
-              const matchCompany = jobCompanyFilter === 'ALL' || j.company.toLowerCase().includes(jobCompanyFilter.toLowerCase());
+              // 2. Category
+              if (jobCategoryFilter !== 'ALL' && j.category !== jobCategoryFilter) {
+                return false;
+              }
 
-              return matchStatus && matchCategory && matchCompany;
+              // 3. Company
+              if (jobCompanyFilter !== 'ALL' && j.company !== jobCompanyFilter) {
+                return false;
+              }
+
+              // 4. Work Mode
+              if (jobWorkModeFilter !== 'ALL') {
+                const wm = (j.workMode || '').toLowerCase().replace(/[\s-]/g, '');
+                const target = jobWorkModeFilter.toLowerCase().replace(/[\s-]/g, '');
+                if (wm !== target) return false;
+              }
+
+              // 5. Employment Type
+              if (jobTypeFilter !== 'ALL') {
+                const jt = (j.type || '').toLowerCase().replace(/[\s-]/g, '');
+                const target = jobTypeFilter.toLowerCase().replace(/[\s-]/g, '');
+                if (jt !== target) return false;
+              }
+
+              // 6. Featured
+              if (jobFeaturedFilter === 'FEATURED' && !j.isFeatured) return false;
+              if (jobFeaturedFilter === 'STANDARD' && j.isFeatured) return false;
+
+              return true;
+            }).sort((a, b) => {
+              if (jobSortBy === 'NEWEST') {
+                const timeA = a.rawCreatedAt ? new Date(a.rawCreatedAt).getTime() : 0;
+                const timeB = b.rawCreatedAt ? new Date(b.rawCreatedAt).getTime() : 0;
+                if (timeB !== timeA) return timeB - timeA;
+                return (b.id || '').localeCompare(a.id || '');
+              }
+              if (jobSortBy === 'OLDEST') {
+                const timeA = a.rawCreatedAt ? new Date(a.rawCreatedAt).getTime() : 0;
+                const timeB = b.rawCreatedAt ? new Date(b.rawCreatedAt).getTime() : 0;
+                if (timeA !== timeB) return timeA - timeB;
+                return (a.id || '').localeCompare(b.id || '');
+              }
+              if (jobSortBy === 'APPLICANTS_DESC') {
+                return (b.applicants || 0) - (a.applicants || 0);
+              }
+              if (jobSortBy === 'APPLICANTS_ASC') {
+                return (a.applicants || 0) - (b.applicants || 0);
+              }
+              if (jobSortBy === 'TITLE_ASC') {
+                return (a.title || '').localeCompare(b.title || '');
+              }
+              if (jobSortBy === 'COMPANY_ASC') {
+                return (a.company || '').localeCompare(b.company || '');
+              }
+              return 0;
             });
 
             const activeCount = jobsList.filter(j => j.status === 'Active' || j.status === 'Blocked co.').length;
@@ -3991,6 +4096,7 @@ export default function AdminDashboardPage() {
                   </button>
                 </div>
 
+                {/* Status Tabs Bar */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
                   <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
                     <button
@@ -4035,17 +4141,149 @@ export default function AdminDashboardPage() {
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={jobCategoryFilter}
-                      onChange={(e) => setJobCategoryFilter(e.target.value)}
-                      className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-semibold focus:outline-none cursor-pointer"
-                    >
-                      <option value="ALL">All Categories</option>
-                      {categoriesList.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
+                  <div className="text-[11px] font-semibold text-slate-500 self-end sm:self-center">
+                    Total in Database: <span className="font-bold text-slate-800">{jobsList.length}</span>
+                  </div>
+                </div>
+
+                {/* Filter and Search Control Card */}
+                <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-3.5 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs">
+                    {/* 1. Search Query */}
+                    <div className="relative sm:col-span-2 lg:col-span-2">
+                      <SearchOutlinedIcon sx={{ fontSize: 16 }} className="text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="text"
+                        value={jobSearchQuery}
+                        onChange={(e) => setJobSearchQuery(e.target.value)}
+                        placeholder="Search title, company, location, skills..."
+                        className="w-full pl-8 pr-7 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:border-[#b2c359] transition"
+                      />
+                      {jobSearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => setJobSearchQuery('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 font-bold cursor-pointer text-sm"
+                          title="Clear search"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+
+                    {/* 2. Category Filter */}
+                    <div>
+                      <select
+                        value={jobCategoryFilter}
+                        onChange={(e) => setJobCategoryFilter(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800 focus:bg-white focus:outline-none cursor-pointer truncate"
+                      >
+                        <option value="ALL">All Categories</option>
+                        {categoriesList.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* 3. Company Filter */}
+                    <div>
+                      <select
+                        value={jobCompanyFilter}
+                        onChange={(e) => setJobCompanyFilter(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800 focus:bg-white focus:outline-none cursor-pointer truncate"
+                      >
+                        <option value="ALL">All Companies</option>
+                        {allJobCompanies.map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* 4. Work Mode Filter */}
+                    <div>
+                      <select
+                        value={jobWorkModeFilter}
+                        onChange={(e) => setJobWorkModeFilter(e.target.value)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800 focus:bg-white focus:outline-none cursor-pointer"
+                      >
+                        <option value="ALL">All Work Modes</option>
+                        <option value="On-site">On-site</option>
+                        <option value="Remote">Remote</option>
+                        <option value="Hybrid">Hybrid</option>
+                      </select>
+                    </div>
+
+                    {/* 5. Sort By */}
+                    <div>
+                      <select
+                        value={jobSortBy}
+                        onChange={(e) => setJobSortBy(e.target.value as any)}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-semibold text-slate-800 focus:bg-white focus:outline-none cursor-pointer"
+                      >
+                        <option value="NEWEST">Posted: Newest First</option>
+                        <option value="OLDEST">Posted: Oldest First</option>
+                        <option value="APPLICANTS_DESC">Applicants: High to Low</option>
+                        <option value="APPLICANTS_ASC">Applicants: Low to High</option>
+                        <option value="TITLE_ASC">Title: A to Z</option>
+                        <option value="COMPANY_ASC">Company: A to Z</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Secondary Filter Chips Row: Job Type & Visibility */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Type:</span>
+                      {(['ALL', 'Full Time', 'Part Time', 'Contract', 'Internship'] as const).map((typeOption) => (
+                        <button
+                          key={typeOption}
+                          type="button"
+                          onClick={() => setJobTypeFilter(typeOption)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                            jobTypeFilter === typeOption
+                              ? 'bg-slate-900 text-white shadow-2xs'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
+                          }`}
+                        >
+                          {typeOption === 'ALL' ? 'All Types' : typeOption}
+                        </button>
                       ))}
-                    </select>
+
+                      <span className="text-slate-300 mx-1 hidden sm:inline">|</span>
+
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Visibility:</span>
+                      {(['ALL', 'FEATURED', 'STANDARD'] as const).map((featOption) => (
+                        <button
+                          key={featOption}
+                          type="button"
+                          onClick={() => setJobFeaturedFilter(featOption)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                            jobFeaturedFilter === featOption
+                              ? featOption === 'FEATURED'
+                                ? 'bg-amber-500 text-white shadow-2xs'
+                                : 'bg-slate-900 text-white shadow-2xs'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80'
+                          }`}
+                        >
+                          {featOption === 'ALL' ? 'All' : featOption === 'FEATURED' ? '⭐ Featured Only' : 'Standard Only'}
+                        </button>
+                      ))}
+                    </div>
+
+                    {hasActiveJobFilters && (
+                      <div className="flex items-center gap-2.5 ml-auto">
+                        <span className="text-[11px] text-slate-500 font-medium">
+                          Showing {filteredJobs.length} of {jobsInCurrentStatus.length} jobs
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleResetJobFilters}
+                          className="text-xs font-bold text-red-600 hover:text-red-700 hover:underline cursor-pointer"
+                        >
+                          Reset Filters
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -4067,8 +4305,22 @@ export default function AdminDashboardPage() {
                       <tbody className="divide-y divide-slate-100 font-medium text-slate-800">
                         {filteredJobs.length === 0 ? (
                           <tr>
-                            <td colSpan={8} className="text-center py-10 text-slate-400 text-xs">
-                              No job postings found under {jobStatusFilter.toLowerCase()} status.
+                            <td colSpan={8} className="text-center py-12 text-slate-400 text-xs">
+                              {hasActiveJobFilters ? (
+                                <div className="space-y-2">
+                                  <p className="font-semibold text-slate-700 text-sm">No jobs match your selected filter criteria.</p>
+                                  <p className="text-[11px] text-slate-400">Try adjusting your filters or search terms.</p>
+                                  <button
+                                    type="button"
+                                    onClick={handleResetJobFilters}
+                                    className="mt-1 px-3.5 py-1.5 bg-[#b2c359] text-slate-900 font-bold rounded-xl text-xs hover:bg-[#a1b347] transition cursor-pointer shadow-2xs"
+                                  >
+                                    Reset Filters
+                                  </button>
+                                </div>
+                              ) : (
+                                <span>No job postings found under {jobStatusFilter.toLowerCase()} status.</span>
+                              )}
                             </td>
                           </tr>
                         ) : (
@@ -4269,15 +4521,15 @@ export default function AdminDashboardPage() {
           {/* 6.5 TAB: APPLICATIONS PIPELINE (GLOBAL PORTAL APPLICATIONS) */}
           {/* ========================================================= */}
           {activeTab === 'APPLICATIONS' && (
-            <div className="space-y-4 max-w-7xl">
+            <div className="space-y-4 max-w-7xl pb-28 sm:pb-12">
               {/* Header Title & Refresh */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h1 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight">
                       Job Applications &amp; Candidate Pipeline
                     </h1>
-                    <span className="bg-[#b2c359] text-black text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase">
+                    <span className="bg-[#b2c359] text-black text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase whitespace-nowrap shrink-0">
                       {filteredAllApplications.length} of {allApplications.length}
                     </span>
                   </div>
@@ -4288,18 +4540,29 @@ export default function AdminDashboardPage() {
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       setLoadingAllApplications(true);
-                      fetch('/api/admin/applications', {
-                        headers: {
-                          Authorization: `Bearer ${localStorage.getItem('adminToken') || ''}`
+                      try {
+                        const token = localStorage.getItem('adminToken');
+                        const headers: any = { 'Content-Type': 'application/json' };
+                        if (token) headers['Authorization'] = `Bearer ${token}`;
+                        const res = await fetch('/api/admin/applications', { headers });
+                        if (res.ok) {
+                          const d = await res.json();
+                          if (d.applications) {
+                            setAllApplications(d.applications);
+                            showToast(`Pipeline refreshed: ${d.applications.length} applications loaded.`);
+                          }
+                        } else {
+                          showToast('Failed to refresh pipeline from server.');
                         }
-                      })
-                        .then(r => r.json())
-                        .then(d => { if (d.applications) setAllApplications(d.applications); })
-                        .finally(() => setLoadingAllApplications(false));
+                      } catch (e) {
+                        showToast('Error syncing applications pipeline.');
+                      } finally {
+                        setLoadingAllApplications(false);
+                      }
                     }}
-                    className="px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-xl shadow-2xs transition flex items-center gap-1.5 cursor-pointer"
+                    className="w-full sm:w-auto px-4 py-2.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 text-xs font-bold rounded-xl shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
                   >
                     <RefreshOutlinedIcon sx={{ fontSize: 16 }} className={loadingAllApplications ? 'animate-spin' : ''} />
                     <span>Refresh Pipeline</span>
@@ -4308,10 +4571,10 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* Filter and Search Control Bar */}
-              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-4 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 text-xs">
+              <div className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-3 sm:p-4 space-y-3">
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-2.5 text-xs">
                   {/* 1. Candidate Search */}
-                  <div className="relative lg:col-span-1">
+                  <div className="relative col-span-2 lg:col-span-1">
                     <SearchOutlinedIcon sx={{ fontSize: 16 }} className="text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
@@ -4332,14 +4595,14 @@ export default function AdminDashboardPage() {
                   </div>
 
                   {/* 2. Filter by Company */}
-                  <div>
+                  <div className="col-span-1">
                     <select
                       value={appCompanyFilter}
                       onChange={(e) => {
                         setAppCompanyFilter(e.target.value);
                         setAppJobFilter('ALL');
                       }}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none cursor-pointer truncate"
+                      className="w-full px-2.5 sm:px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none cursor-pointer truncate"
                     >
                       <option value="ALL">All Companies</option>
                       {allAppCompanies.map((c) => (
@@ -4349,11 +4612,11 @@ export default function AdminDashboardPage() {
                   </div>
 
                   {/* 3. Filter by Job */}
-                  <div>
+                  <div className="col-span-1">
                     <select
                       value={appJobFilter}
                       onChange={(e) => setAppJobFilter(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none cursor-pointer truncate"
+                      className="w-full px-2.5 sm:px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none cursor-pointer truncate"
                     >
                       <option value="ALL">All Jobs</option>
                       {allAppJobs.map((j) => (
@@ -4363,28 +4626,29 @@ export default function AdminDashboardPage() {
                   </div>
 
                   {/* 4. Filter by Status */}
-                  <div>
+                  <div className="col-span-1">
                     <select
                       value={appStatusFilter}
                       onChange={(e) => setAppStatusFilter(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none cursor-pointer"
+                      className="w-full px-2.5 sm:px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none cursor-pointer truncate"
                     >
                       <option value="ALL">All Statuses</option>
                       <option value="APPLIED">Applied</option>
                       <option value="SHORTLISTED">Shortlisted</option>
+                      <option value="SELECTED">Selected</option>
                       <option value="REJECTED">Rejected</option>
                     </select>
                   </div>
 
                   {/* 5. Sort By */}
-                  <div>
+                  <div className="col-span-1">
                     <select
                       value={appSortBy}
                       onChange={(e) => setAppSortBy(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none cursor-pointer"
+                      className="w-full px-2.5 sm:px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:bg-white focus:outline-none cursor-pointer truncate"
                     >
-                      <option value="NEWEST">Applied: Recent First</option>
-                      <option value="OLDEST">Applied: Oldest First</option>
+                      <option value="NEWEST">Recent First</option>
+                      <option value="OLDEST">Oldest First</option>
                       <option value="CTC_DESC">CTC: High to Low</option>
                       <option value="CTC_ASC">CTC: Low to High</option>
                       <option value="NAME_ASC">Name: A to Z</option>
@@ -4449,36 +4713,49 @@ export default function AdminDashboardPage() {
                     const user = seeker.user || {};
                     const job = app.job || {};
                     const company = job.company || {};
+                    const isSpecialJob = Boolean(
+                      app.isSpecialJob ??
+                      job.isSpecialJob ??
+                      (company.workEmail && (company.workEmail.includes('torbit-partner.com') || company.workEmail.startsWith('special.'))) ??
+                      (company.gstNumber && company.gstNumber.startsWith('GST-SPECIAL-'))
+                    );
 
                     return (
                       <div 
                         key={app.id}
-                        className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-4 space-y-3 hover:border-slate-300 transition"
+                        className="bg-white rounded-2xl border border-slate-200/90 shadow-[0_1px_3px_rgba(0,0,0,0.05)] p-3.5 sm:p-4 space-y-3 hover:border-slate-300 transition"
                       >
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h4 className="font-black text-sm text-slate-900">
+                        <div className="border-b border-slate-100 pb-3 space-y-2.5">
+                          {/* Top Row: Candidate Name & Status Badge */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <h4 className="font-black text-sm sm:text-base text-slate-900 leading-tight">
                                 {seeker.fullName || 'Candidate'}
                               </h4>
-                              <span className="text-[11px] font-bold text-slate-400">→</span>
-                              <span className="font-bold text-xs text-slate-800 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
-                                {job.title || 'Role'}
-                              </span>
-                              <span className="text-[11px] font-bold text-[#658A0D] bg-lime-50 px-2 py-0.5 rounded-lg border border-lime-200">
-                                {company.companyName || 'Company'}
-                              </span>
+                              <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                                <span className="font-bold text-xs text-slate-800 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">
+                                  {job.title || 'Role'}
+                                </span>
+                                <span className="text-[11px] font-bold text-[#658A0D] bg-lime-50 px-2 py-0.5 rounded-lg border border-lime-200">
+                                  {company.companyName || 'Company'}
+                                </span>
+                                {isSpecialJob ? (
+                                  <span className="text-[10px] font-black text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 shrink-0">
+                                    ★ Special Job
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 shrink-0">
+                                    Recruiter Job
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            <div className="text-[11px] text-slate-500 flex flex-wrap items-center gap-2 mt-1">
-                              <span>📧 {user.email || seeker.email || 'Email not listed'}</span>
-                              {(user.phone || seeker.phone) && <span>• 📞 {user.phone || seeker.phone}</span>}
-                              <span>• 🕒 Applied: {new Date(app.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                            </div>
-                          </div>
 
-                          <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase ${
-                              app.status === 'SHORTLISTED'
+                            {/* Status Badge */}
+                            <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shrink-0 whitespace-nowrap ${
+                              app.status === 'SELECTED'
+                                ? 'bg-purple-100 text-purple-800 border border-purple-300'
+                                : app.status === 'SHORTLISTED'
                                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                                 : app.status === 'REJECTED'
                                 ? 'bg-red-100 text-red-800 border border-red-300'
@@ -4486,60 +4763,88 @@ export default function AdminDashboardPage() {
                             }`}>
                               {app.status}
                             </span>
+                          </div>
 
-                            {app.status !== 'SHORTLISTED' && (
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateApplicantStatus(app.id, 'SHORTLISTED')}
-                                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-lg transition cursor-pointer"
-                              >
-                                Shortlist
-                              </button>
-                            )}
-                            {app.status !== 'REJECTED' && (
-                              <button
-                                type="button"
-                                onClick={() => handleUpdateApplicantStatus(app.id, 'REJECTED')}
-                                className="px-2.5 py-1 bg-white hover:bg-red-50 text-red-600 border border-red-200 font-bold text-[11px] rounded-lg transition cursor-pointer"
-                              >
-                                Reject
-                              </button>
+                          {/* Contact & Date Bar */}
+                          <div className="text-[11px] text-slate-500 flex flex-wrap items-center gap-x-2.5 gap-y-1 bg-slate-50/80 px-2.5 py-1.5 rounded-xl border border-slate-100">
+                            <span className="truncate max-w-[220px] sm:max-w-none">📧 {user.email || seeker.email || 'Email not listed'}</span>
+                            {(user.phone || seeker.phone) && <span>• 📞 {user.phone || seeker.phone}</span>}
+                            <span className="text-slate-400">• 🕒 {new Date(app.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center justify-between gap-2 pt-0.5">
+                            {isSpecialJob ? (
+                              <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+                                {app.status !== 'SHORTLISTED' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateApplicantStatus(app.id, 'SHORTLISTED')}
+                                    className="flex-1 sm:flex-initial px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition cursor-pointer text-center active:scale-95 shadow-2xs"
+                                  >
+                                    Shortlist
+                                  </button>
+                                )}
+                                {app.status !== 'SELECTED' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateApplicantStatus(app.id, 'SELECTED')}
+                                    className="flex-1 sm:flex-initial px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl transition cursor-pointer text-center active:scale-95 shadow-2xs"
+                                  >
+                                    Select
+                                  </button>
+                                )}
+                                {app.status !== 'REJECTED' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleUpdateApplicantStatus(app.id, 'REJECTED')}
+                                    className="flex-1 sm:flex-initial px-3.5 py-1.5 bg-white hover:bg-red-50 text-red-600 border border-red-200 font-bold text-xs rounded-xl transition cursor-pointer text-center active:scale-95 shadow-2xs"
+                                  >
+                                    Reject
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-[11px] font-bold text-slate-500 bg-slate-100/90 px-2.5 py-1 rounded-lg border border-slate-200 flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                <span>Recruiter Managed</span>
+                              </span>
                             )}
                           </div>
                         </div>
 
                         {/* CTC & Notice Metrics */}
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                          <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                            <span className="text-[10px] text-slate-400 block font-bold uppercase">CURRENT CTC</span>
-                            <span className="font-bold text-slate-900">
+                          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                            <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">CURRENT CTC</span>
+                            <span className="font-bold text-slate-900 mt-0.5 block truncate">
                               {formatCtcMetric(app.currentSalary, 'Not Disclosed')}
                             </span>
                           </div>
-                          <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                            <span className="text-[10px] text-slate-400 block font-bold uppercase">EXPECTED CTC</span>
-                            <span className="font-bold text-emerald-700">
+                          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                            <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">EXPECTED CTC</span>
+                            <span className="font-bold text-emerald-700 mt-0.5 block truncate">
                               {formatCtcMetric(app.expectedSalary, 'Open')}
                             </span>
                           </div>
-                          <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
-                            <span className="text-[10px] text-slate-400 block font-bold uppercase">NOTICE PERIOD</span>
-                            <span className="font-bold text-slate-900">
+                          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                            <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">NOTICE PERIOD</span>
+                            <span className="font-bold text-slate-900 mt-0.5 block truncate">
                               {app.noticePeriod || 'Immediate'}
                             </span>
                           </div>
-                          <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 flex items-center justify-between">
-                            <div>
-                              <span className="text-[10px] text-slate-400 block font-bold uppercase">RESUME</span>
+                          <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 flex flex-col justify-between">
+                            <span className="text-[10px] text-slate-400 block font-bold uppercase tracking-wider">RESUME</span>
+                            <div className="mt-0.5">
                               {app.resumeUrl ? (
                                 <a
                                   href={app.resumeUrl}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="font-bold text-blue-600 hover:underline flex items-center gap-1 text-[11px]"
+                                  className="font-bold text-blue-600 hover:underline inline-flex items-center gap-1 text-[11px]"
                                 >
                                   <span>View PDF</span>
-                                  <OpenInNewOutlinedIcon sx={{ fontSize: 12 }} />
+                                  <OpenInNewOutlinedIcon sx={{ fontSize: 13 }} />
                                 </a>
                               ) : (
                                 <span className="text-slate-400 text-[11px]">No file</span>
@@ -5802,27 +6107,13 @@ export default function AdminDashboardPage() {
                   <div>
                     <span className="text-slate-500 text-[10px] sm:text-[11px] block">Current Annual CTC:</span>
                     <span className="font-black text-slate-900 text-xs sm:text-sm">
-                      {(() => {
-                        const sal = selectedSeekerForModal.currentSalary;
-                        if (!sal || sal <= 0) return 'Fresher / Not Disclosed';
-                        const n = Number(sal);
-                        if (n >= 100000) return `₹${(n / 100000).toFixed(n % 100000 === 0 ? 0 : 1)} LPA`;
-                        if (n <= 100) return `₹${n} LPA`;
-                        return `₹${n.toLocaleString('en-IN')}`;
-                      })()}
+                      {formatCtcMetric(selectedSeekerForModal.currentSalary, 'Fresher / Not Disclosed')}
                     </span>
                   </div>
                   <div>
                     <span className="text-slate-500 text-[10px] sm:text-[11px] block">Expected Annual CTC:</span>
                     <span className="font-black text-emerald-700 text-xs sm:text-sm">
-                      {(() => {
-                        const sal = selectedSeekerForModal.expectedSalary;
-                        if (!sal || sal <= 0) return 'Competitive / Open';
-                        const n = Number(sal);
-                        if (n >= 100000) return `₹${(n / 100000).toFixed(n % 100000 === 0 ? 0 : 1)} LPA`;
-                        if (n <= 100) return `₹${n} LPA`;
-                        return `₹${n.toLocaleString('en-IN')}`;
-                      })()}
+                      {formatCtcMetric(selectedSeekerForModal.expectedSalary, 'Competitive / Open')}
                     </span>
                   </div>
                   <div>
@@ -6181,36 +6472,49 @@ export default function AdminDashboardPage() {
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-2">
-                                <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase ${
-                                  app.status === 'SHORTLISTED'
-                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                    : app.status === 'REJECTED'
-                                    ? 'bg-red-100 text-red-800 border border-red-300'
-                                    : 'bg-amber-100 text-amber-800 border border-amber-300'
-                                }`}>
-                                  {app.status}
-                                </span>
+                              {(() => {
+                                const isSpecialJob = Boolean(app.isSpecialJob ?? selectedJobForView?.isSpecialJob);
+                                return (
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase ${
+                                      app.status === 'SHORTLISTED'
+                                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                        : app.status === 'REJECTED'
+                                        ? 'bg-red-100 text-red-800 border border-red-300'
+                                        : 'bg-amber-100 text-amber-800 border border-amber-300'
+                                    }`}>
+                                      {app.status}
+                                    </span>
 
-                                {app.status !== 'SHORTLISTED' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateApplicantStatus(app.id, 'SHORTLISTED')}
-                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-lg transition cursor-pointer"
-                                  >
-                                    Shortlist
-                                  </button>
-                                )}
-                                {app.status !== 'REJECTED' && (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateApplicantStatus(app.id, 'REJECTED')}
-                                    className="px-2.5 py-1 bg-white hover:bg-red-50 text-red-600 border border-red-200 font-bold text-[11px] rounded-lg transition cursor-pointer"
-                                  >
-                                    Reject
-                                  </button>
-                                )}
-                              </div>
+                                    {isSpecialJob ? (
+                                      <>
+                                        {app.status !== 'SHORTLISTED' && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUpdateApplicantStatus(app.id, 'SHORTLISTED')}
+                                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] rounded-lg transition cursor-pointer"
+                                          >
+                                            Shortlist
+                                          </button>
+                                        )}
+                                        {app.status !== 'REJECTED' && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleUpdateApplicantStatus(app.id, 'REJECTED')}
+                                            className="px-2.5 py-1 bg-white hover:bg-red-50 text-red-600 border border-red-200 font-bold text-[11px] rounded-lg transition cursor-pointer"
+                                          >
+                                            Reject
+                                          </button>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <span className="text-[11px] font-bold text-slate-500 bg-slate-100/90 px-2.5 py-1 rounded-lg border border-slate-200">
+                                        Recruiter Managed
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </div>
 
                             {/* Candidate Metrics */}
@@ -6312,9 +6616,7 @@ export default function AdminDashboardPage() {
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
                       <span className="text-[10px] font-bold text-slate-400 uppercase block">Salary Package</span>
                       <span className="font-bold text-emerald-700 text-xs sm:text-sm">
-                        {selectedJobForView.salaryMin && selectedJobForView.salaryMax
-                          ? `₹${(selectedJobForView.salaryMin / 100000).toFixed(1)} – ₹${(selectedJobForView.salaryMax / 100000).toFixed(1)} LPA`
-                          : 'Competitive / Disclosed'}
+                        {formatSalaryRange(selectedJobForView.salaryMin, selectedJobForView.salaryMax, selectedJobForView.hideSalary)}
                       </span>
                     </div>
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5">

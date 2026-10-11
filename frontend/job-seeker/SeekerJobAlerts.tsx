@@ -23,6 +23,7 @@ import {
 import ApplyJobModal from './ApplyJobModal';
 import JobDetailsModal from '@/common/JobDetailsModal';
 import JobApplicationView from './JobApplicationView';
+import { formatSalaryRange } from '@/lib/constants';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 
 interface JobAlertItem {
@@ -791,9 +792,7 @@ export default function SeekerJobAlerts() {
                         </div>
 
                         <span className="bg-emerald-50 text-emerald-800 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-emerald-200">
-                          {job.hideSalary
-                            ? 'Salary: Best in Industry'
-                            : (job.salaryMin ? `₹${job.salaryMin} - ₹${job.salaryMax || job.salaryMin} LPA` : 'Competitive')}
+                          {formatSalaryRange(job.salaryMin, job.salaryMax, job.hideSalary)}
                         </span>
                       </div>
 

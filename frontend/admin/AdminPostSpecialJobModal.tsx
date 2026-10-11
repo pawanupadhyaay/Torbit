@@ -20,6 +20,8 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
+import { JOB_EXPERIENCE_RANGES } from '@/lib/constants';
+import DepartmentSelect from '@/common/DepartmentSelect';
 
 export interface CustomQuestion {
   id: string;
@@ -576,15 +578,11 @@ export default function AdminPostSpecialJobModal({
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Department / Category *
                 </label>
-                <select
+                <DepartmentSelect
                   value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:border-[#b2c359] transition cursor-pointer"
-                >
-                  {REAL_ESTATE_DEPARTMENTS.map((dept) => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))}
-                </select>
+                  onChange={setDepartment}
+                  categories={REAL_ESTATE_DEPARTMENTS}
+                />
               </div>
 
               <div>
@@ -659,28 +657,37 @@ export default function AdminPostSpecialJobModal({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Experience Range (Years)
+                  Experience Required
                 </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min={0}
-                    max={50}
-                    value={expMin}
-                    onChange={(e) => setExpMin(parseInt(e.target.value) || 0)}
-                    placeholder="Min"
-                    className="w-1/2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#b2c359]"
-                  />
-                  <span className="text-slate-400 text-xs">to</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={50}
-                    value={expMax}
-                    onChange={(e) => setExpMax(parseInt(e.target.value) || 0)}
-                    placeholder="Max"
-                    className="w-1/2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#b2c359]"
-                  />
+                <div className="relative">
+                  <select
+                    value={`${expMin} – ${expMax} Years`}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === 'Fresher (0 Years)') {
+                        setExpMin(0);
+                        setExpMax(1);
+                      } else if (val === '15+ Years') {
+                        setExpMin(15);
+                        setExpMax(30);
+                      } else {
+                        const nums = val.match(/\d+/g);
+                        if (nums && nums.length >= 2) {
+                          setExpMin(parseInt(nums[0], 10));
+                          setExpMax(parseInt(nums[1], 10));
+                        }
+                      }
+                    }}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:outline-none focus:border-[#b2c359] cursor-pointer appearance-none pr-8"
+                  >
+                    <option value="" disabled>Select Experience (e.g. 1 – 5 Years)</option>
+                    {JOB_EXPERIENCE_RANGES.map((rng) => (
+                      <option key={rng} value={rng}>
+                        {rng}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
               </div>
 

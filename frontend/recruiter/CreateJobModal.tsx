@@ -1,7 +1,9 @@
 'use client';
 import React, { useState } from 'react';
-import { X, Briefcase, PlusCircle, AlertCircle, Calendar, Users, IndianRupee, MapPin, CheckCircle2 } from 'lucide-react';
+import { X, Briefcase, PlusCircle, AlertCircle, Calendar, Users, IndianRupee, MapPin, CheckCircle2, ChevronDown } from 'lucide-react';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
+import { JOB_EXPERIENCE_RANGES } from '@/lib/constants';
+import DepartmentSelect from '@/common/DepartmentSelect';
 
 interface CreateJobModalProps {
   isOpen: boolean;
@@ -71,14 +73,14 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
     jobType: 'Full-time',
     workMode: 'On-site',
     location: 'Gurugram, Haryana',
-    expMin: 2,
-    expMax: 5,
-    salaryMin: 600000,
-    salaryMax: 1000000,
+    expMin: '' as any,
+    expMax: '' as any,
+    salaryMin: '' as any,
+    salaryMax: '' as any,
     hideSalary: false,
     description: '',
-    skills: 'Sales Management, Channel Partners, CRM, Negotiation',
-    openings: 1,
+    skills: '',
+    openings: '' as any,
     deadline: ''
   });
 
@@ -100,10 +102,19 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
       const headers: any = { 'Content-Type': 'application/json' };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
+      const payload = {
+        ...formData,
+        salaryMin: formData.salaryMin !== '' && !isNaN(Number(formData.salaryMin)) ? Number(formData.salaryMin) : null,
+        salaryMax: formData.salaryMax !== '' && !isNaN(Number(formData.salaryMax)) ? Number(formData.salaryMax) : null,
+        expMin: formData.expMin !== '' && !isNaN(Number(formData.expMin)) ? Number(formData.expMin) : 0,
+        expMax: formData.expMax !== '' && !isNaN(Number(formData.expMax)) ? Number(formData.expMax) : 5,
+        openings: formData.openings !== '' && !isNaN(Number(formData.openings)) ? Number(formData.openings) : 1
+      };
+
       const res = await fetch(`${apiBase}/jobs`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (!res.ok) {
@@ -199,15 +210,11 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
               <label className="block text-xs font-bold text-slate-800 mb-1">
                 Department / Category <span className="text-red-500">*</span>
               </label>
-              <select
+              <DepartmentSelect
                 value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl font-medium bg-white focus:outline-none focus:ring-1 focus:ring-[#b2c359] focus:border-[#b2c359] cursor-pointer transition"
-              >
-                {categoriesList.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
+                onChange={(val) => setFormData({ ...formData, department: val })}
+                categories={categoriesList}
+              />
             </div>
           </div>
 
@@ -280,26 +287,32 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <div>
               <label className="block text-xs font-bold text-slate-800 mb-1">Experience Required</label>
-              <div className="flex gap-2 items-center">
-                <input
-                  type="number"
-                  min={0}
-                  max={40}
-                  value={formData.expMin}
-                  onChange={(e) => setFormData({ ...formData, expMin: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl font-medium text-center"
-                  placeholder="Min Yrs"
-                />
-                <span className="text-slate-400">–</span>
-                <input
-                  type="number"
-                  min={0}
-                  max={40}
-                  value={formData.expMax}
-                  onChange={(e) => setFormData({ ...formData, expMax: Number(e.target.value) })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl font-medium text-center"
-                  placeholder="Max Yrs"
-                />
+              <div className="relative">
+                <select
+                  value={formData.expMin !== '' && formData.expMax !== '' ? `${formData.expMin} – ${formData.expMax} Years` : ''}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === 'Fresher (0 Years)') {
+                      setFormData({ ...formData, expMin: 0 as any, expMax: 1 as any });
+                    } else if (val === '15+ Years') {
+                      setFormData({ ...formData, expMin: 15 as any, expMax: 30 as any });
+                    } else {
+                      const nums = val.match(/\d+/g);
+                      if (nums && nums.length >= 2) {
+                        setFormData({ ...formData, expMin: parseInt(nums[0], 10) as any, expMax: parseInt(nums[1], 10) as any });
+                      }
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl font-medium text-xs bg-white focus:outline-none focus:border-[#b2c359] cursor-pointer appearance-none pr-7"
+                >
+                  <option value="" disabled>Select Experience</option>
+                  {JOB_EXPERIENCE_RANGES.map((rng) => (
+                    <option key={rng} value={rng}>
+                      {rng}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
 
@@ -311,17 +324,17 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
                 <input
                   type="number"
                   value={formData.salaryMin}
-                  onChange={(e) => setFormData({ ...formData, salaryMin: Number(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, salaryMin: e.target.value as any })}
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl font-medium text-xs"
-                  placeholder="Min CTC"
+                  placeholder="Min (e.g. 600000)"
                 />
                 <span className="text-slate-400">–</span>
                 <input
                   type="number"
                   value={formData.salaryMax}
-                  onChange={(e) => setFormData({ ...formData, salaryMax: Number(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, salaryMax: e.target.value as any })}
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl font-medium text-xs"
-                  placeholder="Max CTC"
+                  placeholder="Max (e.g. 1200000)"
                 />
               </div>
               <label className="flex items-center gap-1.5 mt-1.5 cursor-pointer select-none">
@@ -341,7 +354,7 @@ export default function CreateJobModal({ isOpen, onClose, onJobCreated }: Create
                 type="number"
                 min={1}
                 value={formData.openings}
-                onChange={(e) => setFormData({ ...formData, openings: Number(e.target.value) })}
+                onChange={(e) => setFormData({ ...formData, openings: e.target.value as any })}
                 placeholder="e.g. 2"
                 className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl font-medium"
               />

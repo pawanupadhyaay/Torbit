@@ -21,7 +21,7 @@ import {
   User,
   Check
 } from 'lucide-react';
-import { NOTICE_PERIODS, formatCtcMetric } from '@/lib/constants';
+import { NOTICE_PERIODS, formatCtcMetric, formatSalaryRange } from '@/lib/constants';
 
 interface JobApplicationViewProps {
   job: {
@@ -383,19 +383,7 @@ export default function JobApplicationView({
   const companyInitials = (companyName || 'JOB').substring(0, 2).toUpperCase();
 
   const formatSalary = () => {
-    if (job.hideSalary) return 'Disclosed upon Request';
-    const min = job.salaryMin;
-    const max = job.salaryMax;
-    if (min && max) {
-      const minLPA = (min / 100000).toFixed(min % 100000 === 0 ? 0 : 1);
-      const maxLPA = (max / 100000).toFixed(max % 100000 === 0 ? 0 : 1);
-      return `₹${minLPA} – ${maxLPA} LPA`;
-    }
-    if (min) {
-      const minLPA = (min / 100000).toFixed(min % 100000 === 0 ? 0 : 1);
-      return `₹${minLPA} LPA+`;
-    }
-    return 'Competitive CTC';
+    return formatSalaryRange(job.salaryMin, job.salaryMax, job.hideSalary);
   };
 
   // =========================================================================

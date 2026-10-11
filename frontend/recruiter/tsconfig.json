@@ -19,11 +19,22 @@
     ],
     "paths": {
       "@/*": ["./*", "../*"],
-      "@/common/*": ["../common/*"],
+      "@/lib/*": ["./lib/*", "../lib/*"],
+      "@/common/*": ["./common/*", "../common/*"],
       "@/job-seeker/*": ["../job-seeker/*"],
       "@/recruiter/*": ["./*", "../recruiter/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "../common/**/*.ts", "../common/**/*.tsx", "../job-seeker/**/*.ts", "../job-seeker/**/*.tsx"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "../lib/**/*.ts",
+    "../common/**/*.ts",
+    "../common/**/*.tsx",
+    "../job-seeker/**/*.ts",
+    "../job-seeker/**/*.tsx"
+  ],
   "exclude": ["node_modules"]
 }

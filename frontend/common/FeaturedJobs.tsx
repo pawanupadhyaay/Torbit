@@ -5,6 +5,9 @@ import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import WorkOutlineOutlinedIcon from '@mui/icons-material/WorkOutlineOutlined';
 import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
 import ArrowForwardOutlinedIcon from '@mui/icons-material/ArrowForwardOutlined';
+import KeyboardArrowDownOutlinedIcon from '@mui/icons-material/KeyboardArrowDownOutlined';
+import KeyboardArrowUpOutlinedIcon from '@mui/icons-material/KeyboardArrowUpOutlined';
+import { formatSalaryRange } from '@/lib/constants';
 
 interface Job {
   id: string;
@@ -35,7 +38,13 @@ interface FeaturedJobsProps {
 
 export default function FeaturedJobs({ jobs, onApply, onViewDetails, appliedJobIds, isLoading }: FeaturedJobsProps) {
   const [activeTab, setActiveTab] = useState('All Jobs');
+  const [isExpanded, setIsExpanded] = useState(false);
   const filterTabs = ['All Jobs', 'Full Time', 'Part Time', 'Contract', 'Internship'];
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setIsExpanded(false);
+  };
 
   // 1. Sort real jobs: ACTIVE first, CLOSED at the very bottom, then latest createdAt
   const sortedJobs = [...(jobs || [])].sort((a, b) => {
@@ -50,7 +59,6 @@ export default function FeaturedJobs({ jobs, onApply, onViewDetails, appliedJobI
   });
 
   // 2. Filter by active job type tab
-  const MAX_FEATURED_JOBS = 6;
   const filteredAll = sortedJobs.filter((j) => {
     if (activeTab === 'All Jobs') return true;
     const jt = (j.jobType || '').toLowerCase().replace(/[\s\-_]/g, '');
@@ -58,24 +66,12 @@ export default function FeaturedJobs({ jobs, onApply, onViewDetails, appliedJobI
     return jt.includes(at) || at.includes(jt);
   });
 
-  // Separate active and closed jobs so closed jobs are never truncated when active jobs >= 6
-  const activeJobs = filteredAll.filter((j) => j.status !== 'CLOSED');
-  const closedJobs = filteredAll.filter((j) => j.status === 'CLOSED');
-
-  // Show up to MAX_FEATURED_JOBS active jobs, plus up to 3 recent closed jobs at the bottom if present
-  const displayActive = activeJobs.slice(0, MAX_FEATURED_JOBS);
-  const displayClosed = closedJobs.slice(0, 3);
-  const filtered = [...displayActive, ...displayClosed];
+  // Show strictly 4 jobs on home page by default; expandable inline
+  const INITIAL_JOBS_COUNT = 4;
+  const filtered = isExpanded ? filteredAll : filteredAll.slice(0, INITIAL_JOBS_COUNT);
 
   const formatSalary = (job: Job) => {
-    if (job.hideSalary) return 'Disclosed upon request';
-    if (job.salaryMin && job.salaryMax) {
-      return `₹ ${Math.round(job.salaryMin / 100000)} - ${Math.round(job.salaryMax / 100000)} LPA`;
-    }
-    if (job.salaryMin) {
-      return `₹ ${Math.round(job.salaryMin / 100000)} LPA+`;
-    }
-    return 'Disclosed upon request';
+    return formatSalaryRange(job.salaryMin, job.salaryMax, job.hideSalary);
   };
 
   const formatTimeAgo = (dateStr?: string) => {
@@ -127,7 +123,7 @@ export default function FeaturedJobs({ jobs, onApply, onViewDetails, appliedJobI
             {filterTabs.map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => handleTabChange(tab)}
                 className={`px-3.5 py-1.5 rounded-full font-['Helvetica',Arial,sans-serif] font-bold text-[13px] leading-[14px] tracking-[0px] transition whitespace-nowrap cursor-pointer ${
                   activeTab === tab
                     ? 'bg-[#111827] text-white shadow-xs'
@@ -290,15 +286,42 @@ export default function FeaturedJobs({ jobs, onApply, onViewDetails, appliedJobI
         )}
       </div>
 
-      {!isLoading && filteredAll.length > filtered.length && (
+      {!isLoading && filteredAll.length > INITIAL_JOBS_COUNT && (
         <div className="mt-4 text-center">
-          <Link
-            href={viewAllUrl}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs shadow-2xs hover:border-[#b2c359] transition group cursor-pointer"
-          >
-            <span>View All Available Jobs ({filteredAll.length})</span>
-            <ArrowForwardOutlinedIcon sx={{ fontSize: 15 }} className="text-[#b2c359] group-hover:translate-x-0.5 transition-transform" />
-          </Link>
+          {!isExpanded ? (
+            <button
+              type="button"
+              onClick={() => setIsExpanded(true)}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs shadow-2xs hover:border-[#b2c359] transition group cursor-pointer"
+            >
+              <span>View All Available Jobs ({filteredAll.length})</span>
+              <KeyboardArrowDownOutlinedIcon sx={{ fontSize: 18 }} className="text-[#b2c359] group-hover:translate-y-0.5 transition-transform" />
+            </button>
+          ) : (
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsExpanded(false);
+                  const el = document.getElementById('featured-jobs');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-2xs hover:border-[#b2c359] transition group cursor-pointer"
+              >
+                <span>Show Less</span>
+                <KeyboardArrowUpOutlinedIcon sx={{ fontSize: 18 }} className="text-[#b2c359] group-hover:-translate-y-0.5 transition-transform" />
+              </button>
+              <Link
+                href={viewAllUrl}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-[#b2c359]/60 bg-lime-50/50 hover:bg-lime-50 text-[#697d10] font-bold text-xs shadow-2xs transition group cursor-pointer"
+              >
+                <span>Explore On Jobs Page</span>
+                <ArrowForwardOutlinedIcon sx={{ fontSize: 14 }} className="text-[#b2c359] group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </section>

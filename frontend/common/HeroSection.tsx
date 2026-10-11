@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
@@ -12,8 +12,64 @@ import ArrowForwardOutlinedIcon from '@mui/icons-material/ArrowForwardOutlined';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import CorporateFareOutlinedIcon from '@mui/icons-material/CorporateFareOutlined';
 import NorthEastOutlinedIcon from '@mui/icons-material/NorthEastOutlined';
+import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import { DEPARTMENT_CATEGORIES } from '@/lib/constants';
 import CustomFilterSelect from './CustomFilterSelect';
+
+export interface JobSuggestionItem {
+  title: string;
+  type: 'ROLE' | 'COMPANY' | 'SEARCH';
+  badge?: string;
+  subtitle?: string;
+}
+
+const POPULAR_REAL_ESTATE_ROLES = [
+  { title: 'Sales Manager - Real Estate', category: 'Sales & BD' },
+  { title: 'Pre-Sales Executive', category: 'Pre-Sales' },
+  { title: 'Inside Sales Specialist', category: 'Pre-Sales' },
+  { title: 'Real Estate Investment Advisor', category: 'Advisory' },
+  { title: 'Channel Partner (CP) Manager', category: 'Sales & BD' },
+  { title: 'Business Development Manager', category: 'Sales & BD' },
+  { title: 'Digital Marketing Specialist', category: 'Marketing' },
+  { title: 'Performance Marketing Manager', category: 'Marketing' },
+  { title: 'Influencer Marketing Executive', category: 'Marketing' },
+  { title: 'Civil Site Engineer', category: 'Projects & Construction' },
+  { title: 'Project Head - Construction', category: 'Projects & Construction' },
+  { title: 'Billing & Estimation Engineer', category: 'Projects & Construction' },
+  { title: 'Senior Project Manager', category: 'Projects & Construction' },
+  { title: 'Architect & Urban Designer', category: 'Architecture & Design' },
+  { title: 'Interior Design Lead', category: 'Architecture & Design' },
+  { title: 'Leasing Manager - Commercial', category: 'Leasing' },
+  { title: 'Retail Leasing Specialist', category: 'Leasing' },
+  { title: 'Property & Facility Manager', category: 'Property Management' },
+  { title: 'CRM & Customer Experience Lead', category: 'CRM & Relations' },
+  { title: 'Customer Relations Executive', category: 'CRM & Relations' },
+  { title: 'Legal Counsel - RERA Compliance', category: 'Legal' },
+  { title: 'Land Due Diligence & Legal Head', category: 'Legal' },
+  { title: 'Real Estate Financial Analyst', category: 'Finance & Accounts' },
+  { title: 'Accounts & Taxation Manager', category: 'Finance & Accounts' },
+  { title: 'Land Acquisition Specialist', category: 'Land Acquisition' },
+  { title: 'Government Liaison Officer', category: 'Liaison & Approvals' },
+  { title: 'Quality Control (QA/QC) Engineer', category: 'Quality Assurance' },
+  { title: 'HR & Talent Acquisition Lead', category: 'Human Resources' },
+  { title: 'PropTech Product Manager', category: 'PropTech / Product' },
+  { title: 'Real Estate Content & Video Creator', category: 'Content & Creative' },
+];
+
+const POPULAR_COMPANIES = [
+  'DLF Limited',
+  'Godrej Properties',
+  'SOBHA Realty',
+  'EMAAR India',
+  'Prestige Group',
+  'Puravankara',
+  'Tata Housing',
+  'Oberoi Realty',
+  'Brigade Group',
+  'Lodha Group',
+  'Mahindra Lifespaces',
+  'Shapoorji Pallonji Real Estate'
+];
 
 interface HeroSectionProps {
   categories?: Array<{ name: string; [key: string]: any } | string>;
@@ -29,12 +85,218 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
   const [jobType, setJobType] = useState('All Job Types');
   const [workMode, setWorkMode] = useState('All Work Modes');
 
+  // Autocomplete suggestions state
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
+  const [realJobs, setRealJobs] = useState<Array<{ title: string; category?: string; company?: string }>>([]);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Load real jobs from session snapshot & API to keep suggestions accurate
+  useEffect(() => {
+    try {
+      const cached = typeof window !== 'undefined' ? sessionStorage.getItem('torbitHomeSnapshot') : null;
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.jobs && Array.isArray(parsed.jobs)) {
+          setRealJobs(parsed.jobs.map((j: any) => ({
+            title: j.title || '',
+            category: j.department || j.category || '',
+            company: j.company?.companyName || ''
+          })));
+        }
+      }
+    } catch (e) {}
+
+    const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+      ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
+      : '/api';
+
+    fetch(`${apiBase}/jobs`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Jobs fetch error');
+        return res.json();
+      })
+      .then((data) => {
+        if (data?.jobs && Array.isArray(data.jobs)) {
+          setRealJobs(data.jobs.map((j: any) => ({
+            title: j.title || '',
+            category: j.department || j.category || '',
+            company: j.company?.companyName || ''
+          })));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+        setSelectedIndex(-1);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Compute matched suggestions dynamically
+  const suggestions = useMemo<JobSuggestionItem[]>(() => {
+    const q = keyword.trim().toLowerCase();
+    if (!q) return [];
+
+    const results: JobSuggestionItem[] = [];
+    const seen = new Set<string>();
+
+    // 1. Direct search item at top
+    results.push({
+      title: keyword.trim(),
+      type: 'SEARCH',
+      badge: 'Press Enter',
+      subtitle: `Search all jobs for "${keyword.trim()}"`
+    });
+    seen.add(q);
+
+    // 2. Real database job titles
+    for (const job of realJobs) {
+      const title = job.title?.trim();
+      if (title && !seen.has(title.toLowerCase()) && title.toLowerCase().includes(q)) {
+        seen.add(title.toLowerCase());
+        results.push({
+          title,
+          type: 'ROLE',
+          badge: job.category || 'Active Job',
+          subtitle: job.company ? `Hiring at ${job.company}` : 'Verified Opening'
+        });
+        if (results.length >= 8) break;
+      }
+    }
+
+    // 3. Standard curated Real Estate Job Roles
+    if (results.length < 8) {
+      for (const role of POPULAR_REAL_ESTATE_ROLES) {
+        if (!seen.has(role.title.toLowerCase()) && (role.title.toLowerCase().includes(q) || role.category.toLowerCase().includes(q))) {
+          seen.add(role.title.toLowerCase());
+          results.push({
+            title: role.title,
+            type: 'ROLE',
+            badge: role.category,
+            subtitle: 'Real Estate Career Role'
+          });
+          if (results.length >= 8) break;
+        }
+      }
+    }
+
+    // 4. Popular Real Estate Companies (if query matches company)
+    if (results.length < 8) {
+      for (const comp of POPULAR_COMPANIES) {
+        if (!seen.has(comp.toLowerCase()) && comp.toLowerCase().includes(q)) {
+          seen.add(comp.toLowerCase());
+          results.push({
+            title: comp,
+            type: 'COMPANY',
+            badge: 'Top Employer',
+            subtitle: 'Explore developer jobs'
+          });
+          if (results.length >= 8) break;
+        }
+      }
+    }
+
+    return results;
+  }, [keyword, realJobs]);
+
+  const handleSelectSuggestion = (item: JobSuggestionItem) => {
+    setKeyword(item.title);
+    setShowSuggestions(false);
+    setSelectedIndex(-1);
+
+    const params = new URLSearchParams();
+    if (item.type === 'COMPANY') {
+      params.set('company', item.title);
+    } else {
+      params.set('q', item.title);
+    }
+    if (location && location !== 'All Locations') params.set('location', location);
+    if (category && category !== 'All Categories') params.set('category', category);
+    if (jobType && jobType !== 'All Job Types') params.set('jobType', jobType);
+    if (workMode && workMode !== 'All Work Modes') params.set('workMode', workMode);
+
+    if (onSearch) {
+      onSearch({ 
+        q: item.type === 'COMPANY' ? '' : item.title, 
+        location, 
+        category, 
+        jobType, 
+        workMode 
+      });
+    }
+
+    const qs = params.toString();
+    router.push(qs ? `/jobs?${qs}` : '/jobs');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showSuggestions || suggestions.length === 0) {
+      if (e.key === 'ArrowDown') {
+        setShowSuggestions(true);
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : suggestions.length - 1));
+    } else if (e.key === 'Enter') {
+      if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+        e.preventDefault();
+        handleSelectSuggestion(suggestions[selectedIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setSelectedIndex(-1);
+    }
+  };
+
+  const renderHighlightedText = (text: string, query: string) => {
+    if (!query) return text;
+    const index = text.toLowerCase().indexOf(query.toLowerCase());
+    if (index === -1) return text;
+
+    const before = text.substring(0, index);
+    const match = text.substring(index, index + query.length);
+    const after = text.substring(index + query.length);
+
+    return (
+      <>
+        {before}
+        <span className="font-bold text-[#697d10] bg-lime-100/80 rounded-xs px-0.5">{match}</span>
+        {after}
+      </>
+    );
+  };
+
   const categoryList: string[] = categories && categories.length > 0
     ? categories.map((c: any) => typeof c === 'string' ? c : c.name)
     : (DEPARTMENT_CATEGORIES as unknown as string[]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowSuggestions(false);
+    setSelectedIndex(-1);
+
+    if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+      handleSelectSuggestion(suggestions[selectedIndex]);
+      return;
+    }
+
     const params = new URLSearchParams();
     if (keyword.trim()) params.set('q', keyword.trim());
     if (location && location !== 'All Locations') params.set('location', location);
@@ -96,16 +358,118 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
             >
               {/* Row 1: Keyword, Location, Category */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 relative z-20">
-                {/* 1. Keyword */}
-                <div className="flex items-center px-3 py-2.5 sm:py-3 bg-gray-50/80 rounded-xl border border-gray-200 min-h-[44px] sm:min-h-[48px]">
-                  <SearchOutlinedIcon className="text-gray-400 mr-2 flex-shrink-0" sx={{ fontSize: 18 }} />
-                  <input
-                    type="text"
-                    value={keyword}
-                    onChange={(e) => setKeyword(e.target.value)}
-                    placeholder="Job title, skills, keyword..."
-                    className="w-full text-xs sm:text-[13.5px] leading-tight font-normal text-[#080809] focus:outline-none placeholder-gray-400 bg-transparent"
-                  />
+                {/* 1. Keyword with Industry-Standard Autocomplete Suggestions */}
+                <div ref={searchContainerRef} className="relative z-30">
+                  <div className="flex items-center px-3 py-2.5 sm:py-3 bg-gray-50/80 focus-within:bg-white focus-within:border-[#b2c359] focus-within:ring-2 focus-within:ring-[#b2c359]/20 rounded-xl border border-gray-200 min-h-[44px] sm:min-h-[48px] transition">
+                    <SearchOutlinedIcon className="text-gray-400 mr-2 flex-shrink-0" sx={{ fontSize: 18 }} />
+                    <input
+                      type="text"
+                      value={keyword}
+                      onChange={(e) => {
+                        setKeyword(e.target.value);
+                        setShowSuggestions(true);
+                        setSelectedIndex(-1);
+                      }}
+                      onFocus={() => {
+                        if (keyword.trim().length > 0) {
+                          setShowSuggestions(true);
+                        }
+                      }}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Job title, skills, keyword..."
+                      className="w-full text-xs sm:text-[13.5px] leading-tight font-normal text-[#080809] focus:outline-none placeholder-gray-400 bg-transparent"
+                      autoComplete="off"
+                    />
+                    {keyword && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setKeyword('');
+                          setShowSuggestions(false);
+                          setSelectedIndex(-1);
+                        }}
+                        className="text-gray-400 hover:text-gray-600 transition p-0.5 rounded-full hover:bg-gray-100 flex items-center justify-center shrink-0 cursor-pointer"
+                        title="Clear keyword"
+                      >
+                        <CloseOutlinedIcon sx={{ fontSize: 16 }} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Autocomplete Suggestions Popover */}
+                  {showSuggestions && suggestions.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden text-[#080809] animate-in fade-in slide-in-from-top-1 duration-150">
+                      <div className="p-1.5">
+                        <div className="flex items-center justify-between px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 mb-1">
+                          <span>Suggested Roles & Companies</span>
+                          <span>{suggestions.length} matches</span>
+                        </div>
+
+                        <div className="max-h-72 overflow-y-auto space-y-0.5 custom-scrollbar">
+                          {suggestions.map((item, idx) => {
+                            const isSelected = selectedIndex === idx;
+                            return (
+                              <button
+                                key={`${item.type}-${item.title}-${idx}`}
+                                type="button"
+                                onMouseEnter={() => setSelectedIndex(idx)}
+                                onClick={() => handleSelectSuggestion(item)}
+                                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left transition cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-lime-50 text-gray-950 border border-[#b2c359]/40'
+                                    : 'hover:bg-slate-50 text-gray-800 border border-transparent'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                                    item.type === 'COMPANY' 
+                                      ? 'bg-amber-50 text-amber-700' 
+                                      : item.type === 'SEARCH'
+                                      ? 'bg-lime-100 text-[#697d10]'
+                                      : 'bg-slate-100 text-slate-700'
+                                  }`}>
+                                    {item.type === 'COMPANY' ? (
+                                      <CorporateFareOutlinedIcon sx={{ fontSize: 16 }} />
+                                    ) : item.type === 'SEARCH' ? (
+                                      <SearchOutlinedIcon sx={{ fontSize: 16 }} />
+                                    ) : (
+                                      <WorkOutlineOutlinedIcon sx={{ fontSize: 16 }} />
+                                    )}
+                                  </div>
+
+                                  <div className="min-w-0">
+                                    <div className="text-xs sm:text-[13px] font-medium truncate">
+                                      {renderHighlightedText(item.title, keyword.trim())}
+                                    </div>
+                                    {item.subtitle && (
+                                      <div className="text-[10px] text-gray-400 truncate">
+                                        {item.subtitle}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="shrink-0 flex items-center gap-1.5">
+                                  {item.badge && (
+                                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                      item.type === 'COMPANY'
+                                        ? 'bg-amber-50 text-amber-700 border border-amber-200/60'
+                                        : item.type === 'SEARCH'
+                                        ? 'bg-lime-100 text-[#697d10] border border-lime-200/60'
+                                        : 'bg-gray-100 text-gray-600 border border-gray-200/60'
+                                    }`}>
+                                      {item.badge}
+                                    </span>
+                                  )}
+                                  <NorthEastOutlinedIcon sx={{ fontSize: 13 }} className="text-gray-300 group-hover:text-gray-500" />
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* 2. Location */}

@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { authenticateToken } = require("../middleware/authMiddleware");
-const { sendCompanyApprovalEmail, sendCompanyRejectionEmail, sendNewJobAlertMatchEmail } = require("../services/emailService");
+const { sendCompanyApprovalEmail, sendCompanyRejectionEmail, sendNewJobAlertMatchEmail, sendApplicantStatusUpdateEmail } = require("../services/emailService");
 const settingsService = require("../services/settingsService");
 
 // Helper to notify candidates with active alerts matching newly created job
@@ -57,6 +57,27 @@ async function notifyAlertMatchingSeekers(job, companyName) {
   } catch (err) {
     console.error("⚠️ Error in notifyAlertMatchingSeekers:", err.message);
   }
+}
+
+// Helper to check if a job is a Special Job created from Admin Console
+function isSpecialJobListing(job) {
+  if (!job) return false;
+  try {
+    const settings = settingsService.getSettings();
+    const specialIds = Array.isArray(settings?.specialJobIds) ? settings.specialJobIds : [];
+    if (job.id && specialIds.includes(job.id)) return true;
+
+    const company = job.company;
+    if (company) {
+      const email = (company.workEmail || '').toLowerCase();
+      if (email.includes('torbit-partner.com') || email.startsWith('special.')) return true;
+      const gst = (company.gstNumber || '').toUpperCase();
+      if (gst.startsWith('GST-SPECIAL-')) return true;
+    }
+  } catch (err) {
+    console.error("⚠️ Error evaluating isSpecialJobListing:", err.message);
+  }
+  return false;
 }
 
 // 1. GET Admin Stats & Overview
@@ -487,7 +508,9 @@ router.get("/jobs", async (req, res) => {
             companyName: true,
             status: true,
             industry: true,
-            hqLocation: true
+            hqLocation: true,
+            workEmail: true,
+            gstNumber: true
           }
         },
         _count: { select: { applications: true } }
@@ -514,6 +537,7 @@ router.get("/jobs", async (req, res) => {
         title: j.title,
         company: j.company?.companyName || "Unknown Company",
         companyStatus: j.company?.status || "APPROVED",
+        isSpecialJob: isSpecialJobListing(j),
         category: j.department || "General",
         location: j.location,
         type: j.jobType,
@@ -609,7 +633,6 @@ router.get("/applications", async (req, res) => {
               select: {
                 id: true,
                 email: true,
-                phone: true,
                 role: true
               }
             }
@@ -624,7 +647,19 @@ router.get("/applications", async (req, res) => {
       orderBy: { createdAt: "desc" }
     });
 
-    res.json({ success: true, applications });
+    const enrichedApplications = applications.map((a) => {
+      const isSpecial = isSpecialJobListing(a.job);
+      return {
+        ...a,
+        isSpecialJob: isSpecial,
+        job: a.job ? {
+          ...a.job,
+          isSpecialJob: isSpecial
+        } : null
+      };
+    });
+
+    res.json({ success: true, applications: enrichedApplications });
   } catch (err) {
     console.error("Error fetching all applications for admin:", err);
     res.status(500).json({ error: "Failed to fetch applications" });
@@ -644,7 +679,6 @@ router.get("/jobs/:id/applications", async (req, res) => {
               select: {
                 id: true,
                 email: true,
-                phone: true,
                 role: true
               }
             }
@@ -659,21 +693,82 @@ router.get("/jobs/:id/applications", async (req, res) => {
       orderBy: { createdAt: "desc" }
     });
 
-    res.json({ success: true, applications });
+    const enrichedApplications = applications.map((a) => {
+      const isSpecial = isSpecialJobListing(a.job);
+      return {
+        ...a,
+        isSpecialJob: isSpecial,
+        job: a.job ? {
+          ...a.job,
+          isSpecialJob: isSpecial
+        } : null
+      };
+    });
+
+    res.json({ success: true, applications: enrichedApplications });
   } catch (err) {
     console.error("Error fetching job applications for admin:", err);
     res.status(500).json({ error: "Failed to fetch job applications" });
   }
 });
 
-// 5c. Update Application Status as Admin
+// 5c. Update Application Status as Admin (Only permitted for Admin-posted Special Jobs)
 router.patch("/applications/:id", async (req, res) => {
   try {
     const { status } = req.body;
+
+    const existingApp = await prisma.application.findUnique({
+      where: { id: req.params.id },
+      include: {
+        job: {
+          include: {
+            company: true
+          }
+        }
+      }
+    });
+
+    if (!existingApp) {
+      return res.status(404).json({ error: "Application not found" });
+    }
+
+    if (!isSpecialJobListing(existingApp.job)) {
+      return res.status(403).json({
+        error: "Action not permitted: Only candidates for Special Jobs posted by Admin can be shortlisted, selected, or rejected by Admin. Recruiter manages actions for this job."
+      });
+    }
+
     const updated = await prisma.application.update({
       where: { id: req.params.id },
-      data: { status }
+      data: { status },
+      include: {
+        seeker: {
+          include: {
+            user: { select: { id: true, email: true } }
+          }
+        },
+        job: {
+          include: {
+            company: { select: { companyName: true } }
+          }
+        }
+      }
     });
+
+    // Send email notification to candidate if email exists
+    const seekerEmail = updated.seeker?.user?.email;
+    if (seekerEmail && typeof sendApplicantStatusUpdateEmail === "function") {
+      sendApplicantStatusUpdateEmail({
+        seekerEmail,
+        seekerName: updated.seeker?.fullName || "Candidate",
+        jobTitle: updated.job?.title || "Job Application",
+        companyName: updated.job?.company?.companyName || "Torbit Hiring Enterprise",
+        newStatus: status
+      }).catch((mailErr) => {
+        console.error("⚠️ Error sending status update email to job seeker:", mailErr.message);
+      });
+    }
+
     res.json({ success: true, application: updated });
   } catch (err) {
     console.error("Error updating application status:", err);
@@ -839,6 +934,20 @@ router.post("/jobs", async (req, res) => {
     notifyAlertMatchingSeekers(job, company.companyName).catch((err) => {
       console.error("⚠️ Error notifying candidates for admin job:", err.message);
     });
+
+    // Save job.id to specialJobIds in settings
+    try {
+      const currentSettings = settingsService.getSettings();
+      const existingJobIds = Array.isArray(currentSettings.specialJobIds)
+        ? [...currentSettings.specialJobIds]
+        : [];
+      if (!existingJobIds.includes(job.id)) {
+        existingJobIds.push(job.id);
+        settingsService.updateSettings({ specialJobIds: existingJobIds });
+      }
+    } catch (sErr) {
+      console.warn("Could not sync specialJobId to settings:", sErr.message);
+    }
 
     res.json({ success: true, job });
   } catch (err) {

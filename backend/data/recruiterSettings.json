@@ -1,0 +1,9 @@
+{
+  "cm123test": {
+    "instantAlerts": false,
+    "dailyDigest": true,
+    "jobStatusAlerts": false,
+    "autoAcknowledge": true,
+    "updatedAt": "2026-10-11T14:06:33.965Z"
+  }
+}

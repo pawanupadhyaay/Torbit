@@ -9,6 +9,7 @@ import RecruiterOverview from '../../../recruiter/RecruiterOverview';
 import RecruiterJobsTable from '../../../recruiter/RecruiterJobsTable';
 import ApplicantReviewPipeline from '../../../recruiter/ApplicantReviewPipeline';
 import CompanyProfileSettings from '../../../recruiter/CompanyProfileSettings';
+import RecruiterSettings from '../../../recruiter/RecruiterSettings';
 import CreateJobModal from '../../../recruiter/CreateJobModal';
 import CreateJobView from '../../../recruiter/CreateJobView';
 import Footer from '@/common/Footer';
@@ -830,10 +831,18 @@ export default function RecruiterDashboardPage() {
             />
           )}
 
-          {(activeTab === 'PROFILE' || activeTab === 'SETTINGS') && (
+          {activeTab === 'PROFILE' && (
             <CompanyProfileSettings
               company={company}
               onProfileUpdated={(updated) => setUser((prev: any) => ({ ...prev, companyProfile: updated }))}
+            />
+          )}
+
+          {activeTab === 'SETTINGS' && (
+            <RecruiterSettings
+              user={user}
+              company={company}
+              onLogout={handleLogout}
             />
           )}
         </main>

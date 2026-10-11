@@ -1,6 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { Search, Users, Download, ExternalLink, Briefcase } from 'lucide-react';
+import { formatCtcMetric } from '@/lib/constants';
 
 interface CandidateDirectoryProps {
   seekers: any[];
@@ -65,8 +66,8 @@ export default function CandidateDirectory({ seekers }: CandidateDirectoryProps)
                   </div>
                 </td>
                 <td className="p-3">
-                  <div className="font-mono font-bold text-gray-900">
-                    ₹{s.currentSalary || 6.5} LPA → ₹{s.expectedSalary || 9.5} LPA
+                  <div className="font-mono font-bold text-gray-900 text-xs">
+                    {formatCtcMetric(s.currentSalary || 650000)} → {formatCtcMetric(s.expectedSalary || 950000)}
                   </div>
                 </td>
                 <td className="p-3 text-gray-600">

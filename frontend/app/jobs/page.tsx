@@ -11,7 +11,7 @@ import MobileBottomBar from '@/common/MobileBottomBar';
 import JobFilterBar from '@/common/JobFilterBar';
 import CustomFilterSelect from '@/common/CustomFilterSelect';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
-import { DEPARTMENT_CATEGORIES, JOB_TYPES, WORK_MODES } from '@/lib/constants';
+import { DEPARTMENT_CATEGORIES, JOB_TYPES, WORK_MODES, formatSalaryRange } from '@/lib/constants';
 import {
   Search,
   MapPin,
@@ -461,15 +461,7 @@ function JobsContent() {
   };
 
   const formatSalary = (min?: number, max?: number, hide?: boolean) => {
-    if (hide || (!min && !max)) return 'Disclosed upon Shortlisting';
-    const toLakhs = (val: number) => {
-      if (val >= 100000) return `₹${(val / 100000).toFixed(1)} LPA`;
-      return `₹${val.toLocaleString('en-IN')}`;
-    };
-    if (min && max) return `${toLakhs(min)} – ${toLakhs(max)}`;
-    if (min) return `From ${toLakhs(min)}`;
-    if (max) return `Up to ${toLakhs(max)}`;
-    return 'Competitive in Industry';
+    return formatSalaryRange(min, max, hide);
   };
 
   const hasActiveFilters = 

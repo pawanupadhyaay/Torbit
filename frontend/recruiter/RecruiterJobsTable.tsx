@@ -14,6 +14,7 @@ import {
   MoreVertical
 } from 'lucide-react';
 import EditJobModal from './EditJobModal';
+import { formatSalaryRange } from '@/lib/constants';
 
 interface RecruiterJobsTableProps {
   jobs: any[];
@@ -119,9 +120,7 @@ export default function RecruiterJobsTable({
           <div className="md:hidden space-y-3">
             {jobs.map((j) => {
               const appCount = j._count?.applications ?? j.applications?.length ?? 0;
-              const salaryFormatted = j.salaryMin
-                ? `₹${j.salaryMin >= 100000 ? j.salaryMin / 100000 : j.salaryMin}L - ₹${j.salaryMax >= 100000 ? j.salaryMax / 100000 : j.salaryMax}L / yr`
-                : 'Competitive CTC';
+              const salaryFormatted = formatSalaryRange(j.salaryMin, j.salaryMax, j.hideSalary);
 
               const isUpdating = updatingId === j.id;
               const isClosed = j.status === 'CLOSED';
@@ -249,9 +248,7 @@ export default function RecruiterJobsTable({
               <tbody className="divide-y divide-gray-100">
                 {jobs.map((j) => {
                   const appCount = j._count?.applications ?? j.applications?.length ?? 0;
-                  const salaryFormatted = j.salaryMin
-                    ? `₹${j.salaryMin >= 100000 ? j.salaryMin / 100000 : j.salaryMin}L - ₹${j.salaryMax >= 100000 ? j.salaryMax / 100000 : j.salaryMax}L`
-                    : 'Competitive CTC';
+                  const salaryFormatted = formatSalaryRange(j.salaryMin, j.salaryMax, j.hideSalary);
 
                   const isUpdating = updatingId === j.id;
                   const isClosed = j.status === 'CLOSED';

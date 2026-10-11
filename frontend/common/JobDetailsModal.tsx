@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import useBodyScrollLock from '@/lib/useBodyScrollLock';
+import { formatSalaryRange } from '@/lib/constants';
 import {
   X,
   MapPin,
@@ -45,19 +46,7 @@ export default function JobDetailsModal({
 
   // Format Salary
   const formatSalary = () => {
-    if (job.hideSalary) return 'Disclosed upon Request';
-    const min = job.salaryMin;
-    const max = job.salaryMax;
-    if (min && max) {
-      const minLPA = (min / 100000).toFixed(min % 100000 === 0 ? 0 : 1);
-      const maxLPA = (max / 100000).toFixed(max % 100000 === 0 ? 0 : 1);
-      return `₹${minLPA} – ${maxLPA} LPA`;
-    }
-    if (min) {
-      const minLPA = (min / 100000).toFixed(min % 100000 === 0 ? 0 : 1);
-      return `₹${minLPA} LPA+`;
-    }
-    return 'Competitive in Industry';
+    return formatSalaryRange(job.salaryMin, job.salaryMax, job.hideSalary);
   };
 
   // Format Time Ago

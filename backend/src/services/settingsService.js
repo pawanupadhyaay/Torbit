@@ -84,7 +84,8 @@ const defaultSettings = {
     { id: "admin-1", name: "Rahul Kapoor", role: "Super Admin", access: "Full access" },
     { id: "admin-2", name: "Sana Iyer", role: "Approvals-only Admin", access: "Company Approvals only" }
   ],
-  specialJobCompanies: defaultSpecialJobCompanies
+  specialJobCompanies: defaultSpecialJobCompanies,
+  specialJobIds: []
 };
 
 let inMemorySettings = { ...defaultSettings };
@@ -101,6 +102,7 @@ function loadSettingsFromDisk() {
       inMemorySettings = {
         ...defaultSettings,
         ...parsed,
+        specialJobIds: Array.isArray(parsed.specialJobIds) ? parsed.specialJobIds : [],
         specialJobCompanies: Array.isArray(parsed.specialJobCompanies) && parsed.specialJobCompanies.length > 0 
           ? normalizeCompanies(parsed.specialJobCompanies)
           : defaultSettings.specialJobCompanies,
@@ -146,7 +148,10 @@ function getSettings() {
           : Boolean(inMemorySettings.showClosedJobsOnPortal),
         specialJobCompanies: Array.isArray(parsed.specialJobCompanies) && parsed.specialJobCompanies.length > 0
           ? normalizeCompanies(parsed.specialJobCompanies)
-          : (inMemorySettings.specialJobCompanies || defaultSettings.specialJobCompanies)
+          : (inMemorySettings.specialJobCompanies || defaultSettings.specialJobCompanies),
+        specialJobIds: Array.isArray(parsed.specialJobIds)
+          ? parsed.specialJobIds
+          : (inMemorySettings.specialJobIds || defaultSettings.specialJobIds)
       };
     }
   } catch (err) {
@@ -173,6 +178,9 @@ function updateSettings(updates) {
   }
   if (Array.isArray(updates.specialJobCompanies)) {
     inMemorySettings.specialJobCompanies = normalizeCompanies(updates.specialJobCompanies);
+  }
+  if (Array.isArray(updates.specialJobIds)) {
+    inMemorySettings.specialJobIds = updates.specialJobIds;
   }
 
   saveSettingsToDisk();

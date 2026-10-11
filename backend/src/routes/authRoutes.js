@@ -7,6 +7,7 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { authenticateToken } = require("../middleware/authMiddleware");
 const { sendOtpEmail, sendPasswordResetOtpEmail, sendCompanyRegistrationAckEmail, sendAdminCompanyApprovalAlertEmail } = require("../services/emailService");
+const recruiterSettingsService = require("../services/recruiterSettingsService");
 
 const JWT_SECRET = process.env.JWT_SECRET || "torbit-realty-super-secret-key-2026";
 
@@ -1085,5 +1086,70 @@ const handleCompanyProfileUpdate = async (req, res) => {
 
 router.put("/company-profile", authenticateToken, handleCompanyProfileUpdate);
 router.patch("/company-profile", authenticateToken, handleCompanyProfileUpdate);
+
+// 7. Change Password (Authenticated)
+router.post("/change-password", authenticateToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ error: "New password must be at least 6 characters long." });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "User account not found." });
+    }
+
+    if (currentPassword) {
+      const match = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!match) {
+        return res.status(400).json({ error: "Incorrect current password. Please check and try again." });
+      }
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: newHash }
+    });
+
+    res.json({ success: true, message: "Password updated successfully!" });
+  } catch (err) {
+    console.error("Change password error:", err);
+    res.status(500).json({ error: "Failed to update password." });
+  }
+});
+
+// 8. Get & Update Recruiter Settings (Live Synced)
+router.get("/recruiter-settings", authenticateToken, async (req, res) => {
+  try {
+    const identifier = req.user.id;
+    const settings = recruiterSettingsService.getRecruiterSettings(identifier);
+    res.json({ success: true, settings });
+  } catch (err) {
+    console.error("Get recruiter settings error:", err);
+    res.status(500).json({ error: "Failed to load recruiter settings." });
+  }
+});
+
+router.put("/recruiter-settings", authenticateToken, async (req, res) => {
+  try {
+    const identifier = req.user.id;
+    const { instantAlerts, dailyDigest, jobStatusAlerts, autoAcknowledge } = req.body;
+    const updated = recruiterSettingsService.updateRecruiterSettings(identifier, {
+      instantAlerts: Boolean(instantAlerts),
+      dailyDigest: Boolean(dailyDigest),
+      jobStatusAlerts: Boolean(jobStatusAlerts),
+      autoAcknowledge: Boolean(autoAcknowledge)
+    });
+    res.json({ success: true, settings: updated, message: "Settings saved successfully!" });
+  } catch (err) {
+    console.error("Update recruiter settings error:", err);
+    res.status(500).json({ error: "Failed to save recruiter settings." });
+  }
+});
 
 module.exports = router;

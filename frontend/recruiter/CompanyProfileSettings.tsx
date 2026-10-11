@@ -232,9 +232,9 @@ export default function CompanyProfileSettings({ company, onProfileUpdated }: Co
     <div className="bg-white rounded-2xl border border-gray-200 shadow-xs p-6 space-y-6 max-w-4xl font-['Helvetica',Arial,sans-serif]">
       <div className="pb-4 border-b border-gray-100 flex items-center justify-between">
         <div>
-          <h2 className="text-base font-black text-gray-900">Company KYC &amp; Verification Dossier</h2>
+          <h2 className="text-base font-black text-gray-900">Company Profile &amp; Corporate Identity</h2>
           <p className="text-xs text-gray-500 mt-0.5">
-            Verified corporate credentials, branding logo, and GST registration governed by Torbit Realty Admin.
+            Manage your official company branding, corporate logo, contact details, and verified business profile.
           </p>
         </div>
         {saved && (

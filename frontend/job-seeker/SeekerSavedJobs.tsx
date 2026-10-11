@@ -5,9 +5,9 @@ import { Bookmark, Building2, MapPin, IndianRupee } from 'lucide-react';
 
 export default function SeekerSavedJobs() {
   const savedJobsList = [
-    { id: 'sj-1', title: 'Senior Business Consultant', company: 'Godrej Enterprises', location: 'Mumbai', ctc: '₹9-14 LPA', type: 'Full-time' },
-    { id: 'sj-2', title: 'Assistant General Manager – Sales', company: 'Prestige Group', location: 'Bengaluru', ctc: '₹18-24 LPA', type: 'Full-time' },
-    { id: 'sj-3', title: 'Operations & Strategy Lead', company: 'Global Tech Corp', location: 'Gurugram', ctc: '₹22-30 LPA', type: 'Full-time' },
+    { id: 'sj-1', title: 'Senior Business Consultant', company: 'Godrej Enterprises', location: 'Mumbai', ctc: '₹9 - ₹14 LPA', type: 'Full-time' },
+    { id: 'sj-2', title: 'Assistant General Manager – Sales', company: 'Prestige Group', location: 'Bengaluru', ctc: '₹18 - ₹24 LPA', type: 'Full-time' },
+    { id: 'sj-3', title: 'Operations & Strategy Lead', company: 'Global Tech Corp', location: 'Gurugram', ctc: '₹22 - ₹30 LPA', type: 'Full-time' },
   ];
 
   return (

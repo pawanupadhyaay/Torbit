@@ -4,10 +4,10 @@ import { IndianRupee } from 'lucide-react';
 
 export default function AdminAnalytics() {
   const salaryBands = [
-    { band: '₹3L - ₹6L (Entry / Junior Sales)', count: 4120, pct: '39%' },
-    { band: '₹6L - ₹12L (Mid-Level / Asst Manager)', count: 3250, pct: '31%' },
-    { band: '₹12L - ₹25L (Senior Manager / Lead)', count: 2110, pct: '20%' },
-    { band: '₹25L - ₹50L+ (VP / Director / Land Acq)', count: 1002, pct: '10%' },
+    { band: '₹3 - ₹6 LPA (Entry / Junior Sales)', count: 4120, pct: '39%' },
+    { band: '₹6 - ₹12 LPA (Mid-Level / Asst Manager)', count: 3250, pct: '31%' },
+    { band: '₹12 - ₹25 LPA (Senior Manager / Lead)', count: 2110, pct: '20%' },
+    { band: '₹25 - ₹50+ LPA (VP / Director / Land Acq)', count: 1002, pct: '10%' },
   ];
 
   const topHiringBuilders = [

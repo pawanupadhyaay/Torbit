@@ -25,6 +25,8 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
+import { JOB_EXPERIENCE_RANGES } from '@/lib/constants';
+import DepartmentSelect from '@/common/DepartmentSelect';
 
 export interface CustomQuestion {
   id: string;
@@ -109,10 +111,10 @@ export default function CreateJobView({
   const [jobType, setJobType] = useState('Full-time');
   const [workMode, setWorkMode] = useState('On-site');
   const [location, setLocation] = useState('');
-  const [experienceText, setExperienceText] = useState('3 – 5 years');
-  const [salaryText, setSalaryText] = useState('₹8 – 12 LPA');
+  const [experienceText, setExperienceText] = useState('');
+  const [salaryText, setSalaryText] = useState('');
   const [hideSalary, setHideSalary] = useState(false);
-  const [openings, setOpenings] = useState<number | string>(2);
+  const [openings, setOpenings] = useState<number | string>('');
   const [description, setDescription] = useState('');
   const [skills, setSkills] = useState<string[]>(['Negotiation', 'Client Relations', 'CRM Tools']);
   const [skillInput, setSkillInput] = useState('');
@@ -182,10 +184,10 @@ export default function CreateJobView({
     setJobType('Full-time');
     setWorkMode('On-site');
     setLocation('');
-    setExperienceText('3 – 5 years');
-    setSalaryText('₹8 – 12 LPA');
+    setExperienceText('');
+    setSalaryText('');
     setHideSalary(false);
-    setOpenings(2);
+    setOpenings('');
     setDescription('');
     setSkills(['Negotiation', 'Client Relations', 'CRM Tools']);
     setSkillInput('');
@@ -276,6 +278,9 @@ export default function CreateJobView({
 
   // Parse experience min/max from text or numbers
   const parseExperience = (text: string) => {
+    if (!text || !text.trim()) {
+      return { min: 0, max: 5 };
+    }
     const nums = text.match(/\d+/g);
     if (nums && nums.length >= 2) {
       return { min: parseInt(nums[0], 10), max: parseInt(nums[1], 10) };
@@ -283,19 +288,22 @@ export default function CreateJobView({
     if (nums && nums.length === 1) {
       return { min: parseInt(nums[0], 10), max: parseInt(nums[0], 10) + 2 };
     }
-    return { min: 2, max: 5 };
+    return { min: 0, max: 5 };
   };
 
   // Parse salary min/max from text
   const parseSalary = (text: string) => {
-    const nums = text.match(/\d+/g);
+    if (!text || !text.trim()) {
+      return { min: null, max: null };
+    }
+    const nums = text.match(/\d+(\.\d+)?/g);
     if (nums && nums.length >= 2) {
-      return { min: parseInt(nums[0], 10) * 100000, max: parseInt(nums[1], 10) * 100000 };
+      return { min: Math.round(parseFloat(nums[0]) * 100000), max: Math.round(parseFloat(nums[1]) * 100000) };
     }
     if (nums && nums.length === 1) {
-      return { min: parseInt(nums[0], 10) * 100000, max: (parseInt(nums[0], 10) + 4) * 100000 };
+      return { min: Math.round(parseFloat(nums[0]) * 100000), max: Math.round((parseFloat(nums[0]) + 4) * 100000) };
     }
-    return { min: 600000, max: 1200000 };
+    return { min: null, max: null };
   };
 
   const handlePublish = async (isDraft = false) => {
@@ -484,20 +492,11 @@ export default function CreateJobView({
               <label className="block text-xs font-bold text-slate-800 mb-1.5">
                 Department / Category <span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <select
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  className="w-full h-11 sm:h-10 px-3.5 pr-9 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-[#b2c359] focus:ring-2 focus:ring-[#b2c359]/20 bg-white cursor-pointer transition font-medium appearance-none"
-                >
-                  {categoriesList.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
+              <DepartmentSelect
+                value={department}
+                onChange={setDepartment}
+                categories={categoriesList}
+              />
             </div>
           </div>
 
@@ -604,14 +603,20 @@ export default function CreateJobView({
                 Experience Required
               </label>
               <div className="relative">
-                <input
-                  type="text"
+                <select
                   value={experienceText}
                   onChange={(e) => setExperienceText(e.target.value)}
-                  placeholder="e.g. 3 – 5 years"
-                  className="w-full h-11 sm:h-10 pl-9 pr-3.5 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-[#b2c359] focus:ring-2 focus:ring-[#b2c359]/20 bg-white transition font-medium"
-                />
+                  className="w-full h-11 sm:h-10 pl-9 pr-8 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-[#b2c359] focus:ring-2 focus:ring-[#b2c359]/20 bg-white transition font-medium cursor-pointer appearance-none"
+                >
+                  <option value="" className="text-slate-400">Select Experience (e.g. 3 – 5 Years)</option>
+                  {JOB_EXPERIENCE_RANGES.map((rng) => (
+                    <option key={rng} value={rng} className="text-slate-800">
+                      {rng}
+                    </option>
+                  ))}
+                </select>
                 <Clock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
 
