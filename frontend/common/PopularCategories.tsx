@@ -1,5 +1,5 @@
 'use client';
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ChevronLeftOutlinedIcon from '@mui/icons-material/ChevronLeftOutlined';
@@ -48,17 +48,93 @@ const getCategoryColor = (name: string, fallbackColor?: string) => {
 
 export default function PopularCategories({ categories, onSelectCategory, isLoading }: PopularCategoriesProps) {
   const router = useRouter();
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [items, setItems] = useState<any[]>([]);
+  const [shiftDistance, setShiftDistance] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [direction, setDirection] = useState<'left' | 'right'>('left');
+  const [isPaused, setIsPaused] = useState(false);
 
-  const hasCategories = Boolean(categories && categories.length > 0);
-  const displayList = hasCategories ? (categories as any[]).slice(0, 10) : [];
-
-  const handleScroll = (direction: 'left' | 'right') => {
-    if (scrollRef.current) {
-      const scrollAmount = direction === 'left' ? -220 : 220;
-      scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+  // Sync items when categories prop loads
+  useEffect(() => {
+    if (categories && categories.length > 0) {
+      setItems(categories);
     }
-  };
+  }, [categories]);
+
+  const hasCategories = items.length > 0;
+
+  // Move 1 item to the left smoothly
+  const handleShiftNext = useCallback(() => {
+    if (isAnimating || items.length <= 1) return;
+
+    let step = 140;
+    if (trackRef.current && trackRef.current.children.length > 0) {
+      const firstChild = trackRef.current.children[0] as HTMLElement;
+      if (firstChild) {
+        step = firstChild.offsetWidth + 10;
+      }
+    }
+
+    setShiftDistance(step);
+    setDirection('left');
+    setIsAnimating(true);
+
+    setTimeout(() => {
+      setItems((prev) => {
+        if (prev.length <= 1) return prev;
+        const [first, ...rest] = prev;
+        return [...rest, first];
+      });
+      setIsAnimating(false);
+      setShiftDistance(0);
+    }, 450);
+  }, [isAnimating, items.length]);
+
+  // Move 1 item to the right (previous) smoothly
+  const handleShiftPrev = useCallback(() => {
+    if (isAnimating || items.length <= 1) return;
+
+    let step = 140;
+    if (trackRef.current && trackRef.current.children.length > 0) {
+      const firstChild = trackRef.current.children[0] as HTMLElement;
+      if (firstChild) {
+        step = firstChild.offsetWidth + 10;
+      }
+    }
+
+    // Pre-insert last item at the front
+    setItems((prev) => {
+      if (prev.length <= 1) return prev;
+      const last = prev[prev.length - 1];
+      return [last, ...prev.slice(0, prev.length - 1)];
+    });
+
+    setShiftDistance(-step);
+    setDirection('right');
+    setIsAnimating(false);
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setIsAnimating(true);
+        setShiftDistance(0);
+        setTimeout(() => {
+          setIsAnimating(false);
+        }, 450);
+      });
+    });
+  }, [isAnimating, items.length]);
+
+  // 🔄 Automatic Right-to-Left Shift (1-1 left shift) every 3 seconds
+  useEffect(() => {
+    if (!hasCategories || isPaused) return;
+
+    const interval = setInterval(() => {
+      handleShiftNext();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [hasCategories, isPaused, handleShiftNext]);
 
   const handleCategoryCardClick = (categoryName: string) => {
     if (onSelectCategory) {
@@ -105,7 +181,7 @@ export default function PopularCategories({ categories, onSelectCategory, isLoad
           <div className="hidden sm:flex items-center gap-1">
             <button
               type="button"
-              onClick={() => handleScroll('left')}
+              onClick={handleShiftPrev}
               aria-label="Previous categories"
               className="w-7 h-7 rounded-full bg-white hover:bg-lime-50 border border-gray-200 hover:border-[#b2c359] flex items-center justify-center text-gray-600 hover:text-[#b2c359] transition shadow-xs cursor-pointer"
             >
@@ -113,7 +189,7 @@ export default function PopularCategories({ categories, onSelectCategory, isLoad
             </button>
             <button
               type="button"
-              onClick={() => handleScroll('right')}
+              onClick={handleShiftNext}
               aria-label="Next categories"
               className="w-7 h-7 rounded-full bg-white hover:bg-lime-50 border border-gray-200 hover:border-[#b2c359] flex items-center justify-center text-gray-600 hover:text-[#b2c359] transition shadow-xs cursor-pointer"
             >
@@ -131,45 +207,56 @@ export default function PopularCategories({ categories, onSelectCategory, isLoad
         </div>
       </div>
 
-      {/* 1 Single Horizontal Row with perfectly uniform cards and touch snapping */}
+      {/* 1 Single Horizontal Row with smooth 1-by-1 left shift animation */}
       <div 
-        ref={scrollRef}
-        className="flex gap-2.5 overflow-x-auto pb-2 scroll-smooth snap-x snap-mandatory scrollbar-none px-0.5"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        className="overflow-hidden pb-2 px-0.5"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        onTouchStart={() => setIsPaused(true)}
+        onTouchEnd={() => setIsPaused(false)}
       >
-        {displayList.map((cat) => {
-          const IconComponent = getCategoryIcon(cat.name);
-          const color = getCategoryColor(cat.name, cat.iconColor);
+        <div
+          ref={trackRef}
+          className="flex gap-2.5 will-change-transform"
+          style={{
+            transform: isAnimating && direction === 'left' ? `translateX(-${shiftDistance}px)` : (shiftDistance < 0 ? `translateX(${shiftDistance}px)` : 'translateX(0px)'),
+            transition: isAnimating ? 'transform 450ms cubic-bezier(0.25, 1, 0.5, 1)' : 'none'
+          }}
+        >
+          {items.map((cat, idx) => {
+            const IconComponent = getCategoryIcon(cat.name);
+            const color = getCategoryColor(cat.name, cat.iconColor);
 
-          return (
-            <button
-              key={cat.id || cat.name}
-              type="button"
-              onClick={() => handleCategoryCardClick(cat.name)}
-              className="snap-start flex-shrink-0 w-[122px] sm:w-[130px] lg:flex-1 bg-white hover:bg-lime-50/50 p-3 rounded-2xl border border-gray-100 hover:border-[#b2c359] shadow-2xs hover:shadow-xs transition group text-left flex flex-col justify-between min-h-[120px] active:scale-[0.98] cursor-pointer"
-            >
-              {/* Top Icon Box */}
-              <div 
-                className="w-9 h-9 rounded-xl flex items-center justify-center transition group-hover:scale-105 flex-shrink-0"
-                style={{ backgroundColor: `${color}18`, color: color }}
+            return (
+              <button
+                key={`${cat.id || cat.name}-${idx}`}
+                type="button"
+                onClick={() => handleCategoryCardClick(cat.name)}
+                className="snap-start flex-shrink-0 w-[122px] sm:w-[130px] lg:flex-1 bg-white hover:bg-lime-50/50 p-3 rounded-2xl border border-gray-100 hover:border-[#b2c359] shadow-2xs hover:shadow-xs transition group text-left flex flex-col justify-between min-h-[120px] active:scale-[0.98] cursor-pointer"
               >
-                <IconComponent sx={{ fontSize: 20 }} />
-              </div>
-
-              {/* Bottom Text Block with Uniform 32px Title Height */}
-              <div className="w-full mt-2.5">
-                <div className="h-[32px] flex items-start overflow-hidden">
-                  <h4 className="font-bold text-[11px] sm:text-xs text-gray-900 group-hover:text-[#b2c359] line-clamp-2 leading-[15px] transition">
-                    {cat.name}
-                  </h4>
+                {/* Top Icon Box */}
+                <div 
+                  className="w-9 h-9 rounded-xl flex items-center justify-center transition group-hover:scale-105 flex-shrink-0"
+                  style={{ backgroundColor: `${color}18`, color: color }}
+                >
+                  <IconComponent sx={{ fontSize: 20 }} />
                 </div>
-                <p className="text-[10px] text-gray-400 mt-1 font-medium whitespace-nowrap">
-                  ({cat.jobCount || 0} Jobs)
-                </p>
-              </div>
-            </button>
-          );
-        })}
+
+                {/* Bottom Text Block with Uniform 32px Title Height */}
+                <div className="w-full mt-2.5">
+                  <div className="h-[32px] flex items-start overflow-hidden">
+                    <h4 className="font-bold text-[11px] sm:text-xs text-gray-900 group-hover:text-[#b2c359] line-clamp-2 leading-[15px] transition">
+                      {cat.name}
+                    </h4>
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1 font-medium whitespace-nowrap">
+                    ({cat.jobCount || 0} Jobs)
+                  </p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

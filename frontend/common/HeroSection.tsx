@@ -66,24 +66,24 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
         <div className="absolute inset-0 bg-gradient-to-b from-[#070e1c]/45 via-transparent to-[#070e1c]/65" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center">
+      <div className="max-w-7xl xl:max-w-[1360px] 2xl:max-w-[1440px] mx-auto px-3.5 sm:px-6 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 xl:gap-10 items-center">
           
           {/* ========================================================= */}
-          {/* LEFT HERO COLUMN (7 Cols) */}
+          {/* LEFT HERO COLUMN (8 Cols) */}
           {/* ========================================================= */}
-          <div className="lg:col-span-7 space-y-4 sm:space-y-6">
+          <div className="lg:col-span-8 space-y-4 sm:space-y-6">
             <div>
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 text-[11px] sm:text-xs font-semibold text-[#b2c359] mb-2 sm:mb-3">
                 <AutoAwesomeOutlinedIcon sx={{ fontSize: 14 }} />
                 <span>India&apos;s #1 Dedicated Real Estate Job Portal</span>
               </div>
               
-              <h1 className="text-2xl sm:text-4xl lg:text-[44px] font-['Helvetica',Arial,sans-serif] font-bold text-white tracking-tight leading-[1.2]">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[34px] xl:text-[40px] font-['Helvetica',Arial,sans-serif] font-bold text-white tracking-tight leading-tight lg:whitespace-nowrap">
                 Find Your Next Career in <span className="text-[#b2c359]">Real Estate</span>
               </h1>
               
-              <p className="text-xs sm:text-base text-gray-300 font-normal mt-1.5 sm:mt-2.5 max-w-xl leading-relaxed">
+              <p className="text-xs sm:text-sm lg:text-[14.5px] xl:text-[15.5px] text-gray-300 font-normal mt-1.5 sm:mt-2.5 max-w-none lg:whitespace-nowrap leading-relaxed">
                 Connect directly with India&apos;s premier developers, builders, and infrastructure enterprises.
               </p>
             </div>
@@ -192,13 +192,13 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
           </div>
 
           {/* ========================================================= */}
-          {/* RIGHT ROLE SELECTION CARD (5 Cols - Desktop Only) */}
+          {/* RIGHT ROLE SELECTION CARD (4 Cols - Desktop Only) */}
           {/* ========================================================= */}
-          <div className="hidden lg:block lg:col-span-5">
-            <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-7 text-[#080809] shadow-2xl border border-gray-100">
+          <div className="hidden lg:block lg:col-span-4">
+            <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-[#080809] shadow-2xl border border-gray-100 w-full max-w-[380px] xl:max-w-[400px] ml-auto">
               
-              <div className="text-left mb-4 sm:mb-5">
-                <h3 className="text-lg sm:text-xl font-['Helvetica',Arial,sans-serif] font-bold tracking-tight text-gray-900">
+              <div className="text-left mb-4 sm:mb-4.5">
+                <h3 className="text-base sm:text-lg xl:text-xl font-['Helvetica',Arial,sans-serif] font-bold tracking-tight text-gray-900">
                   Get Started on Torbit
                 </h3>
                 <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
@@ -206,51 +206,51 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
                 </p>
               </div>
 
-              <div className="space-y-3 sm:space-y-3.5">
+              <div className="space-y-2.5 sm:space-y-3">
                 {/* 1. Job Seeker Option */}
                 {onOpenAuth ? (
                   <button
                     type="button"
                     onClick={() => onOpenAuth('JOB_SEEKER', 'REGISTER')}
-                    className="w-full text-left p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200 hover:border-[#b2c359] bg-gray-50/60 hover:bg-lime-50/40 transition group flex items-center justify-between gap-3 shadow-xs cursor-pointer active:scale-[0.99]"
+                    className="w-full text-left p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border border-gray-200 hover:border-[#b2c359] bg-gray-50/60 hover:bg-lime-50/40 transition group flex items-center justify-between gap-2.5 shadow-xs cursor-pointer active:scale-[0.99]"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-lime-100 text-[#b2c359] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition shadow-xs">
-                        <PersonOutlineOutlinedIcon className="text-[#b2c359]" sx={{ fontSize: 22 }} />
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-lime-100 text-[#b2c359] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition shadow-xs">
+                        <PersonOutlineOutlinedIcon className="text-[#b2c359]" sx={{ fontSize: 20 }} />
                       </div>
-                      <div>
-                        <h4 className="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-lime-950">
+                      <div className="min-w-0">
+                        <h4 className="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-lime-950 truncate">
                           I&apos;m a Job Seeker
                         </h4>
-                        <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
+                        <p className="text-[10.5px] sm:text-[11.5px] text-gray-500 mt-0.5 truncate">
                           Browse 500+ verified real estate roles
                         </p>
                       </div>
                     </div>
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white border border-gray-200 group-hover:border-[#b2c359] flex items-center justify-center text-gray-400 group-hover:text-[#b2c359] group-hover:translate-x-0.5 transition flex-shrink-0">
-                      <NorthEastOutlinedIcon sx={{ fontSize: 15 }} />
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white border border-gray-200 group-hover:border-[#b2c359] flex items-center justify-center text-gray-400 group-hover:text-[#b2c359] group-hover:translate-x-0.5 transition flex-shrink-0">
+                      <NorthEastOutlinedIcon sx={{ fontSize: 13 }} />
                     </div>
                   </button>
                 ) : (
                   <Link
                     href="/register?role=seeker"
-                    className="w-full text-left p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200 hover:border-[#b2c359] bg-gray-50/60 hover:bg-lime-50/40 transition group flex items-center justify-between gap-3 shadow-xs active:scale-[0.99]"
+                    className="w-full text-left p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border border-gray-200 hover:border-[#b2c359] bg-gray-50/60 hover:bg-lime-50/40 transition group flex items-center justify-between gap-2.5 shadow-xs active:scale-[0.99]"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-lime-100 text-[#b2c359] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition shadow-xs">
-                        <PersonOutlineOutlinedIcon className="text-[#b2c359]" sx={{ fontSize: 22 }} />
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-lime-100 text-[#b2c359] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition shadow-xs">
+                        <PersonOutlineOutlinedIcon className="text-[#b2c359]" sx={{ fontSize: 20 }} />
                       </div>
-                      <div>
-                        <h4 className="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-lime-950">
+                      <div className="min-w-0">
+                        <h4 className="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-lime-950 truncate">
                           I&apos;m a Job Seeker
                         </h4>
-                        <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
+                        <p className="text-[10.5px] sm:text-[11.5px] text-gray-500 mt-0.5 truncate">
                           Browse 500+ verified real estate roles
                         </p>
                       </div>
                     </div>
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white border border-gray-200 group-hover:border-[#b2c359] flex items-center justify-center text-gray-400 group-hover:text-[#b2c359] group-hover:translate-x-0.5 transition flex-shrink-0">
-                      <NorthEastOutlinedIcon sx={{ fontSize: 15 }} />
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white border border-gray-200 group-hover:border-[#b2c359] flex items-center justify-center text-gray-400 group-hover:text-[#b2c359] group-hover:translate-x-0.5 transition flex-shrink-0">
+                      <NorthEastOutlinedIcon sx={{ fontSize: 13 }} />
                     </div>
                   </Link>
                 )}
@@ -260,45 +260,45 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
                   <button
                     type="button"
                     onClick={() => onOpenAuth('RECRUITER', 'REGISTER')}
-                    className="w-full text-left p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200 hover:border-slate-800 bg-gray-50/60 hover:bg-slate-50 transition group flex items-center justify-between gap-3 shadow-xs cursor-pointer active:scale-[0.99]"
+                    className="w-full text-left p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border border-gray-200 hover:border-slate-800 bg-gray-50/60 hover:bg-slate-50 transition group flex items-center justify-between gap-2.5 shadow-xs cursor-pointer active:scale-[0.99]"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-900 text-white flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition shadow-xs">
-                        <CorporateFareOutlinedIcon className="text-white" sx={{ fontSize: 22 }} />
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition shadow-xs">
+                        <CorporateFareOutlinedIcon className="text-white" sx={{ fontSize: 20 }} />
                       </div>
-                      <div>
-                        <h4 className="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-black">
+                      <div className="min-w-0">
+                        <h4 className="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-black truncate">
                           I&apos;m an Employer / Builder
                         </h4>
-                        <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
+                        <p className="text-[10.5px] sm:text-[11.5px] text-gray-500 mt-0.5 truncate">
                           Post vacancies &amp; hire verified talent
                         </p>
                       </div>
                     </div>
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white border border-gray-200 group-hover:border-slate-900 flex items-center justify-center text-gray-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition flex-shrink-0">
-                      <NorthEastOutlinedIcon sx={{ fontSize: 15 }} />
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white border border-gray-200 group-hover:border-slate-900 flex items-center justify-center text-gray-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition flex-shrink-0">
+                      <NorthEastOutlinedIcon sx={{ fontSize: 13 }} />
                     </div>
                   </button>
                 ) : (
                   <Link
                     href="/register?role=recruiter"
-                    className="w-full text-left p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-gray-200 hover:border-slate-800 bg-gray-50/60 hover:bg-slate-50 transition group flex items-center justify-between gap-3 shadow-xs active:scale-[0.99]"
+                    className="w-full text-left p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border border-gray-200 hover:border-slate-800 bg-gray-50/60 hover:bg-slate-50 transition group flex items-center justify-between gap-2.5 shadow-xs active:scale-[0.99]"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-900 text-white flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition shadow-xs">
-                        <CorporateFareOutlinedIcon className="text-white" sx={{ fontSize: 22 }} />
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition shadow-xs">
+                        <CorporateFareOutlinedIcon className="text-white" sx={{ fontSize: 20 }} />
                       </div>
-                      <div>
-                        <h4 className="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-black">
+                      <div className="min-w-0">
+                        <h4 className="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-black truncate">
                           I&apos;m an Employer / Builder
                         </h4>
-                        <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5">
+                        <p className="text-[10.5px] sm:text-[11.5px] text-gray-500 mt-0.5 truncate">
                           Post vacancies &amp; hire verified talent
                         </p>
                       </div>
                     </div>
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white border border-gray-200 group-hover:border-slate-900 flex items-center justify-center text-gray-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition flex-shrink-0">
-                      <NorthEastOutlinedIcon sx={{ fontSize: 15 }} />
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white border border-gray-200 group-hover:border-slate-900 flex items-center justify-center text-gray-400 group-hover:text-slate-900 group-hover:translate-x-0.5 transition flex-shrink-0">
+                      <NorthEastOutlinedIcon sx={{ fontSize: 13 }} />
                     </div>
                   </Link>
                 )}
