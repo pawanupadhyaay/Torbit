@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "id": "sub_1791735005849_4tje83",
+    "email": "upawan7273@gmail.com",
+    "name": "",
+    "subscribedAt": "2026-10-11T16:10:05.849Z",
+    "isActive": true,
+    "source": "common_dashboard",
+    "lastAlertSentAt": null
+  }
+]

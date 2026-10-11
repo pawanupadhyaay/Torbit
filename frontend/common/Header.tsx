@@ -10,7 +10,6 @@ import {
   ExternalLink,
   Globe
 } from 'lucide-react';
-import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 
 interface HeaderProps {
   onOpenAuth?: (role?: 'JOB_SEEKER' | 'RECRUITER' | null, tab?: 'LOGIN' | 'REGISTER') => void;
@@ -346,15 +345,6 @@ export default function Header({ onOpenAuth, currentUser: propUser }: HeaderProp
             className="sm:hidden p-1.5 bg-slate-100 hover:bg-[#b2c359]/20 text-slate-700 hover:text-[#b2c359] rounded-lg border border-slate-200 transition flex items-center justify-center"
           >
             <Globe className="w-4 h-4 text-[#9eb047]" />
-          </a>
-
-          {/* Search Trigger (Desktop) */}
-          <a 
-            href="#hero-search"
-            aria-label="Search"
-            className="hidden md:flex p-2 text-gray-500 hover:text-[#b2c359] transition rounded-lg hover:bg-gray-50 items-center justify-center"
-          >
-            <SearchOutlinedIcon sx={{ fontSize: 19 }} />
           </a>
         </div>
 
