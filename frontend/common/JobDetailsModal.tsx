@@ -15,7 +15,9 @@ import {
   Share2,
   ArrowRight,
   Sparkles,
-  Calendar
+  Calendar,
+  Copy,
+  Check
 } from 'lucide-react';
 
 interface JobDetailsModalProps {
@@ -35,9 +37,14 @@ export default function JobDetailsModal({
 }: JobDetailsModalProps) {
   const [mounted, setMounted] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [canNativeShare, setCanNativeShare] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      setCanNativeShare(true);
+    }
   }, []);
 
   useBodyScrollLock(isOpen);
@@ -81,12 +88,62 @@ export default function JobDetailsModal({
   const companyLogo = job.company?.logoUrl;
   const companyInitials = (companyName || 'JOB').substring(0, 3).toUpperCase();
 
-  const handleShare = () => {
+  const getShareUrl = () => {
+    if (typeof window === 'undefined') return '';
+    const origin = window.location.origin;
+    return `${origin}/jobs?jobId=${job?.id || ''}`;
+  };
+
+  const getShareText = () => {
+    const salary = formatSalary();
+    const url = getShareUrl();
+    return `🔥 *Job Opening: ${job?.title}*\n🏢 *Company:* ${companyName}\n📍 *Location:* ${job?.location || 'Pan India'}\n💼 *Experience:* ${job?.experience || 'All levels'}\n💰 *Salary:* ${salary}\n\n👉 *Apply here on Torbit Realty:* ${url}`;
+  };
+
+  const handleCopyLink = () => {
+    const url = getShareUrl();
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href);
+      navigator.clipboard.writeText(url);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 2500);
     }
+  };
+
+  const handleWhatsApp = () => {
+    const text = getShareText();
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleTelegram = () => {
+    const shareUrl = getShareUrl();
+    const summary = `🔥 Job Opening: ${job?.title} at ${companyName}\nApply here:`;
+    const url = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(summary)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleLinkedIn = () => {
+    const shareUrl = getShareUrl();
+    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleNativeShare = async () => {
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: `${job?.title} at ${companyName}`,
+          text: `Check out this opening for ${job?.title} at ${companyName} on Torbit Realty:`,
+          url: getShareUrl()
+        });
+      } catch (err) {
+        // User dismissed native share
+      }
+    }
+  };
+
+  const handleShare = () => {
+    setShareModalOpen(true);
   };
 
   const handleApplyClick = () => {
@@ -390,6 +447,162 @@ export default function JobDetailsModal({
             )}
           </div>
         </div>
+
+        {/* Share Job Modal / Bottom Sheet (Mobile & Desktop) */}
+        {shareModalOpen && (
+          <div
+            className="fixed inset-0 z-[100000] flex items-end sm:items-center justify-center bg-black/75 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-150"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShareModalOpen(false);
+            }}
+          >
+            <div
+              className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl border border-slate-200 overflow-hidden relative animate-in slide-in-from-bottom sm:zoom-in-95 duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Mobile Swipe / Drag Pill Handle */}
+              <div className="pt-3 pb-1 flex justify-center sm:hidden">
+                <div className="w-10 h-1 rounded-full bg-slate-300" />
+              </div>
+
+              {/* Share Header */}
+              <div className="px-5 pt-3 sm:pt-5 pb-3 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#b2c359]/20 text-[#2f4204] flex items-center justify-center font-bold shrink-0">
+                    <Share2 className="w-4 h-4 text-[#658A0D]" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-black text-slate-900 leading-tight">
+                      Share Job Opening
+                    </h3>
+                    <p className="text-[11px] text-slate-500 truncate max-w-[240px] sm:max-w-[280px]">
+                      {job.title} • {companyName}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShareModalOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
+                  aria-label="Close share dialog"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Share Channels */}
+              <div className="p-5 space-y-4">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2.5">
+                  {/* WhatsApp */}
+                  <button
+                    type="button"
+                    onClick={handleWhatsApp}
+                    className="flex flex-col items-center justify-center p-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 active:scale-95 border border-emerald-200/80 transition cursor-pointer group text-center shadow-2xs"
+                  >
+                    <div className="w-11 h-11 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
+                      <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                        <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.669-.699c.969.539 1.95.825 2.791.825 3.181 0 5.767-2.586 5.768-5.766 0-3.18-2.587-5.766-5.768-5.766m0 10.518c-.81 0-1.637-.234-2.39-.672l-.17-.099-1.579.414.421-1.54-.112-.178c-.482-.767-.737-1.604-.737-2.677 0-2.613 2.126-4.739 4.74-4.739 2.614 0 4.74 2.126 4.74 4.739 0 2.613-2.126 4.739-4.74 4.739m2.775-3.528c-.152-.076-.899-.444-1.038-.495-.14-.051-.241-.076-.343.076-.101.152-.393.495-.482.597-.089.102-.178.114-.33.038-.152-.076-.642-.237-1.222-.754-.452-.403-.757-.902-.846-1.054-.089-.152-.009-.235.067-.31.069-.068.152-.178.228-.267.076-.089.102-.152.152-.254.051-.102.025-.191-.013-.267-.038-.076-.343-.826-.47-1.131-.123-.298-.249-.257-.343-.262-.089-.004-.191-.005-.292-.005-.102 0-.267.038-.406.191-.14.152-.533.521-.533 1.27 0 .749.546 1.473.622 1.575.076.102 1.074 1.639 2.602 2.298.363.157.647.251.868.321.365.116.697.1.959.061.293-.044.899-.368 1.026-.723.127-.355.127-.659.089-.723-.038-.063-.14-.102-.292-.178" />
+                      </svg>
+                    </div>
+                    <span className="text-xs font-bold text-slate-800 mt-2 block">
+                      WhatsApp
+                    </span>
+                    <span className="text-[10px] text-slate-500">Chats</span>
+                  </button>
+
+                  {/* Telegram */}
+                  <button
+                    type="button"
+                    onClick={handleTelegram}
+                    className="flex flex-col items-center justify-center p-3 rounded-2xl bg-sky-50 hover:bg-sky-100 active:scale-95 border border-sky-200/80 transition cursor-pointer group text-center shadow-2xs"
+                  >
+                    <div className="w-11 h-11 rounded-full bg-[#229ED9] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
+                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.52 2.77-1.18 3.35-1.39 3.73-1.39.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
+                      </svg>
+                    </div>
+                    <span className="text-xs font-bold text-slate-800 mt-2 block">
+                      Telegram
+                    </span>
+                    <span className="text-[10px] text-slate-500">Channels</span>
+                  </button>
+
+                  {/* LinkedIn */}
+                  <button
+                    type="button"
+                    onClick={handleLinkedIn}
+                    className="flex flex-col items-center justify-center p-3 rounded-2xl bg-blue-50 hover:bg-blue-100 active:scale-95 border border-blue-200/80 transition cursor-pointer group text-center shadow-2xs"
+                  >
+                    <div className="w-11 h-11 rounded-full bg-[#0A66C2] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
+                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                        <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 8.76c.86 0 1.56-.7 1.56-1.56s-.7-1.56-1.56-1.56a1.56 1.56 0 0 0-1.56 1.56c0 .86.7 1.56 1.56 1.56m1.39 9.74v-8.37H5.07v8.37h2.78z" />
+                      </svg>
+                    </div>
+                    <span className="text-xs font-bold text-slate-800 mt-2 block">
+                      LinkedIn
+                    </span>
+                    <span className="text-[10px] text-slate-500">Network</span>
+                  </button>
+
+                  {/* Native Device Share (when supported) */}
+                  {canNativeShare && (
+                    <button
+                      type="button"
+                      onClick={handleNativeShare}
+                      className="flex flex-col items-center justify-center p-3 rounded-2xl bg-indigo-50 hover:bg-indigo-100 active:scale-95 border border-indigo-200/80 transition cursor-pointer group text-center shadow-2xs"
+                    >
+                      <div className="w-11 h-11 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition">
+                        <Share2 className="w-5 h-5" />
+                      </div>
+                      <span className="text-xs font-bold text-slate-800 mt-2 block">
+                        More Apps
+                      </span>
+                      <span className="text-[10px] text-slate-500">Device</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Copy Link Section */}
+                <div className="pt-1">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                    Direct Link
+                  </label>
+                  <div className="flex items-center gap-2 p-1.5 bg-slate-50 border border-slate-200 rounded-xl">
+                    <input
+                      type="text"
+                      readOnly
+                      value={getShareUrl()}
+                      className="bg-transparent flex-1 text-xs text-slate-600 font-mono pl-2 focus:outline-none truncate"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCopyLink}
+                      className={`px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shrink-0 shadow-xs ${
+                        copied
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-slate-900 hover:bg-slate-800 active:scale-95 text-white'
+                      }`}
+                    >
+                      {copied ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copy Link</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

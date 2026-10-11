@@ -202,6 +202,18 @@ function JobsContent() {
     } catch (e) {}
   }, []);
 
+  // Auto-open job details modal if link has ?jobId=...
+  useEffect(() => {
+    const directJobId = searchParams.get('jobId');
+    if (directJobId && jobs.length > 0) {
+      const targetJob = jobs.find((j) => j.id === directJobId);
+      if (targetJob) {
+        setSelectedJobForDetails(targetJob);
+        setDetailsModalOpen(true);
+      }
+    }
+  }, [searchParams, jobs]);
+
   const handleFilterSubmit = () => {
     const params = new URLSearchParams();
     if (searchKeyword.trim()) params.set('q', searchKeyword.trim());
