@@ -271,7 +271,13 @@ export default function SeekerApplicationsTable({ applications }: SeekerApplicat
                 </span>
                 <span className="text-gray-400">•</span>
                 <span className="font-mono font-bold text-gray-800 flex items-center gap-1">
-                  <span title="Current CTC">{formatCtcMetric(app.currentSalary, '—')}</span>
+                  {app.currentSalary ? (
+                    <span title="Current CTC">{formatCtcMetric(app.currentSalary)}</span>
+                  ) : (
+                    <span title="Current CTC not submitted" className="text-gray-600 font-sans text-[10px] bg-gray-100 px-1.5 py-0.5 rounded font-medium">
+                      Fresher
+                    </span>
+                  )}
                   <span className="text-gray-400 font-normal">→</span>
                   <span title="Expected CTC" className="text-[#556912]">{formatCtcMetric(app.expectedSalary, 'Open')}</span>
                 </span>
@@ -354,9 +360,15 @@ export default function SeekerApplicationsTable({ applications }: SeekerApplicat
                   </td>
                   <td className="p-3">
                     <div className="font-mono font-bold text-gray-900 flex items-center gap-1.5 flex-wrap">
-                      <span title="Current CTC" className="text-gray-700">
-                        {formatCtcMetric(app.currentSalary, '—')}
-                      </span>
+                      {app.currentSalary ? (
+                        <span title="Current CTC" className="text-gray-700">
+                          {formatCtcMetric(app.currentSalary)}
+                        </span>
+                      ) : (
+                        <span title="Current CTC not submitted" className="text-gray-600 font-sans text-[11px] bg-gray-100 px-2 py-0.5 rounded-md font-semibold">
+                          Fresher / Not Disclosed
+                        </span>
+                      )}
                       <span className="text-gray-400 font-sans font-normal text-xs">→</span>
                       <span title="Expected CTC" className="text-[#556912]">
                         {formatCtcMetric(app.expectedSalary, 'Open')}
