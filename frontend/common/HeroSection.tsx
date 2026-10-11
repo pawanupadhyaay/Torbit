@@ -323,9 +323,9 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
           }}
         />
         {/* Premium dark gradient overlay: darker on the left for text legibility, open on the right for cityscape & sunset */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#070e1c]/88 via-[#070e1c]/60 to-[#070e1c]/30" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#060c18]/94 via-[#060c18]/75 to-[#060c18]/40" />
         {/* Top and bottom subtle vignette to smoothly integrate with header and page flow */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#070e1c]/45 via-transparent to-[#070e1c]/65" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#060c18]/50 via-transparent to-[#060c18]/70" />
       </div>
 
       <div className="max-w-7xl xl:max-w-[1360px] 2xl:max-w-[1440px] mx-auto px-3.5 sm:px-6 relative z-10">
@@ -336,16 +336,16 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
           {/* ========================================================= */}
           <div className="lg:col-span-8 space-y-4 sm:space-y-6">
             <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 text-[11px] sm:text-xs font-semibold text-[#b2c359] mb-2 sm:mb-3">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#060c18]/80 backdrop-blur-md border border-white/15 text-[11px] sm:text-xs font-semibold text-[#b2c359] mb-2 sm:mb-3 shadow-xs">
                 <AutoAwesomeOutlinedIcon sx={{ fontSize: 14 }} />
                 <span>India&apos;s #1 Dedicated Real Estate Job Portal</span>
               </div>
               
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[34px] xl:text-[40px] font-['Helvetica',Arial,sans-serif] font-bold text-white tracking-tight leading-tight lg:whitespace-nowrap">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[34px] xl:text-[40px] font-['Helvetica',Arial,sans-serif] font-bold text-white tracking-tight leading-tight lg:whitespace-nowrap drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">
                 Find Your Next Career in <span className="text-[#b2c359]">Real Estate</span>
               </h1>
               
-              <p className="text-xs sm:text-sm lg:text-[14.5px] xl:text-[15.5px] text-gray-300 font-normal mt-1.5 sm:mt-2.5 max-w-none lg:whitespace-nowrap leading-relaxed">
+              <p className="text-xs sm:text-sm lg:text-[14.5px] xl:text-[15.5px] text-white font-medium mt-1.5 sm:mt-2.5 max-w-none lg:whitespace-nowrap leading-relaxed drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)]">
                 Connect directly with India&apos;s premier developers, builders, and infrastructure enterprises.
               </p>
             </div>
