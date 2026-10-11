@@ -14,7 +14,7 @@ import {
   Briefcase, 
   Compass, 
   Layers, 
-  DollarSign, 
+  IndianRupee, 
   Home, 
   HardHat, 
   Megaphone, 
@@ -31,7 +31,7 @@ const getCategoryIcon = (name: string) => {
   if (n.includes('market') || n.includes('digital')) return Megaphone;
   if (n.includes('construct') || n.includes('project') || n.includes('civil') || n.includes('quality') || n.includes('hse')) return HardHat;
   if (n.includes('property') || n.includes('estate') || n.includes('leasing') || n.includes('facility')) return Home;
-  if (n.includes('finance') || n.includes('account') || n.includes('invest') || n.includes('valuation')) return DollarSign;
+  if (n.includes('finance') || n.includes('account') || n.includes('invest') || n.includes('valuation')) return IndianRupee;
   if (n.includes('human') || n.includes('hr') || n.includes('recruit') || n.includes('admin') || n.includes('relations') || n.includes('customer')) return Users;
   if (n.includes('it') || n.includes('tech') || n.includes('proptech') || n.includes('product')) return Code;
   if (n.includes('legal') || n.includes('complian') || n.includes('law') || n.includes('liaison') || n.includes('approvals')) return Scale;

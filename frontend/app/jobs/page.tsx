@@ -16,7 +16,6 @@ import {
   Search,
   MapPin,
   Briefcase,
-  DollarSign,
   Filter,
   X,
   ChevronDown,
@@ -1105,8 +1104,7 @@ function JobsContent() {
                                 <span>{job.expMin}–{job.expMax} Yrs Exp</span>
                               </span>
 
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-bold border border-emerald-200/60">
-                                <DollarSign className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 font-bold border border-emerald-200/60">
                                 <span>{formatSalary(job.salaryMin, job.salaryMax, job.hideSalary)}</span>
                               </span>
 

@@ -9,7 +9,6 @@ import {
   Briefcase,
   Clock,
   Building2,
-  DollarSign,
   Users,
   CheckCircle2,
   Share2,
