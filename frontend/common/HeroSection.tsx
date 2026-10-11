@@ -341,8 +341,8 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
                 <span>India&apos;s #1 Dedicated Real Estate Job Portal</span>
               </div>
               
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[34px] xl:text-[40px] font-['Helvetica',Arial,sans-serif] font-black text-white tracking-tight leading-tight lg:whitespace-nowrap drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
-                Find Your Next Career in <span className="text-[#c7dd3c] drop-shadow-[0_2px_12px_rgba(199,221,60,0.4)]">Real Estate</span>
+              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-[28px] xl:text-[34px] 2xl:text-[38px] font-['Helvetica',Arial,sans-serif] font-black text-white tracking-tight leading-tight whitespace-nowrap drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
+                Find Your Next Career in <span className="text-[#c7dd3c] whitespace-nowrap drop-shadow-[0_2px_12px_rgba(199,221,60,0.4)]">Real Estate</span>
               </h1>
               
               <p className="text-xs sm:text-sm lg:text-[14.5px] xl:text-[15.5px] text-slate-100 font-medium mt-1.5 sm:mt-2.5 max-w-none lg:whitespace-nowrap leading-relaxed drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
