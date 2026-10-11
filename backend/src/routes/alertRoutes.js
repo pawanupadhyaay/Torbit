@@ -3,7 +3,12 @@ const router = express.Router();
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { authenticateToken } = require("../middleware/authMiddleware");
-const { sendJobAlertConfirmationEmail, sendMatchedJobsAlertEmail } = require("../services/emailService");
+const { 
+  sendJobAlertConfirmationEmail, 
+  sendMatchedJobsAlertEmail,
+  sendNewsletterJobAlertConfirmationEmail 
+} = require("../services/emailService");
+const jobAlertSubscriberService = require("../services/jobAlertSubscriberService");
 
 // Helper to query matching active jobs for an alert
 async function findMatchingJobsForAlert(alert) {
@@ -54,6 +59,57 @@ async function findMatchingJobsForAlert(alert) {
     take: 10
   });
 }
+
+// 0. POST subscribe to job alerts from common dashboard / newsletter (Public)
+router.post("/subscribe", async (req, res) => {
+  try {
+    const { email, name, source } = req.body;
+    if (!email || typeof email !== "string" || !email.trim()) {
+      return res.status(400).json({ error: "Please enter a valid email address." });
+    }
+
+    const result = jobAlertSubscriberService.subscribe(email, { 
+      name: name || "", 
+      source: source || "common_dashboard" 
+    });
+
+    if (!result.success) {
+      return res.status(400).json({ error: result.error || "Subscription failed." });
+    }
+
+    // Dispatch welcome / confirmation email asynchronously if newly subscribed or reactivated
+    if (result.isNew) {
+      sendNewsletterJobAlertConfirmationEmail({
+        email: email.trim().toLowerCase(),
+        recipientName: name || "Job Seeker"
+      }).catch((err) => {
+        console.error("⚠️ [Alerts API] Error sending welcome confirmation email:", err.message);
+      });
+    }
+
+    res.json({
+      success: true,
+      message: result.message,
+      isNew: result.isNew,
+      subscriber: result.subscriber
+    });
+  } catch (err) {
+    console.error("Error subscribing to job alerts:", err);
+    res.status(500).json({ error: "Failed to process job alert subscription. Please try again." });
+  }
+});
+
+// POST unsubscribe from job alerts (Public)
+router.post("/unsubscribe", async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: "Email is required." });
+    const success = jobAlertSubscriberService.unsubscribe(email);
+    res.json({ success, message: success ? "Unsubscribed successfully." : "Email not found." });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to unsubscribe." });
+  }
+});
 
 // 1. GET all job alerts for authenticated seeker
 router.get("/", authenticateToken, async (req, res) => {

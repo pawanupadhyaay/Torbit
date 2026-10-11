@@ -4,59 +4,47 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { authenticateToken } = require("../middleware/authMiddleware");
 const settingsService = require("../services/settingsService");
-const { sendNewJobAlertMatchEmail } = require("../services/emailService");
+const { dispatchJobAlertNotifications } = require("../services/jobAlertDispatcher");
+const jobAlertSubscriberService = require("../services/jobAlertSubscriberService");
+const { sendNewsletterJobAlertConfirmationEmail } = require("../services/emailService");
 
-// Helper function to notify job seekers whose active alerts match the newly posted job
-async function dispatchJobAlertNotifications(job, companyName) {
+// POST subscribe to job alerts (Alias for public dashboard subscribers)
+router.post("/subscribe-alerts", async (req, res) => {
   try {
-    const activeAlerts = await prisma.jobAlert.findMany({
-      where: { emailActive: true },
-      include: {
-        seeker: {
-          include: { user: true }
-        }
-      }
+    const { email, name, source } = req.body;
+    if (!email || typeof email !== "string" || !email.trim()) {
+      return res.status(400).json({ error: "Please enter a valid email address." });
+    }
+
+    const result = jobAlertSubscriberService.subscribe(email, {
+      name: name || "",
+      source: source || "common_dashboard"
     });
 
-    for (const alert of activeAlerts) {
-      const seekerEmail = alert.seeker?.user?.email;
-      if (!seekerEmail) continue;
-
-      const titleMatch = !alert.title || alert.title.trim() === '' || 
-        job.title.toLowerCase().includes(alert.title.toLowerCase()) || 
-        alert.title.toLowerCase().includes(job.title.toLowerCase());
-
-      const locationMatch = !alert.location || alert.location === 'All Locations' || 
-        job.location.toLowerCase().includes(alert.location.toLowerCase()) ||
-        alert.location.toLowerCase().includes(job.location.toLowerCase());
-
-      const categoryMatch = !alert.category || alert.category === 'All Categories' || 
-        (job.department && job.department.toLowerCase().includes(alert.category.toLowerCase())) ||
-        (alert.category && alert.category.toLowerCase().includes((job.department || '').toLowerCase()));
-
-      if (titleMatch && (locationMatch || categoryMatch)) {
-        sendNewJobAlertMatchEmail({
-          seekerEmail,
-          seekerName: alert.seeker?.fullName || "Candidate",
-          alertTitle: alert.title || alert.category || "Real Estate Alert",
-          job: {
-            title: job.title,
-            companyName: companyName || "Real Estate Enterprise",
-            location: job.location,
-            jobType: job.jobType,
-            workMode: job.workMode,
-            salaryMin: job.salaryMin,
-            salaryMax: job.salaryMax
-          }
-        }).catch((err) => {
-          console.error(`⚠️ Error sending alert email to ${seekerEmail}:`, err.message);
-        });
-      }
+    if (!result.success) {
+      return res.status(400).json({ error: result.error || "Subscription failed." });
     }
+
+    if (result.isNew) {
+      sendNewsletterJobAlertConfirmationEmail({
+        email: email.trim().toLowerCase(),
+        recipientName: name || "Job Seeker"
+      }).catch((err) => {
+        console.error("⚠️ [JobRoutes] Error sending subscription welcome email:", err.message);
+      });
+    }
+
+    res.json({
+      success: true,
+      message: result.message,
+      isNew: result.isNew,
+      subscriber: result.subscriber
+    });
   } catch (err) {
-    console.error("⚠️ Error in dispatchJobAlertNotifications:", err.message);
+    console.error("Error in /subscribe-alerts:", err);
+    res.status(500).json({ error: "Failed to process job alert subscription." });
   }
-}
+});
 
 // GET all jobs
 router.get("/", async (req, res) => {

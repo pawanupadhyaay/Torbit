@@ -54,6 +54,9 @@ const DEFAULT_TOP_COMPANIES: CompanyBrandItem[] = [
 export default function RightSidebar({ onOpenAuth }: { onOpenAuth: (role?: any, tab?: any) => void }) {
   const [alertEmail, setAlertEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
+  const [subscribeMessage, setSubscribeMessage] = useState('');
+  const [subscribeError, setSubscribeError] = useState<string | null>(null);
   const [topCompanies, setTopCompanies] = useState<CompanyBrandItem[]>(DEFAULT_TOP_COMPANIES);
 
   React.useEffect(() => {
@@ -93,9 +96,33 @@ export default function RightSidebar({ onOpenAuth }: { onOpenAuth: (role?: any, 
     };
   }, []);
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (alertEmail) setSubscribed(true);
+    if (!alertEmail || !alertEmail.trim()) return;
+
+    setSubscribing(true);
+    setSubscribeError(null);
+
+    try {
+      const res = await fetch('/api/alerts/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: alertEmail.trim(), source: 'common_dashboard' })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to subscribe');
+      }
+
+      setSubscribed(true);
+      setSubscribeMessage(data.message || 'Subscribed successfully! Confirmation email sent.');
+    } catch (err: any) {
+      console.error('Job alert subscription error:', err);
+      setSubscribeError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setSubscribing(false);
+    }
   };
 
   return (
@@ -131,25 +158,47 @@ export default function RightSidebar({ onOpenAuth }: { onOpenAuth: (role?: any, 
         <p className="text-xs text-gray-500 mb-3">Get the latest real estate jobs in your inbox daily.</p>
 
         {subscribed ? (
-          <div className="bg-lime-50 text-lime-800 p-3 rounded-xl text-xs flex items-center gap-2 font-medium border border-lime-200">
-            <CheckCircleOutlineOutlinedIcon className="text-[#b2c359]" sx={{ fontSize: 18 }} />
-            <span>Subscribed successfully!</span>
+          <div className="bg-lime-50 text-lime-900 p-3.5 rounded-xl text-xs space-y-1 font-medium border border-lime-200 animate-in fade-in duration-300">
+            <div className="flex items-center gap-2 font-bold text-lime-950">
+              <CheckCircleOutlineOutlinedIcon className="text-[#658A0D]" sx={{ fontSize: 18 }} />
+              <span>Job Alerts Activated!</span>
+            </div>
+            <p className="text-[11px] text-lime-800 leading-relaxed">
+              {subscribeMessage || 'Subscribed successfully! Confirmation email has been sent to your inbox.'}
+            </p>
           </div>
         ) : (
           <form onSubmit={handleSubscribe} className="space-y-2">
             <input
               type="email"
               required
+              disabled={subscribing}
               value={alertEmail}
-              onChange={(e) => setAlertEmail(e.target.value)}
+              onChange={(e) => {
+                setAlertEmail(e.target.value);
+                if (subscribeError) setSubscribeError(null);
+              }}
               placeholder="Enter your email"
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#b2c359] focus:bg-white transition"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-[#b2c359] focus:bg-white transition disabled:opacity-60"
             />
+            {subscribeError && (
+              <p className="text-[11px] text-red-600 font-medium px-1">
+                {subscribeError}
+              </p>
+            )}
             <button
               type="submit"
-              className="w-full bg-[#b2c359] hover:bg-[#9eb047] active:scale-[0.98] text-white font-['Helvetica',Arial,sans-serif] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-2.5 rounded-xl transition shadow-xs cursor-pointer"
+              disabled={subscribing}
+              className="w-full bg-[#b2c359] hover:bg-[#9eb047] active:scale-[0.98] text-white font-['Helvetica',Arial,sans-serif] font-bold text-[14px] leading-[14px] tracking-[0px] uppercase py-2.5 rounded-xl transition shadow-xs cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
             >
-              SUBSCRIBE
+              {subscribing ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
+                  <span>SUBSCRIBING...</span>
+                </>
+              ) : (
+                'SUBSCRIBE'
+              )}
             </button>
           </form>
         )}

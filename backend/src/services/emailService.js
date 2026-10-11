@@ -1106,6 +1106,242 @@ async function sendNewJobAlertMatchEmail({ seekerEmail, seekerName, alertTitle, 
   return transporter.sendMail(mailOptions);
 }
 
+/**
+ * 12. Send confirmation email when a user subscribes to Job Alerts from the dashboard
+ */
+async function sendNewsletterJobAlertConfirmationEmail({ email, recipientName = 'Job Seeker' }) {
+  if (!email) return null;
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const mailOptions = {
+    from: DEFAULT_FROM,
+    to: email,
+    replyTo: "torbitinsights@gmail.com",
+    subject: `🔔 Job Alerts Activated: Welcome to Torbit Realty Job Alerts!`,
+    headers: {
+      'X-Entity-Ref-ID': `NEWSLETTER-SUB-${Date.now()}`
+    },
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Job Alerts Activated</title>
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #f4f6f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed; background-color: #f4f6f8; padding: 30px 15px;">
+          <tr>
+            <td align="center">
+              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 540px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); border: 1px solid #e2e8f0;">
+                
+                <!-- Brand Header -->
+                <tr>
+                  <td style="background-color: #080809; padding: 24px 32px; text-align: center;">
+                    <div style="display: inline-block;">
+                      <span style="color: #b2c359; font-weight: 900; font-size: 20px; letter-spacing: 1px;">TORBIT</span>
+                      <span style="color: #ffffff; font-weight: 700; font-size: 20px; letter-spacing: 1px;"> REALTY</span>
+                    </div>
+                    <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 11px; font-weight: 500; letter-spacing: 0.5px;">
+                      Premier Real Estate Career Intelligence & Opportunities
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Content Body -->
+                <tr>
+                  <td style="padding: 32px 32px 24px 32px;">
+                    <div style="display: inline-block; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 20px; padding: 4px 12px; margin-bottom: 12px;">
+                      <span style="color: #059669; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">
+                        ✓ Subscribed Successfully
+                      </span>
+                    </div>
+
+                    <h1 style="margin: 0 0 12px 0; font-size: 20px; font-weight: 800; color: #0f172a; line-height: 1.3;">
+                      You're Now Subscribed to Real Estate Job Alerts!
+                    </h1>
+                    <p style="margin: 0 0 16px 0; font-size: 13px; color: #475569; line-height: 1.6;">
+                      Hello <strong>${recipientName || 'Job Seeker'}</strong>,
+                    </p>
+                    <p style="margin: 0 0 20px 0; font-size: 13px; color: #475569; line-height: 1.6;">
+                      Thank you for subscribing to Torbit Realty Job Alerts. Whenever top builders, developers, IPCs, and real estate consultancies publish new job openings, you will receive notifications directly in your inbox.
+                    </p>
+
+                    <!-- Feature Box -->
+                    <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px 20px; margin: 0 0 24px 0;">
+                      <h3 style="margin: 0 0 10px 0; font-size: 12px; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">
+                        What You Get:
+                      </h3>
+                      <ul style="margin: 0; padding-left: 18px; color: #475569; font-size: 12px; line-height: 1.8;">
+                        <li><strong>Instant Job Alerts:</strong> Direct emails as soon as relevant openings are published.</li>
+                        <li><strong>Top Enterprises:</strong> Roles from DLF, Godrej, SOBHA, Emaar, Prestige, and leading IPCs.</li>
+                        <li><strong>Direct Applications:</strong> Fast, one-click access to review requirements and apply.</li>
+                      </ul>
+                    </div>
+
+                    <!-- CTA Button -->
+                    <div style="text-align: center; margin: 24px 0;">
+                      <a href="${frontendUrl}/jobs" 
+                         style="background-color: #b2c359; color: #080809; font-size: 13px; font-weight: 800; padding: 12px 30px; text-decoration: none; border-radius: 10px; display: inline-block; box-shadow: 0 2px 8px rgba(178, 195, 89, 0.4);">
+                        Browse Current Openings →
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                  <td style="background-color: #f8fafc; padding: 20px 32px; text-align: center; border-top: 1px solid #f1f5f9;">
+                    <p style="margin: 0 0 6px 0; font-size: 11px; color: #94a3b8; font-weight: 600;">
+                      © ${new Date().getFullYear()} Torbit Realty Pvt. Ltd. All rights reserved.
+                    </p>
+                    <p style="margin: 0; font-size: 10px; color: #94a3b8;">
+                      You received this email because you subscribed on <a href="${frontendUrl}" style="color: #b2c359; text-decoration: none;">Torbit Realty</a>.
+                    </p>
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `
+  };
+  return transporter.sendMail(mailOptions);
+}
+
+/**
+ * 13. Send broadcast notification email when a new job opportunity is posted
+ */
+async function sendJobAlertBroadcastEmail({ toEmail, recipientName = 'Job Seeker', job }) {
+  if (!toEmail || !job) return null;
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const companyTitle = job.companyName || (job.company && job.company.companyName) || 'Top Real Estate Enterprise';
+  const jobUrl = `${frontendUrl}/jobs?q=${encodeURIComponent(job.title)}`;
+
+  let salaryDisplay = 'Competitive / Industry Standard';
+  if (job.hideSalary) {
+    salaryDisplay = 'Best in Industry';
+  } else if (job.salaryMin && job.salaryMax) {
+    salaryDisplay = `₹${Number(job.salaryMin).toLocaleString('en-IN')} - ₹${Number(job.salaryMax).toLocaleString('en-IN')}`;
+  } else if (job.salaryMin) {
+    salaryDisplay = `₹${Number(job.salaryMin).toLocaleString('en-IN')}+`;
+  }
+
+  const expDisplay = (job.expMin !== undefined && job.expMax !== undefined) 
+    ? `${job.expMin} - ${job.expMax} Years` 
+    : (job.expMin ? `${job.expMin}+ Years` : 'Open');
+
+  const mailOptions = {
+    from: DEFAULT_FROM,
+    to: toEmail,
+    replyTo: "torbitinsights@gmail.com",
+    subject: `🔔 New Job Opening: ${job.title} at ${companyTitle}`,
+    headers: {
+      'X-Entity-Ref-ID': `JOB-BROADCAST-${Date.now()}`
+    },
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>New Job Opening Alert</title>
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #f4f6f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="table-layout: fixed; background-color: #f4f6f8; padding: 30px 15px;">
+          <tr>
+            <td align="center">
+              <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 540px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); border: 1px solid #e2e8f0;">
+                
+                <!-- Brand Header -->
+                <tr>
+                  <td style="background-color: #080809; padding: 24px 32px; text-align: center;">
+                    <div style="display: inline-block;">
+                      <span style="color: #b2c359; font-weight: 900; font-size: 20px; letter-spacing: 1px;">TORBIT</span>
+                      <span style="color: #ffffff; font-weight: 700; font-size: 20px; letter-spacing: 1px;"> REALTY</span>
+                    </div>
+                    <p style="margin: 4px 0 0 0; color: #94a3b8; font-size: 11px; font-weight: 500; letter-spacing: 0.5px;">
+                      Instant Job Alert Notification
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Content Body -->
+                <tr>
+                  <td style="padding: 32px;">
+                    <div style="display: inline-block; padding: 4px 12px; background: #ecfccb; color: #365314; border-radius: 20px; font-size: 11px; font-weight: 800; margin-bottom: 12px;">
+                      NEW REAL ESTATE OPPORTUNITY
+                    </div>
+                    
+                    <h2 style="margin: 0 0 6px 0; font-size: 20px; color: #0f172a; font-weight: 800; line-height: 1.3;">
+                      ${job.title}
+                    </h2>
+                    <div style="font-size: 14px; font-weight: 700; color: #658a0d; margin-bottom: 16px;">
+                      🏢 ${companyTitle}
+                    </div>
+
+                    <p style="margin: 0 0 20px 0; font-size: 13px; color: #475569; line-height: 1.6;">
+                      Hello <strong>${recipientName || 'Job Seeker'}</strong>, a new verified real estate job opening has just been posted on Torbit Realty:
+                    </p>
+
+                    <!-- Job Details Table -->
+                    <table width="100%" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 24px; font-size: 13px;">
+                      <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-weight: 600; width: 120px;">Role:</td>
+                        <td style="padding: 6px 0; color: #0f172a; font-weight: 700;">${job.title}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Enterprise:</td>
+                        <td style="padding: 6px 0; color: #0f172a; font-weight: 700;">${companyTitle}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Location:</td>
+                        <td style="padding: 6px 0; color: #0f172a;">📍 ${job.location || 'India'}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Experience:</td>
+                        <td style="padding: 6px 0; color: #0f172a;">💼 ${expDisplay}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Job Type:</td>
+                        <td style="padding: 6px 0; color: #0f172a;">${job.jobType || 'Full Time'} • ${job.workMode || 'On-site'}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 6px 0; color: #64748b; font-weight: 600;">Compensation:</td>
+                        <td style="padding: 6px 0; color: #059669; font-weight: 700;">${salaryDisplay}</td>
+                      </tr>
+                    </table>
+
+                    <!-- CTA Button -->
+                    <div style="text-align: center; margin: 20px 0;">
+                      <a href="${jobUrl}" 
+                         style="display: inline-block; background: #658A0D; color: #ffffff; padding: 13px 32px; border-radius: 10px; text-decoration: none; font-weight: 800; font-size: 13px; box-shadow: 0 4px 12px rgba(101, 138, 13, 0.3);">
+                        View Opening & Apply Now →
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                  <td style="background: #f8fafc; padding: 18px 24px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9;">
+                    <p style="margin: 0 0 4px 0;">© ${new Date().getFullYear()} Torbit Realty Pvt. Ltd. All rights reserved.</p>
+                    <p style="margin: 0;">You received this job alert because you subscribed on Torbit Realty.</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `
+  };
+  return transporter.sendMail(mailOptions);
+}
+
 module.exports = {
   transporter,
   sendOtpEmail,
@@ -1118,7 +1354,10 @@ module.exports = {
   sendAdminCompanyApprovalAlertEmail,
   sendCompanyNewApplicantEmail,
   sendApplicantStatusUpdateEmail,
-  sendNewJobAlertMatchEmail
+  sendNewJobAlertMatchEmail,
+  sendNewsletterJobAlertConfirmationEmail,
+  sendJobAlertBroadcastEmail
 };
+
 
 
