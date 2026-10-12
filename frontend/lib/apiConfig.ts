@@ -21,7 +21,7 @@ export const getApiBaseUrl = (): string => {
   if (process.env.NODE_ENV === 'production') {
     return process.env.NEXT_PUBLIC_BACKEND_URL 
       ? `${process.env.NEXT_PUBLIC_BACKEND_URL.replace(/\/$/, '')}/api`
-      : 'https://api.torbitrealty.com/api';
+      : 'https://torbit-job-kdpdj.ondigitalocean.app/api';
   }
 
   return 'http://localhost:5000/api';
@@ -33,7 +33,7 @@ export const getBackendBaseUrl = (): string => {
   }
 
   if (process.env.NODE_ENV === 'production') {
-    return 'https://api.torbitrealty.com';
+    return 'https://torbit-job-kdpdj.ondigitalocean.app';
   }
 
   return 'http://localhost:5000';

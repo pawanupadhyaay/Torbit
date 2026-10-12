@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'production' ? 'https://api.torbitrealty.com' : 'http://127.0.0.1:5000');
+const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'production' ? 'https://torbit-job-kdpdj.ondigitalocean.app' : 'http://127.0.0.1:5000');
 
 const nextConfig = {
   images: {
