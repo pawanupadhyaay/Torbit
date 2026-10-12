@@ -133,6 +133,16 @@ app.get("/api/categories", async (req, res) => {
   }
 });
 
+// Root Service Health & Discovery Route
+app.get("/", (req, res) => {
+  res.json({
+    status: "ok",
+    service: "Torbit Job Portal Enterprise Backend API",
+    version: "1.0.0",
+    healthCheck: "/api/health"
+  });
+});
+
 app.get("/api/health", async (req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
