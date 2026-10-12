@@ -4,7 +4,8 @@ import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
 import CorporateFareOutlinedIcon from '@mui/icons-material/CorporateFareOutlined';
 import VerifiedUserOutlinedIcon from '@mui/icons-material/VerifiedUserOutlined';
 import WorkOutlineOutlinedIcon from '@mui/icons-material/WorkOutlineOutlined';
-import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+import { FileText } from 'lucide-react';
+const FileTextIcon = (props: any) => <FileText className="w-[18px] h-[18px]" />;
 import ArrowForwardOutlinedIcon from '@mui/icons-material/ArrowForwardOutlined';
 import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
@@ -73,7 +74,7 @@ export default function AdminOverview({
       title: 'Applications Routed',
       value: stats?.totalApplications ?? 0,
       trend: 'Total Candidates',
-      icon: DescriptionOutlinedIcon,
+      icon: FileTextIcon,
       iconColor: '#84CC16',
       iconBg: 'bg-lime-50 text-lime-700',
       badgeBg: 'bg-lime-50 text-lime-800'

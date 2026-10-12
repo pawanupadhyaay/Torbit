@@ -1,11 +1,7 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
-import StarRoundedIcon from '@mui/icons-material/StarRounded';
-import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
-import BusinessCenterOutlinedIcon from '@mui/icons-material/BusinessCenterOutlined';
-import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
-import { ChevronRight, ArrowUp } from 'lucide-react';
+import { ChevronRight, ArrowUp, Star, ShieldCheck, Briefcase, FileText } from 'lucide-react';
 
 export default function Footer() {
   const scrollToTop = () => {
@@ -40,28 +36,28 @@ export default function Footer() {
           
           {/* 1. Verified */}
           <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-white">
-            <StarRoundedIcon className="text-[#FBBF24] shrink-0" sx={{ fontSize: { xs: 14, sm: 16 } }} />
+            <Star className="text-[#FBBF24] fill-[#FBBF24] shrink-0 w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span className="whitespace-nowrap sm:hidden">Verified</span>
             <span className="whitespace-nowrap hidden sm:inline">100% Verified Jobs</span>
           </div>
 
           {/* 2. Easy Apply */}
           <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-white">
-            <ShieldOutlinedIcon className="text-[#b2c359] shrink-0" sx={{ fontSize: { xs: 14, sm: 16 } }} />
+            <ShieldCheck className="text-[#b2c359] shrink-0 w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span className="whitespace-nowrap sm:hidden">Easy Apply</span>
             <span className="whitespace-nowrap hidden sm:inline">Secure &amp; Easy Apply</span>
           </div>
 
           {/* 3. Top Hiring */}
           <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-white">
-            <BusinessCenterOutlinedIcon className="text-[#D97706] shrink-0" sx={{ fontSize: { xs: 14, sm: 16 } }} />
+            <Briefcase className="text-[#D97706] shrink-0 w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span className="whitespace-nowrap sm:hidden">Top Hiring</span>
             <span className="whitespace-nowrap hidden sm:inline">Top Hiring Companies</span>
           </div>
 
           {/* 4. Free */}
           <div className="flex items-center justify-center gap-1 sm:gap-1.5 text-white">
-            <DescriptionOutlinedIcon className="text-cyan-400 shrink-0" sx={{ fontSize: { xs: 14, sm: 16 } }} />
+            <FileText className="text-cyan-400 shrink-0 w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span className="whitespace-nowrap sm:hidden">100% Free</span>
             <span className="whitespace-nowrap hidden sm:inline">Free for Candidates</span>
           </div>

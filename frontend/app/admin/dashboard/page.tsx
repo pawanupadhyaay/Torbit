@@ -4,9 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import StarRoundedIcon from '@mui/icons-material/StarRounded';
 import StarOutlineOutlinedIcon from '@mui/icons-material/StarOutlineOutlined';
-import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
-import BusinessCenterOutlinedIcon from '@mui/icons-material/BusinessCenterOutlined';
-import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import VerifiedUserOutlinedIcon from '@mui/icons-material/VerifiedUserOutlined';
 import CorporateFareOutlinedIcon from '@mui/icons-material/CorporateFareOutlined';

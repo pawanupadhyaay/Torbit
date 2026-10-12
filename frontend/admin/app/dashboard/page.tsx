@@ -1,11 +1,7 @@
 'use client';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import StarRoundedIcon from '@mui/icons-material/StarRounded';
-import StarOutlineOutlinedIcon from '@mui/icons-material/StarOutlineOutlined';
-import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
-import BusinessCenterOutlinedIcon from '@mui/icons-material/BusinessCenterOutlined';
-import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import VerifiedUserOutlinedIcon from '@mui/icons-material/VerifiedUserOutlined';
 import CorporateFareOutlinedIcon from '@mui/icons-material/CorporateFareOutlined';
@@ -39,8 +35,8 @@ import BarChartOutlinedIcon from '@mui/icons-material/BarChartOutlined';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import SmsOutlinedIcon from '@mui/icons-material/SmsOutlined';
 import AdminPostSpecialJobModal from '../../AdminPostSpecialJobModal';
-import { Building2 } from 'lucide-react';
-import Footer from '../../../common/Footer';
+import { Building2, Star } from 'lucide-react';
+import Footer from '../../common/Footer';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
 import { formatCtcMetric, formatSalaryRange } from '@/lib/constants';
 
@@ -2093,7 +2089,7 @@ export default function AdminDashboardPage() {
                       : 'bg-slate-100 text-slate-700 hover:bg-amber-50 hover:text-amber-700'
                   }`}
                 >
-                  <StarRoundedIcon sx={{ fontSize: 16 }} />
+                  <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
                   <span>{selectedJobForView.isFeatured ? 'Featured on Home' : 'Promote / Feature'}</span>
                 </button>
 
@@ -4319,7 +4315,7 @@ export default function AdminDashboardPage() {
                                   }`}
                                   title="Toggle Featured status on Platform Homepage"
                                 >
-                                  {job.isFeatured ? <StarRoundedIcon sx={{ fontSize: 13 }} /> : <StarOutlineOutlinedIcon sx={{ fontSize: 13 }} />}
+                                  {job.isFeatured ? <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" /> : <Star className="w-3.5 h-3.5 text-slate-400" />}
                                   <span>{job.isFeatured ? 'Featured' : 'Standard'}</span>
                                 </button>
                               </td>
@@ -4399,7 +4395,7 @@ export default function AdminDashboardPage() {
                                 job.isFeatured ? 'bg-amber-100 text-amber-800' : 'bg-white border border-slate-200 text-slate-600'
                               }`}
                             >
-                              <StarRoundedIcon sx={{ fontSize: 13 }} />
+                              <Star className={`w-3.5 h-3.5 ${job.isFeatured ? 'fill-amber-500 text-amber-500' : 'text-slate-400'}`} />
                               <span>{job.isFeatured ? 'Featured' : 'Promote'}</span>
                             </button>
                           </div>

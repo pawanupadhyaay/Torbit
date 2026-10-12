@@ -8,17 +8,6 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['@mui/icons-material', '@mui/material', 'lucide-react'],
   },
-  modularizeImports: {
-    '@mui/icons-material': {
-      transform: '@mui/icons-material/{{member}}',
-    },
-    '@mui/material': {
-      transform: '@mui/material/{{member}}',
-    },
-    'lucide-react': {
-      transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
-    },
-  },
   async rewrites() {
     return [
       {

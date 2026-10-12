@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
+import { ShieldCheck } from 'lucide-react';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import VisibilityOffOutlinedIcon from '@mui/icons-material/VisibilityOffOutlined';
@@ -101,7 +101,7 @@ export default function AdminLoginPage() {
         </div>
 
         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs text-gray-300 font-medium">
-          <ShieldOutlinedIcon sx={{ fontSize: 16 }} className="text-[#b2c359]" />
+          <ShieldCheck className="w-4 h-4 text-[#b2c359]" />
           <span className="hidden sm:inline">Secure Enterprise Gateway</span>
         </div>
       </header>
