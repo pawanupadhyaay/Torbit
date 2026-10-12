@@ -354,7 +354,7 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
             <form 
               id="hero-search" 
               onSubmit={handleSearchSubmit} 
-              className="bg-white/95 backdrop-blur-xl p-3 sm:p-3.5 rounded-2xl sm:rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.45)] space-y-2.5 text-[#080809] border border-white/80 font-['Helvetica',Arial,sans-serif]"
+              className="relative z-30 bg-white/95 backdrop-blur-xl p-3 sm:p-3.5 rounded-2xl sm:rounded-3xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.45)] space-y-2.5 text-[#080809] border border-white/80 font-['Helvetica',Arial,sans-serif]"
             >
               {/* Row 1: Keyword, Location, Category */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 relative z-20">
@@ -536,7 +536,7 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
             </form>
 
             {/* Trending Keywords */}
-            <div className="flex items-center gap-1.5 pt-1 text-xs overflow-x-auto pb-1 scrollbar-none flex-nowrap sm:flex-wrap">
+            <div className="relative z-10 flex items-center gap-1.5 pt-1 text-xs overflow-x-auto pb-1 scrollbar-none flex-nowrap sm:flex-wrap">
               <span className="font-bold text-white shrink-0 text-[11px] sm:text-xs drop-shadow-sm">Trending:</span>
               {['Sales & BD', 'Marketing', 'Civil Engineering', 'Architecture', 'Legal'].map((tag) => (
                 <button

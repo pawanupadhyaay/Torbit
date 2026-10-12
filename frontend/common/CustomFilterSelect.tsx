@@ -82,7 +82,7 @@ export default function CustomFilterSelect({
   return (
     <div
       ref={containerRef}
-      className={`relative ${isOpen ? 'z-[70]' : 'z-10'} ${className}`}
+      className={`relative ${isOpen ? 'z-[90]' : 'z-10'} ${className}`}
     >
       {/* Trigger Button */}
       <button
@@ -106,12 +106,12 @@ export default function CustomFilterSelect({
       {/* Modern Themed Floating Dropdown Menu */}
       {isOpen && (
         <div
-          className={`absolute left-0 top-full mt-1.5 z-[80] bg-white rounded-xl shadow-2xl border border-gray-200/90 py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-150 ${
+          className={`absolute left-0 top-full mt-1.5 z-[100] bg-white rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.28)] border border-gray-200 py-1.5 overflow-hidden animate-in fade-in zoom-in-95 duration-150 ${
             dropdownWidth ? dropdownWidth : 'w-full min-w-[220px]'
           }`}
         >
           {/* Options List */}
-          <div className="max-h-56 overflow-y-auto py-1 px-1 dropdown-scrollbar">
+          <div className="max-h-56 overflow-y-auto py-1 px-1 dropdown-scrollbar bg-white">
             {normalizedOptions.length === 0 ? (
               <div className="px-3.5 py-2.5 text-xs text-gray-400 text-center">
                 No options available

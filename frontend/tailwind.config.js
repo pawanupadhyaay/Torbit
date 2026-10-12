@@ -5,7 +5,8 @@ module.exports = {
     "./common/**/*.{js,ts,jsx,tsx,mdx}",
     "./job-seeker/**/*.{js,ts,jsx,tsx,mdx}",
     "./recruiter/**/*.{js,ts,jsx,tsx,mdx}",
-    "./admin/**/*.{js,ts,jsx,tsx,mdx}",
+    "./admin/*.{js,ts,jsx,tsx,mdx}",
+    "./admin/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
