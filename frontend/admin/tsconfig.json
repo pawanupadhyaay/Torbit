@@ -18,20 +18,17 @@
       }
     ],
     "paths": {
-      "@/*": ["./*", "../*"],
-      "@/lib/*": ["./lib/*", "../lib/*"],
-      "@/common/*": ["./common/*", "../common/*"],
-      "@/admin/*": ["./*", "../admin/*"]
+      "@/*": ["./*"],
+      "@/lib/*": ["./lib/*"],
+      "@/common/*": ["./common/*"],
+      "@/admin/*": ["./*"]
     }
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
-    "../lib/**/*.ts",
-    "../common/**/*.ts",
-    "../common/**/*.tsx"
+    ".next/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }
