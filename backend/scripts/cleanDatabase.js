@@ -34,72 +34,96 @@ const categoriesList = [
   "Corporate Strategy",
   "Customer Experience",
   "Senior Management / Leadership",
+  "Video Anchor",
+  "Video Editor / Videographer",
   "Others"
+];
+
+const popularCategories = [
+  { name: "Sales & Business Development", color: "#10B981" },
+  { name: "Marketing", color: "#F97316" },
+  { name: "Projects & Construction", color: "#0D9488" },
+  { name: "Property Management", color: "#EA580C" },
+  { name: "Finance & Accounts", color: "#2563EB" },
+  { name: "Information Technology / IT", color: "#6366F1" },
+  { name: "Human Resources", color: "#EC4899" },
+  { name: "Legal", color: "#8B5CF6" }
 ];
 
 async function cleanDatabase() {
   try {
-    console.log("Starting full database wipe...");
+    console.log("==========================================");
+    console.log("🧹 STARTING RELIABLE DATABASE CLEANUP...");
+    console.log("==========================================");
 
-    // 1. Delete all relational data
+    // 1. Delete all transactional & relational data in strict dependency order
+    console.log("Deleting audit logs...");
     await prisma.adminAuditLog.deleteMany();
-    console.log("✓ Deleted all AdminAuditLogs");
 
+    console.log("Deleting applications...");
     await prisma.application.deleteMany();
-    console.log("✓ Deleted all Applications");
 
+    console.log("Deleting job alerts...");
+    await prisma.jobAlert.deleteMany();
+
+    console.log("Deleting jobs...");
     await prisma.job.deleteMany();
-    console.log("✓ Deleted all Jobs");
 
+    console.log("Deleting company profiles...");
     await prisma.companyProfile.deleteMany();
-    console.log("✓ Deleted all Company Profiles");
 
+    console.log("Deleting seeker profiles...");
     await prisma.seekerProfile.deleteMany();
-    console.log("✓ Deleted all Seeker Profiles");
 
+    console.log("Deleting users...");
     await prisma.user.deleteMany();
-    console.log("✓ Deleted all Users");
 
+    console.log("Resetting categories...");
     await prisma.category.deleteMany();
-    console.log("✓ Reset Categories");
 
-    // 2. Re-create clean Master Categories with 0 job count
-    console.log("Seeding clean master categories (0 jobs)...");
+    // 2. Re-create Clean Master Categories (All ready with 0 jobs)
+    console.log(`Seeding ${categoriesList.length} clean master categories with 0 job count...`);
     for (const cat of categoriesList) {
       const slug = cat.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const pop = popularCategories.find(p => p.name === cat);
       await prisma.category.create({
         data: {
           name: cat,
           slug,
-          iconColor: "#b2c359",
+          iconColor: pop ? pop.color : "#b2c359",
           jobCount: 0,
-          isPopular: false
+          isPopular: !!pop
         }
       });
     }
-    console.log("✓ Clean master categories created");
+    console.log("✓ Clean master categories seeded successfully.");
 
-    // 3. Create Admin Users for login access
+    // 3. Create Essential Admin Users for platform management
     const adminHashedPassword = await bcrypt.hash("Admin@123", 10);
     await prisma.user.createMany({
       data: [
         {
-          email: "admin@torbit.in",
+          email: "admin@torbitrealty.com",
           passwordHash: adminHashedPassword,
           role: "ADMIN"
         },
         {
-          email: "admin@torbitrealty.com",
+          email: "admin@torbit.in",
           passwordHash: adminHashedPassword,
           role: "ADMIN"
         }
       ]
     });
-    console.log("✓ Admin users created (admin@torbit.in / Admin@123)");
+    console.log("✓ Essential Admin accounts provisioned:");
+    console.log("  - admin@torbitrealty.com (Password: Admin@123)");
+    console.log("  - admin@torbit.in (Password: Admin@123)");
 
-    console.log("Database is now 100% clean and ready for fresh live registrations!");
+    console.log("==========================================");
+    console.log("✨ DATABASE CLEANUP COMPLETE & READY FOR PRODUCTION!");
+    console.log("==========================================");
   } catch (error) {
-    console.error("Error wiping database:", error);
+    console.error("❌ Error wiping database:", error);
+    process.exit(1);
   } finally {
     await prisma.$disconnect();
   }
