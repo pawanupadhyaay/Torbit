@@ -66,12 +66,11 @@ const syncHeaderAuthState = () => {
 };
 
 export default function Header({ onOpenAuth, currentUser: propUser }: HeaderProps) {
-  const [currentUser, setCurrentUser] = useState<any>(() => {
-    if (propUser) return propUser;
-    return syncHeaderAuthState();
-  });
+  const [mounted, setMounted] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(propUser || null);
 
   useEffect(() => {
+    setMounted(true);
     // 1. Initial sync
     const initial = propUser || syncHeaderAuthState();
     if (initial) setCurrentUser(initial);
@@ -144,7 +143,6 @@ export default function Header({ onOpenAuth, currentUser: propUser }: HeaderProp
     localStorage.removeItem('user');
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminUser');
-    localStorage.removeItem('torbit_remember_me');
     localStorage.removeItem('torbit_last_active_role');
     localStorage.removeItem('torbit_session_saved_at');
     try { sessionStorage.clear(); } catch (e) {}
@@ -163,9 +161,9 @@ export default function Header({ onOpenAuth, currentUser: propUser }: HeaderProp
     window.location.href = '/?view=home';
   };
 
-  const role = currentUser?.role;
-  const isRecruiter = role === 'RECRUITER' || role === 'COMPANY';
-  const isAdmin = role === 'ADMIN';
+  const role = mounted ? currentUser?.role : null;
+  const isRecruiter = Boolean(mounted && (role === 'RECRUITER' || role === 'COMPANY'));
+  const isAdmin = Boolean(mounted && role === 'ADMIN');
 
   const seekerId = currentUser?.seekerProfile?.id || (currentUser?.id ? `TOR-JS-${currentUser.id.slice(-6).toUpperCase()}` : null);
   const recId = currentUser?.companyProfile?.gstNumber || currentUser?.companyProfile?.id || currentUser?.id;

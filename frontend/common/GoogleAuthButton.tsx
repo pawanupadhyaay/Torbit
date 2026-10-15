@@ -80,9 +80,10 @@ export default function GoogleAuthButton({
   // Process authentication with backend
   const processGoogleAuth = async (params: { credential?: string; accessToken?: string; userInfo?: any; chosenRole?: 'JOB_SEEKER' | 'RECRUITER' | null; companyData?: any }) => {
     setLoading(true);
-    setErrorMsg(null);
     try {
-      const apiBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+      const apiBase = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+        ? '/api'
+        : (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
         ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
         : '/api';
 

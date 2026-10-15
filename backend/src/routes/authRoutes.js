@@ -8,6 +8,7 @@ const prisma = new PrismaClient();
 const { authenticateToken } = require("../middleware/authMiddleware");
 const { sendOtpEmail, sendPasswordResetOtpEmail, sendCompanyRegistrationAckEmail, sendAdminCompanyApprovalAlertEmail } = require("../services/emailService");
 const recruiterSettingsService = require("../services/recruiterSettingsService");
+const pushNotificationService = require("../services/pushNotificationService");
 
 const JWT_SECRET = process.env.JWT_SECRET || "torbit-realty-super-secret-key-2026";
 
@@ -498,6 +499,21 @@ router.post("/register-recruiter", async (req, res) => {
       referenceId
     }).catch((adminMailErr) => {
       console.error("⚠️ Error sending admin company approval alert email:", adminMailErr.message);
+    });
+
+    // Send instant mobile/tablet Push Notification to all Admin devices
+    pushNotificationService.sendToAdmins({
+      title: "🏢 New Recruiter Registered!",
+      body: `${companyName.trim()} (${cleanGst}) has registered and is awaiting verification.`,
+      url: "/admin",
+      icon: "/logo.png",
+      data: {
+        type: "NEW_RECRUITER",
+        companyName: companyName.trim(),
+        referenceId
+      }
+    }).catch((pushErr) => {
+      console.error("⚠️ Error sending push notification to admins:", pushErr.message);
     });
 
     res.json({

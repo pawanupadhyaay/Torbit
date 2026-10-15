@@ -10,7 +10,7 @@ import ArrowForwardOutlinedIcon from '@mui/icons-material/ArrowForwardOutlined';
 import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import BoltOutlinedIcon from '@mui/icons-material/BoltOutlined';
-import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined';
+import CheckOutlinedIcon from '@mui/icons-material/CloseOutlined';
 import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined';
 
 interface AdminOverviewProps {
@@ -83,7 +83,6 @@ export default function AdminOverview({
 
   return (
     <div className="space-y-6 font-['Helvetica',Arial,sans-serif]">
-      
       {/* 1. KYC Notification Banner (if pending) */}
       {pendingCompanies.length > 0 && (
         <div className="bg-white border-l-4 border-amber-500 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm border border-gray-200">

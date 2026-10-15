@@ -150,7 +150,6 @@ export default function AdminSidebar({ activeTab, setActiveTab, pendingCount }: 
             localStorage.removeItem('user');
             localStorage.removeItem('adminToken');
             localStorage.removeItem('adminUser');
-            localStorage.removeItem('torbit_remember_me');
             localStorage.removeItem('torbit_last_active_role');
             localStorage.removeItem('torbit_session_saved_at');
             try { sessionStorage.clear(); } catch (e) {}

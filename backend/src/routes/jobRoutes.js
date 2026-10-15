@@ -7,6 +7,7 @@ const settingsService = require("../services/settingsService");
 const { dispatchJobAlertNotifications } = require("../services/jobAlertDispatcher");
 const jobAlertSubscriberService = require("../services/jobAlertSubscriberService");
 const { sendNewsletterJobAlertConfirmationEmail } = require("../services/emailService");
+const pushNotificationService = require("../services/pushNotificationService");
 
 // POST subscribe to job alerts (Alias for public dashboard subscribers)
 router.post("/subscribe-alerts", async (req, res) => {
@@ -204,6 +205,14 @@ router.post("/", authenticateToken, async (req, res) => {
     dispatchJobAlertNotifications(job, company.companyName).catch((err) => {
       console.error("⚠️ Error dispatching job alert notifications:", err.message);
     });
+
+    // Asynchronously dispatch instant mobile push notification to admins
+    pushNotificationService.sendToAdmins({
+      title: "💼 New Job Posted!",
+      body: `${company.companyName} posted "${job.title}" (${job.location})`,
+      url: "/admin",
+      icon: "/logo.png"
+    }).catch(() => {});
 
     res.json({ success: true, job });
   } catch (err) {

@@ -20,6 +20,14 @@ export default function AdminTopbar({
   activeTab,
   pendingCount
 }: AdminTopbarProps) {
+  const [notificationMenuOpen, setNotificationMenuOpen] = React.useState(false);
+  const [pushGranted, setPushGranted] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setPushGranted(Notification.permission === 'granted');
+    }
+  }, []);
   const getTabTitle = () => {
     switch (activeTab) {
       case 'OVERVIEW': return 'Enterprise Console Overview';
@@ -69,8 +77,13 @@ export default function AdminTopbar({
 
         <div className="relative">
           <button
+            onClick={() => setNotificationMenuOpen(!notificationMenuOpen)}
             title="Notifications"
-            className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition border border-gray-200 relative flex items-center justify-center"
+            className={`p-2 rounded-xl transition border flex items-center justify-center relative cursor-pointer ${
+              notificationMenuOpen
+                ? 'bg-gray-900 text-[#b2c359] border-gray-900'
+                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100 border-gray-200'
+            }`}
           >
             <NotificationsNoneOutlinedIcon sx={{ fontSize: 18 }} />
             {pendingCount > 0 && (
@@ -79,6 +92,77 @@ export default function AdminTopbar({
               </span>
             )}
           </button>
+
+          {/* Notification Popover */}
+          {notificationMenuOpen && (
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-200 p-4 z-50 animate-fadeIn">
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-gray-900">Push & System Alerts</span>
+                  <span className="bg-[#b2c359]/20 text-slate-900 text-[10px] font-extrabold px-1.5 py-0.5 rounded">LIVE</span>
+                </div>
+                <button
+                  onClick={() => setNotificationMenuOpen(false)}
+                  className="text-gray-400 hover:text-gray-700 text-xs font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Push Status Box */}
+              <div className="mt-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-gray-700">📱 Mobile/Tablet Push:</span>
+                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                    pushGranted ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {pushGranted ? 'ACTIVATED' : 'NOT LINKED'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1">
+                  {pushGranted
+                    ? 'This browser will receive instant alerts in the device notification bar when recruiters register.'
+                    : 'Link this device to get alerts in your notification bar even when browser is closed.'}
+                </p>
+                <div className="mt-2.5 flex items-center gap-2">
+                  {!pushGranted ? (
+                    <button
+                      onClick={async () => {
+                        const { subscribeToPushNotifications } = await import('./lib/pushNotifications');
+                        const res = await subscribeToPushNotifications('ADMIN');
+                        if (res.success) setPushGranted(true);
+                      }}
+                      className="w-full bg-[#080809] hover:bg-black text-[#b2c359] text-[11px] font-bold py-1.5 rounded-lg transition"
+                    >
+                      Enable Push on This Device
+                    </button>
+                  ) : (
+                    <button
+                      onClick={async () => {
+                        const { sendTestAdminPush } = await import('./lib/pushNotifications');
+                        await sendTestAdminPush();
+                      }}
+                      className="w-full bg-white hover:bg-gray-100 text-gray-800 border border-gray-200 text-[11px] font-bold py-1.5 rounded-lg transition shadow-xs"
+                    >
+                      Send Test Alert to Phone
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* KYC Pending reminder */}
+              {pendingCount > 0 ? (
+                <div className="mt-3 p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-amber-900">
+                  <div className="text-[11px] font-bold">⚠️ {pendingCount} Recruiter(s) Awaiting KYC Approval</div>
+                  <div className="text-[10px] text-amber-700 mt-0.5">Review credentials & GST in the moderation queue.</div>
+                </div>
+              ) : (
+                <div className="mt-3 text-center py-2 text-[11px] text-gray-400">
+                  No pending recruiter moderation tasks. All clear!
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2.5 pl-3 border-l border-gray-200">

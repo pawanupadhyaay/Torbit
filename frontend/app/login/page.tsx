@@ -81,6 +81,16 @@ export default function LoginPage() {
       const prefillIdentifier = urlParams.get('identifier') || urlParams.get('email');
       if (prefillIdentifier) {
         setIdentifier(decodeURIComponent(prefillIdentifier));
+      } else {
+        // Load remembered credentials if active
+        const isRemembered = localStorage.getItem('torbit_remember_me') === 'true';
+        if (isRemembered) {
+          const savedId = localStorage.getItem('torbit_remembered_identifier');
+          const savedPass = localStorage.getItem('torbit_remembered_password');
+          if (savedId) setIdentifier(savedId);
+          if (savedPass) setPassword(savedPass);
+          setRememberMe(true);
+        }
       }
     } catch (e) {}
   }, []);
@@ -130,7 +140,15 @@ export default function LoginPage() {
       if (data.token) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('torbit_remember_me', rememberMe ? 'true' : 'false');
+        if (rememberMe) {
+          localStorage.setItem('torbit_remember_me', 'true');
+          localStorage.setItem('torbit_remembered_identifier', identifier.trim());
+          localStorage.setItem('torbit_remembered_password', password);
+        } else {
+          localStorage.removeItem('torbit_remember_me');
+          localStorage.removeItem('torbit_remembered_identifier');
+          localStorage.removeItem('torbit_remembered_password');
+        }
         localStorage.setItem('torbit_last_active_role', data.user?.role || '');
         localStorage.setItem('torbit_session_saved_at', Date.now().toString());
 
@@ -852,7 +870,17 @@ export default function LoginPage() {
                     type="checkbox"
                     id="remember-me-standalone-page"
                     checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setRememberMe(checked);
+                      if (!checked) {
+                        try {
+                          localStorage.removeItem('torbit_remember_me');
+                          localStorage.removeItem('torbit_remembered_identifier');
+                          localStorage.removeItem('torbit_remembered_password');
+                        } catch (err) {}
+                      }
+                    }}
                     className="rounded border-gray-300 text-[#b2c359] focus:ring-[#b2c359] w-4 h-4 cursor-pointer"
                   />
                   <label htmlFor="remember-me-standalone-page" className="text-gray-600 text-xs font-medium cursor-pointer">

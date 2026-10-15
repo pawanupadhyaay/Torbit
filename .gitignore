@@ -39,6 +39,7 @@ yarn-error.log*
 # Uploads directory
 backend/uploads/*
 !backend/uploads/.gitkeep
+backend/data/pushSubscriptions.json
 
 # Root scratch captures
 screencapture*.png

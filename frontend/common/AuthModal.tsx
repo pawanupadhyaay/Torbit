@@ -137,8 +137,19 @@ export default function AuthModal({
       setShowVerificationPopup(false);
       setRegistrationRefId(null);
       setShowPasswordChangeModal(false);
-      setError(null);
       setSeekerOtpNotice(null);
+
+      // Load Remembered Credentials if active
+      try {
+        const isRemembered = localStorage.getItem('torbit_remember_me') === 'true';
+        if (isRemembered) {
+          const savedId = localStorage.getItem('torbit_remembered_identifier') || '';
+          const savedPass = localStorage.getItem('torbit_remembered_password') || '';
+          if (savedId) setLoginIdentifier(savedId);
+          if (savedPass) setLoginPassword(savedPass);
+          setRememberMe(true);
+        }
+      } catch (e) {}
     } else {
       setShowVerificationPopup(false);
       setRegistrationRefId(null);
@@ -148,10 +159,14 @@ export default function AuthModal({
   useBodyScrollLock(isOpen);
 
   const getApiEndpoint = (path: string) => {
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
+    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      return `/api${cleanPath}`;
+    }
     const base = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
       ? process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, '')
       : '/api';
-    return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+    return `${base}${cleanPath}`;
   };
 
   if (!isOpen) return null;
@@ -503,8 +518,15 @@ export default function AuthModal({
 
       if (data.token) {
         localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('torbit_remember_me', rememberMe ? 'true' : 'false');
+        if (rememberMe) {
+          localStorage.setItem('torbit_remember_me', 'true');
+          localStorage.setItem('torbit_remembered_identifier', loginIdentifier.trim());
+          localStorage.setItem('torbit_remembered_password', loginPassword);
+        } else {
+          localStorage.removeItem('torbit_remember_me');
+          localStorage.removeItem('torbit_remembered_identifier');
+          localStorage.removeItem('torbit_remembered_password');
+        }
         localStorage.setItem('torbit_last_active_role', data.user?.role || '');
         localStorage.setItem('torbit_session_saved_at', Date.now().toString());
 
@@ -2023,7 +2045,17 @@ export default function AuthModal({
                     type="checkbox"
                     id="login-remember-me-spec"
                     checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setRememberMe(checked);
+                      if (!checked) {
+                        try {
+                          localStorage.removeItem('torbit_remember_me');
+                          localStorage.removeItem('torbit_remembered_identifier');
+                          localStorage.removeItem('torbit_remembered_password');
+                        } catch (err) {}
+                      }
+                    }}
                     className="rounded border-gray-300 text-[#b2c359] focus:ring-[#b2c359] w-4 h-4 cursor-pointer"
                   />
                   <label htmlFor="login-remember-me-spec" className="text-gray-600 text-xs font-medium cursor-pointer">

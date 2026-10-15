@@ -19,6 +19,7 @@ const jobRoutes = require("./routes/jobRoutes");
 const applicationRoutes = require("./routes/applicationRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const alertRoutes = require("./routes/alertRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 const prisma = new PrismaClient();
 const app = express();
@@ -120,6 +121,7 @@ app.use("/api/jobs", jobRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/alerts", alertRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Public Categories API (Master Data for Seeker & Recruiter panels)
 app.get("/api/categories", async (req, res) => {
@@ -174,7 +176,7 @@ app.use((err, req, res, next) => {
 });
 
 // 🚀 3. Server Startup & Database Verification
-app.listen(PORT, "0.0.0.0", async () => {
+app.listen(PORT, async () => {
   console.log("\n=======================================================");
   console.log("🏢 TORBIT REALTY - ENTERPRISE BACKEND SERVICE");
   console.log("=======================================================");

@@ -37,6 +37,10 @@ import PrintOutlinedIcon from '@mui/icons-material/PrintOutlined';
 import BarChartOutlinedIcon from '@mui/icons-material/BarChartOutlined';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import SmsOutlinedIcon from '@mui/icons-material/SmsOutlined';
+import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
+import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined';
+import SmartphoneOutlinedIcon from '@mui/icons-material/SmartphoneOutlined';
+import { isPushNotificationSupported, getPushSubscriptionState, subscribeToPushNotifications, sendTestAdminPush } from '@/lib/pushNotifications';
 import AdminPostSpecialJobModal from '@/common/AdminPostSpecialJobModal';
 import { Building2 } from 'lucide-react';
 import Footer from '@/common/Footer';
@@ -127,6 +131,73 @@ export default function AdminDashboardPage() {
   const analyticsTimeframeRef = React.useRef<'7D' | '30D' | '90D' | 'ALL'>('7D');
   const [hoveredTrendItem, setHoveredTrendItem] = useState<any>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Push Notification & Notification Dropdown State
+  const [notificationMenuOpen, setNotificationMenuOpen] = useState(false);
+  const [pushPermission, setPushPermission] = useState<string>('default');
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushTestLoading, setPushTestLoading] = useState(false);
+  const [pushStatusMsg, setPushStatusMsg] = useState<string | null>(null);
+
+  // Auto-Prompt & Silent Device Registration (Zomato/Swiggy style)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isPushNotificationSupported()) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        if (Notification.permission === 'granted') {
+          // Already allowed: quietly register/sync device token with server
+          setPushPermission('granted');
+          await subscribeToPushNotifications('ADMIN');
+        } else if (Notification.permission === 'default') {
+          // Automatic native browser prompt on login/first visit
+          const perm = await Notification.requestPermission();
+          setPushPermission(perm);
+          if (perm === 'granted') {
+            await subscribeToPushNotifications('ADMIN');
+          }
+        } else {
+          setPushPermission(Notification.permission);
+        }
+      } catch (err) {
+        console.warn('Auto-push sync:', err);
+      }
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleEnablePushFromDropdown = async () => {
+    setPushLoading(true);
+    setPushStatusMsg(null);
+    try {
+      const res = await subscribeToPushNotifications('ADMIN');
+      if (res.success) {
+        setPushPermission('granted');
+        setPushStatusMsg('✅ Push alerts enabled on this device!');
+        sendTestAdminPush();
+      } else {
+        setPushStatusMsg(`⚠️ ${res.message}`);
+      }
+    } catch (e: any) {
+      setPushStatusMsg(`❌ ${e.message}`);
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  const handleTestPushFromDropdown = async () => {
+    setPushTestLoading(true);
+    setPushStatusMsg(null);
+    try {
+      const res = await sendTestAdminPush();
+      setPushStatusMsg(res.success ? '🔔 Alert sent to tray!' : `⚠️ ${res.message}`);
+    } catch (e: any) {
+      setPushStatusMsg(`❌ ${e.message}`);
+    } finally {
+      setPushTestLoading(false);
+    }
+  };
 
   // Toast notification state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -2789,6 +2860,132 @@ export default function AdminDashboardPage() {
             >
               <RefreshOutlinedIcon sx={{ fontSize: 19 }} className={isRefreshing ? 'animate-spin text-[#b2c359]' : ''} />
             </button>
+
+            {/* Notification Bell & Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setNotificationMenuOpen(!notificationMenuOpen)}
+                className={`p-2 rounded-xl transition cursor-pointer border flex items-center justify-center relative ${
+                  notificationMenuOpen
+                    ? 'bg-slate-900 text-[#b2c359] border-slate-900'
+                    : 'text-slate-600 bg-slate-100/80 hover:bg-slate-200/80 border-slate-200/60 active:scale-95'
+                }`}
+                title="Notifications & Device Push Alerts"
+              >
+                {pushPermission === 'granted' ? (
+                  <NotificationsActiveOutlinedIcon sx={{ fontSize: 19 }} className="text-[#9eb047]" />
+                ) : (
+                  <NotificationsNoneOutlinedIcon sx={{ fontSize: 19 }} />
+                )}
+                {pendingCompanies.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-slate-950 text-[9px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-xs">
+                    {pendingCompanies.length}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Popover */}
+              {notificationMenuOpen && (
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 p-4 z-50 animate-fadeIn font-['Helvetica',Arial,sans-serif]">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-900">Push & System Alerts</span>
+                      <span className="bg-[#b2c359]/20 text-slate-900 text-[10px] font-extrabold px-1.5 py-0.5 rounded">LIVE</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setNotificationMenuOpen(false)}
+                      className="text-slate-400 hover:text-slate-700 text-xs font-bold p-1 cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Device Push Notifications Status Box */}
+                  <div className="mt-3 bg-slate-950 text-white rounded-xl p-3.5 border border-slate-800">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <SmartphoneOutlinedIcon sx={{ fontSize: 16 }} className="text-[#b2c359]" />
+                        <span className="text-[11px] font-bold text-slate-200">Mobile/Tablet Push:</span>
+                      </div>
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                        pushPermission === 'granted'
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          : pushPermission === 'denied'
+                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                      }`}>
+                        {pushPermission === 'granted' ? 'ACTIVATED' : pushPermission === 'denied' ? 'BLOCKED' : 'NOT LINKED'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                      {pushPermission === 'granted'
+                        ? '✅ This browser is linked to receive instant alerts in the device notification bar when recruiters register.'
+                        : pushPermission === 'denied'
+                        ? '⚠️ Notifications are blocked in browser settings. Please allow notifications in site settings.'
+                        : 'Link this device (phone/tablet/laptop) to get real-time recruiter registration alerts even when the browser is minimized.'}
+                    </p>
+                    
+                    {pushStatusMsg && (
+                      <p className="text-[11px] text-[#b2c359] font-medium mt-1.5 animate-fadeIn">
+                        {pushStatusMsg}
+                      </p>
+                    )}
+
+                    <div className="mt-3 flex items-center gap-2">
+                      {pushPermission !== 'granted' ? (
+                        <button
+                          type="button"
+                          onClick={handleEnablePushFromDropdown}
+                          disabled={pushLoading || pushPermission === 'denied'}
+                          className="w-full bg-[#b2c359] hover:bg-[#a1b248] text-slate-950 text-[11px] font-bold py-1.5 px-3 rounded-lg transition disabled:opacity-50 cursor-pointer shadow-xs"
+                        >
+                          {pushLoading ? 'Activating...' : 'Enable Mobile/Tablet Push'}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleTestPushFromDropdown}
+                          disabled={pushTestLoading}
+                          className="w-full bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold py-1.5 px-3 rounded-lg transition border border-white/20 disabled:opacity-50 cursor-pointer"
+                        >
+                          {pushTestLoading ? 'Sending Alert...' : '🔔 Test Alert on Device'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Pending Approvals & Activity Alerts */}
+                  <div className="mt-3 space-y-2">
+                    <div className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+                      Recent Moderation Alerts
+                    </div>
+                    {pendingCompanies.length > 0 ? (
+                      <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/80 flex items-center justify-between gap-2">
+                        <div className="text-xs text-amber-900 font-medium">
+                          <strong>{pendingCompanies.length}</strong> employer account{pendingCompanies.length > 1 ? 's' : ''} awaiting approval
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveTab('APPROVALS');
+                            setNotificationMenuOpen(false);
+                          }}
+                          className="text-[11px] text-amber-800 font-bold hover:underline shrink-0 cursor-pointer"
+                        >
+                          Review →
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-slate-500 py-2 text-center bg-slate-50 rounded-xl">
+                        No pending company approvals right now.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 
@@ -2817,6 +3014,7 @@ export default function AdminDashboardPage() {
                   </span>
                 </div>
               </div>
+
 
               {pendingCompanies.length > 0 && (
                 <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-300/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
