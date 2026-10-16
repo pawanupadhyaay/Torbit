@@ -16,12 +16,36 @@ export function isPushNotificationSupported(): boolean {
   return 'serviceWorker' in navigator && 'Notification' in window;
 }
 
+export function isIOS(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  );
+}
+
+export function isStandalone(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (navigator as any).standalone === true
+  );
+}
+
 export async function getPushSubscriptionState(): Promise<'default' | 'granted' | 'denied' | 'unsupported'> {
   if (!isPushNotificationSupported()) return 'unsupported';
   return Notification.permission;
 }
 
 export async function subscribeToPushNotifications(role: string = 'ADMIN', userId: string | null = null): Promise<{ success: boolean; message: string; error?: string }> {
+  if (isIOS() && !isStandalone()) {
+    return {
+      success: false,
+      message: 'Apple iPhone Rule: Tap Share (⬆️) in Safari, tap "Add to Home Screen" ➕, then open from your Home Screen to enable notifications.',
+      error: 'IOS_NOT_STANDALONE'
+    };
+  }
+
   if (!isPushNotificationSupported()) {
     return { success: false, message: 'Push notifications are not supported on this browser/device.', error: 'UNSUPPORTED' };
   }

@@ -1,0 +1,25 @@
+{
+  "name": "Torbit Realty Portal",
+  "short_name": "Torbit Realty",
+  "description": "Enterprise Job Portal for Real Estate Careers & Recruiter Hiring",
+  "start_url": "/admin/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#080809",
+  "theme_color": "#080809",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

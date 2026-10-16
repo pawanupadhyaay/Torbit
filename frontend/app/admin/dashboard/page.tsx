@@ -40,7 +40,7 @@ import SmsOutlinedIcon from '@mui/icons-material/SmsOutlined';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import NotificationsActiveOutlinedIcon from '@mui/icons-material/NotificationsActiveOutlined';
 import SmartphoneOutlinedIcon from '@mui/icons-material/SmartphoneOutlined';
-import { isPushNotificationSupported, getPushSubscriptionState, subscribeToPushNotifications, sendTestAdminPush } from '@/lib/pushNotifications';
+import { isPushNotificationSupported, getPushSubscriptionState, subscribeToPushNotifications, sendTestAdminPush, isIOS, isStandalone } from '@/lib/pushNotifications';
 import AdminPostSpecialJobModal from '@/common/AdminPostSpecialJobModal';
 import { Building2 } from 'lucide-react';
 import Footer from '@/common/Footer';
@@ -139,10 +139,29 @@ export default function AdminDashboardPage() {
   const [pushTestLoading, setPushTestLoading] = useState(false);
   const [pushStatusMsg, setPushStatusMsg] = useState<string | null>(null);
   const [showPushPromptBanner, setShowPushPromptBanner] = useState(false);
+  const [isIosDevice, setIsIosDevice] = useState(false);
+  const [isStandaloneApp, setIsStandaloneApp] = useState(false);
 
   // Check notification permission on mount
   useEffect(() => {
-    if (typeof window === 'undefined' || !isPushNotificationSupported()) return;
+    if (typeof window === 'undefined') return;
+
+    const ios = isIOS();
+    const standalone = isStandalone();
+    setIsIosDevice(ios);
+    setIsStandaloneApp(standalone);
+
+    if (!isPushNotificationSupported()) {
+      if (ios && !standalone) {
+        try {
+          const dismissed = sessionStorage.getItem('torbit_admin_push_banner_dismissed');
+          if (!dismissed) setShowPushPromptBanner(true);
+        } catch (e) {
+          setShowPushPromptBanner(true);
+        }
+      }
+      return;
+    }
 
     const currentPerm = Notification.permission;
     setPushPermission(currentPerm);
@@ -2957,6 +2976,22 @@ export default function AdminDashboardPage() {
                         : 'Link this device (phone/tablet/laptop) to get real-time recruiter registration alerts even when the browser is minimized.'}
                     </p>
                     
+                    {isIosDevice && !isStandaloneApp && (
+                      <div className="mt-2.5 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-[10.5px] space-y-1">
+                        <div className="font-bold flex items-center gap-1 text-amber-300">
+                          <span>📱 Apple iPhone 16 / iOS Rule:</span>
+                        </div>
+                        <p className="text-slate-300 leading-snug">
+                          Apple requires adding the portal to your Home Screen before enabling notifications:
+                        </p>
+                        <div className="bg-slate-900/90 p-2 rounded text-slate-200 space-y-0.5 border border-slate-800 text-[10px]">
+                          <div>1. Safari ke bottom me <b>Share icon (⬆️)</b> tap karein.</div>
+                          <div>2. Scroll karke <b>"Add to Home Screen" ➕</b> chunein.</div>
+                          <div>3. Home Screen se Torbit app open karke <b>"Enable Push"</b> dabayein!</div>
+                        </div>
+                      </div>
+                    )}
+
                     {pushStatusMsg && (
                       <p className="text-[11px] text-[#b2c359] font-medium mt-1.5 animate-fadeIn">
                         {pushStatusMsg}
@@ -3038,9 +3073,25 @@ export default function AdminDashboardPage() {
                       Instant Push
                     </span>
                   </div>
-                  <p className="text-[11px] sm:text-xs text-slate-300 mt-1 leading-relaxed max-w-2xl">
-                    Get instant notifications in your device’s notification bar whenever a new recruiter registers or submits company documents for verification — just like Swiggy / Zomato notifications.
-                  </p>
+                  {isIosDevice && !isStandaloneApp ? (
+                    <div className="text-[11px] sm:text-xs text-amber-200 mt-2 bg-amber-500/15 border border-amber-500/30 p-2.5 rounded-xl space-y-1">
+                      <div className="font-bold text-amber-300 flex items-center gap-1">
+                        <span>📱 Apple iPhone Setup:</span>
+                      </div>
+                      <p className="text-slate-200">
+                        Apple requires adding Torbit to Home Screen to enable lock screen notifications:
+                      </p>
+                      <div className="text-[10.5px] text-slate-300 space-y-0.5">
+                        <div>1. Safari bottom bar me <b>Share button (⬆️)</b> tap karein.</div>
+                        <div>2. <b>"Add to Home Screen" (➕)</b> choose karein.</div>
+                        <div>3. Home Screen par Torbit icon se open karke Allow karein!</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] sm:text-xs text-slate-300 mt-1 leading-relaxed max-w-2xl">
+                      Get instant notifications in your device’s notification bar whenever a new recruiter registers or submits company documents for verification — just like Swiggy / Zomato notifications.
+                    </p>
+                  )}
                 </div>
               </div>
 
