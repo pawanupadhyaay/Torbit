@@ -41,7 +41,7 @@ export async function subscribeToPushNotifications(role: string = 'ADMIN', userI
   if (isIOS() && !isStandalone()) {
     return {
       success: false,
-      message: 'Apple iPhone Rule: Tap Share (⬆️) in Safari, tap "Add to Home Screen" ➕, then open from your Home Screen to enable notifications.',
+      message: 'To enable notifications on iOS, add this portal to your Home Screen (Share ➔ "Add to Home Screen") and launch from there.',
       error: 'IOS_NOT_STANDALONE'
     };
   }

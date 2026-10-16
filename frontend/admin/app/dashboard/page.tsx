@@ -2936,33 +2936,61 @@ export default function AdminDashboardPage() {
                         : 'Link this device (phone/tablet/laptop) to get real-time recruiter registration alerts even when the browser is minimized.'}
                     </p>
                     
-                    {pushStatusMsg && (
-                      <p className="text-[11px] text-[#b2c359] font-medium mt-1.5 animate-fadeIn">
-                        {pushStatusMsg}
-                      </p>
-                    )}
+                    {isIosDevice && !isStandaloneApp ? (
+                      <div className="mt-3 p-3 rounded-xl bg-slate-900 border border-slate-800 text-[11px] space-y-2">
+                        <div className="font-bold flex items-center gap-1.5 text-white">
+                          <SmartphoneOutlinedIcon sx={{ fontSize: 16 }} className="text-[#b2c359]" />
+                          <span>iOS Push Notification Setup</span>
+                        </div>
+                        <p className="text-slate-400 leading-relaxed text-[11px]">
+                          Apple iOS requires web applications to be added to the Home Screen to deliver background and lock screen notifications.
+                        </p>
+                        <div className="bg-slate-950 p-2.5 rounded-lg text-slate-300 space-y-1.5 border border-slate-800 text-[11px]">
+                          <div className="flex items-center gap-2">
+                            <span className="w-4 h-4 rounded-full bg-white/10 text-white font-bold text-[10px] flex items-center justify-center shrink-0">1</span>
+                            <span>Tap the <strong>Share</strong> button <span className="text-[#b2c359] font-bold">(⬆️)</span> in Safari’s menu bar</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="w-4 h-4 rounded-full bg-white/10 text-white font-bold text-[10px] flex items-center justify-center shrink-0">2</span>
+                            <span>Select <strong>"Add to Home Screen"</strong></span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="w-4 h-4 rounded-full bg-white/10 text-white font-bold text-[10px] flex items-center justify-center shrink-0">3</span>
+                            <span>Launch <strong>Torbit Admin</strong> from your Home Screen to activate notifications</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {pushStatusMsg && (
+                          <p className="text-[11px] text-[#b2c359] font-medium mt-1.5 animate-fadeIn">
+                            {pushStatusMsg}
+                          </p>
+                        )}
 
-                    <div className="mt-3 flex items-center gap-2">
-                      {pushPermission !== 'granted' ? (
-                        <button
-                          type="button"
-                          onClick={handleEnablePushFromDropdown}
-                          disabled={pushLoading || pushPermission === 'denied'}
-                          className="w-full bg-[#b2c359] hover:bg-[#a1b248] text-slate-950 text-[11px] font-bold py-1.5 px-3 rounded-lg transition disabled:opacity-50 cursor-pointer shadow-xs"
-                        >
-                          {pushLoading ? 'Activating...' : 'Enable Mobile/Tablet Push'}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleTestPushFromDropdown}
-                          disabled={pushTestLoading}
-                          className="w-full bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold py-1.5 px-3 rounded-lg transition border border-white/20 disabled:opacity-50 cursor-pointer"
-                        >
-                          {pushTestLoading ? 'Sending Alert...' : '🔔 Test Alert on Device'}
-                        </button>
-                      )}
-                    </div>
+                        <div className="mt-3 flex items-center gap-2">
+                          {pushPermission !== 'granted' ? (
+                            <button
+                              type="button"
+                              onClick={handleEnablePushFromDropdown}
+                              disabled={pushLoading || pushPermission === 'denied'}
+                              className="w-full bg-[#b2c359] hover:bg-[#a1b248] text-slate-950 text-[11px] font-bold py-1.5 px-3 rounded-lg transition disabled:opacity-50 cursor-pointer shadow-xs"
+                            >
+                              {pushLoading ? 'Activating...' : 'Enable Mobile/Tablet Push'}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleTestPushFromDropdown}
+                              disabled={pushTestLoading}
+                              className="w-full bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold py-1.5 px-3 rounded-lg transition border border-white/20 disabled:opacity-50 cursor-pointer"
+                            >
+                              {pushTestLoading ? 'Sending Alert...' : '🔔 Test Alert on Device'}
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Pending Approvals & Activity Alerts */}
@@ -3011,24 +3039,34 @@ export default function AdminDashboardPage() {
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-extrabold text-xs sm:text-sm text-white tracking-tight">
-                      Enable Real-Time Recruiter Alerts (Mobile, Tablet &amp; Desktop)
+                      Real-Time Recruiter Alerts (Mobile, Tablet &amp; Desktop)
                     </h3>
                     <span className="bg-[#b2c359] text-[#080809] text-[9px] font-black px-1.5 py-0.5 rounded tracking-wide uppercase">
                       Instant Push
                     </span>
                   </div>
                   {isIosDevice && !isStandaloneApp ? (
-                    <div className="text-[11px] sm:text-xs text-amber-200 mt-2 bg-amber-500/15 border border-amber-500/30 p-2.5 rounded-xl space-y-1">
-                      <div className="font-bold text-amber-300 flex items-center gap-1">
-                        <span>📱 Apple iPhone Setup:</span>
+                    <div className="text-[11px] sm:text-xs text-slate-300 mt-2 bg-slate-900 border border-slate-800 p-3 rounded-xl space-y-1.5">
+                      <div className="font-bold text-white flex items-center gap-1.5">
+                        <SmartphoneOutlinedIcon sx={{ fontSize: 16 }} className="text-[#b2c359]" />
+                        <span>iOS Push Notification Setup</span>
                       </div>
-                      <p className="text-slate-200">
-                        Apple requires adding Torbit to Home Screen to enable lock screen notifications:
+                      <p className="text-slate-400">
+                        Apple iOS requires adding this portal to your Home Screen to enable lock screen notifications:
                       </p>
-                      <div className="text-[10.5px] text-slate-300 space-y-0.5">
-                        <div>1. Safari bottom bar me <b>Share button (⬆️)</b> tap karein.</div>
-                        <div>2. <b>"Add to Home Screen" (➕)</b> choose karein.</div>
-                        <div>3. Home Screen par Torbit icon se open karke Allow karein!</div>
+                      <div className="text-[10.5px] text-slate-300 space-y-1 bg-slate-950 p-2 rounded-lg border border-slate-800">
+                        <div className="flex items-center gap-2">
+                          <span className="w-4 h-4 rounded-full bg-white/10 text-white font-bold text-[9px] flex items-center justify-center shrink-0">1</span>
+                          <span>Tap the <strong>Share</strong> button <span className="text-[#b2c359] font-bold">(⬆️)</span> in Safari’s menu bar</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-4 h-4 rounded-full bg-white/10 text-white font-bold text-[9px] flex items-center justify-center shrink-0">2</span>
+                          <span>Select <strong>"Add to Home Screen"</strong></span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-4 h-4 rounded-full bg-white/10 text-white font-bold text-[9px] flex items-center justify-center shrink-0">3</span>
+                          <span>Launch <strong>Torbit Admin</strong> from your Home Screen to activate alerts</span>
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -3040,22 +3078,34 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="flex items-center gap-2.5 shrink-0 self-end md:self-auto w-full md:w-auto">
-                <button
-                  type="button"
-                  onClick={handleDismissPushBanner}
-                  className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
-                >
-                  Later
-                </button>
-                <button
-                  type="button"
-                  disabled={pushLoading}
-                  onClick={handleAllowPushFromBanner}
-                  className="flex-1 md:flex-initial px-5 py-2.5 bg-[#b2c359] hover:bg-[#a1b248] active:scale-95 text-slate-950 font-black text-xs rounded-xl transition shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  <NotificationsActiveOutlinedIcon sx={{ fontSize: 16 }} />
-                  <span>{pushLoading ? 'Connecting Device...' : 'Allow Notifications'}</span>
-                </button>
+                {isIosDevice && !isStandaloneApp ? (
+                  <button
+                    type="button"
+                    onClick={handleDismissPushBanner}
+                    className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+                  >
+                    Got it
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleDismissPushBanner}
+                      className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                    >
+                      Later
+                    </button>
+                    <button
+                      type="button"
+                      disabled={pushLoading}
+                      onClick={handleAllowPushFromBanner}
+                      className="flex-1 md:flex-initial px-5 py-2.5 bg-[#b2c359] hover:bg-[#a1b248] active:scale-95 text-slate-950 font-black text-xs rounded-xl transition shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    >
+                      <NotificationsActiveOutlinedIcon sx={{ fontSize: 16 }} />
+                      <span>{pushLoading ? 'Connecting Device...' : 'Allow Notifications'}</span>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
