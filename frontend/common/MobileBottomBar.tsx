@@ -85,7 +85,7 @@ export default function MobileBottomBar({ onOpenAuth }: MobileBottomBarProps) {
   const isAccountActive = pathname?.includes('dashboard');
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-slate-200/90 px-2 pt-1 pb-1.5 sm:py-2 shadow-[0_-4px_25px_rgba(0,0,0,0.08)] font-['Helvetica',Arial,sans-serif] select-none">
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-slate-200/90 px-2 bottom-bar-safe-area shadow-[0_-4px_25px_rgba(0,0,0,0.08)] font-['Helvetica',Arial,sans-serif] select-none">
       <div className="flex items-center justify-around max-w-lg mx-auto">
         {/* 1. Home */}
         <Link

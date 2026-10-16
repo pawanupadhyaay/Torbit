@@ -279,7 +279,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC] pb-16 lg:pb-0">
+    <div className="min-h-screen flex flex-col bg-[#F8FAFC] pb-24 lg:pb-0">
       <Header onOpenAuth={handleOpenAuth} currentUser={currentUser} />
 
       <HeroSection 

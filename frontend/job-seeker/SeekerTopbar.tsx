@@ -30,7 +30,7 @@ export default function SeekerTopbar({
   };
 
   return (
-    <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/90 py-2.5 px-4 sm:px-6 shrink-0 flex items-center justify-between shadow-2xs sticky top-0 z-30 font-['Helvetica',Arial,sans-serif]">
+    <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/90 topbar-safe-area px-4 sm:px-6 shrink-0 flex items-center justify-between shadow-2xs sticky top-0 z-30 font-['Helvetica',Arial,sans-serif]">
       {/* Left: Hamburger (mobile) */}
       <div className="flex items-center gap-2 md:hidden">
         {onOpenMobileMenu && (

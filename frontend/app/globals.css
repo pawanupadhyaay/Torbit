@@ -130,4 +130,54 @@ body.modal-open-scroll-locked {
 .modal-open-scroll-locked [class*="overflow-auto"] {
   touch-action: pan-y !important;
   -webkit-overflow-scrolling: touch;
-}
+}
+
+/* ========================================================= */
+/* iOS Dynamic Island & Safe Area Inset Support              */
+/* ========================================================= */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+/* Safe area for primary public sticky header (prevents notch/island overlap) */
+.header-safe-area {
+  padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+  padding-bottom: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .header-safe-area {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+}
+
+/* Safe area for dashboard topbars */
+.topbar-safe-area {
+  padding-top: calc(0.625rem + env(safe-area-inset-top, 0px));
+  padding-bottom: 0.625rem;
+}
+
+@media (min-width: 768px) {
+  .topbar-safe-area {
+    padding-top: 0.625rem;
+    padding-bottom: 0.625rem;
+  }
+}
+
+/* Safe area for fixed mobile bottom navigation bar */
+.bottom-bar-safe-area {
+  padding-top: 0.25rem;
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 640px) {
+  .bottom-bar-safe-area {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}
+
