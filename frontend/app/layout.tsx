@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://jobs.torbitrealty.com'),
   title: 'Torbit Jobs | Premier Career & Job Portal',
   description: 'Enterprise Job Portal for Top Talent & Verified Hiring Employers.',
   icons: {

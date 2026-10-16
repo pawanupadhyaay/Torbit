@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from './apiConfig';
+import { getApiBaseUrl } from '../../lib/apiConfig';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -103,7 +103,7 @@ export async function sendTestAdminPush(): Promise<{ success: boolean; message: 
     }
 
     const testTitle = '🔔 Torbit Realty Alert';
-    const testOptions: NotificationOptions = {
+    const testOptions: any = {
       body: 'Your device is linked! Instant recruiter registration alerts will pop up here.',
       icon: 'https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png',
       badge: 'https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png',
