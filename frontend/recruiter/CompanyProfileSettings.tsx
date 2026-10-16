@@ -30,15 +30,40 @@ export default function CompanyProfileSettings({ company, onProfileUpdated }: Co
   const [error, setError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isDirtyRef = useRef(false);
+  const initialLoadedRef = useRef(false);
+  const lastCompanyIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (company) {
+    if (!company) return;
+
+    const companyId = company.id || company.companyName || null;
+    const isDifferentCompany = Boolean(companyId && lastCompanyIdRef.current && companyId !== lastCompanyIdRef.current);
+
+    if (!initialLoadedRef.current || isDifferentCompany) {
+      lastCompanyIdRef.current = companyId;
       setCompanyName(company.companyName || '');
       setPhone(company.phone || '');
       setHqLocation(company.hqLocation || '');
       setIndustry(company.industry || 'Real Estate');
       setLogoUrl(company.logoUrl || '');
+      initialLoadedRef.current = true;
+      isDirtyRef.current = false;
+      return;
     }
+
+    if (isDirtyRef.current) {
+      if (company.logoUrl && company.logoUrl !== logoUrl) {
+        setLogoUrl(company.logoUrl);
+      }
+      return;
+    }
+
+    setCompanyName(company.companyName || '');
+    setPhone(company.phone || '');
+    setHqLocation(company.hqLocation || '');
+    setIndustry(company.industry || 'Real Estate');
+    setLogoUrl(company.logoUrl || '');
   }, [company]);
 
   const handleLogoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -201,6 +226,7 @@ export default function CompanyProfileSettings({ company, onProfileUpdated }: Co
       if (!res.ok) throw new Error(data?.error || 'Failed to update company profile');
 
       setSaved(true);
+      isDirtyRef.current = false;
       if (data?.company) {
         if (typeof window !== 'undefined') {
           try {
@@ -252,7 +278,13 @@ export default function CompanyProfileSettings({ company, onProfileUpdated }: Co
         </div>
       )}
 
-      <form onSubmit={handleSave} className="space-y-5 text-xs">
+      <form
+        onSubmit={handleSave}
+        onChange={() => {
+          isDirtyRef.current = true;
+        }}
+        className="space-y-5 text-xs"
+      >
         {/* Company Brand Logo Card */}
         <div className="bg-slate-50/90 rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3.5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">

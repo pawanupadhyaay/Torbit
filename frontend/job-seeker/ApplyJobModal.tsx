@@ -138,7 +138,9 @@ export default function ApplyJobModal({
   useEffect(() => {
     if (isOpen) {
       const name = profile.fullName || currentUser?.name || 'Candidate';
-      setApplicantName(name);
+      if (!applicantName) {
+        setApplicantName(name);
+      }
       
       if (profile.resumeUrl && !resumeUrl) {
         setResumeUrl(profile.resumeUrl);

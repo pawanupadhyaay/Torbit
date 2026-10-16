@@ -71,22 +71,65 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
     };
   }, []);
 
+  // Form dirty & initialization tracking to prevent background polling from resetting user typed input
+  const isDirtyRef = useRef(false);
+  const initialLoadedRef = useRef(false);
+  const lastProfileIdRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (profile) {
+    if (!profile) return;
+
+    // Check if switching to an entirely different profile
+    const profileId = profile.id || profile.userId || null;
+    const isDifferentProfile = Boolean(profileId && lastProfileIdRef.current && profileId !== lastProfileIdRef.current);
+
+    if (!initialLoadedRef.current || isDifferentProfile) {
+      lastProfileIdRef.current = profileId;
       setFullName(profile.fullName || '');
       setPhone(profile.phone || '');
       setLocation(profile.location || '');
       setQualification(profile.qualification || '');
       setExperience(profile.experience || '');
-      setCurrentSalary(profile.currentSalary || '');
-      setExpectedSalary(profile.expectedSalary || '');
+      setCurrentSalary(profile.currentSalary !== undefined && profile.currentSalary !== null ? String(profile.currentSalary) : '');
+      setExpectedSalary(profile.expectedSalary !== undefined && profile.expectedSalary !== null ? String(profile.expectedSalary) : '');
       setSkills(profile.skills || '');
       setNoticePeriod(profile.noticePeriod || '30 days');
       setPortfolioUrl(profile.portfolioUrl || '');
       setAvatarUrl(profile.avatarUrl || '');
       setResumeUrl(profile.resumeUrl || '');
       setResumeOriginalName(profile.resumeOriginalName || '');
+      initialLoadedRef.current = true;
+      isDirtyRef.current = false;
+      return;
     }
+
+    // If user has modified any form field, NEVER overwrite or auto-blank their typed values!
+    if (isDirtyRef.current) {
+      // Keep avatar/resume updated if changed via upload response
+      if (profile.avatarUrl && profile.avatarUrl !== avatarUrl) {
+        setAvatarUrl(profile.avatarUrl);
+      }
+      if (profile.resumeUrl && profile.resumeUrl !== resumeUrl) {
+        setResumeUrl(profile.resumeUrl);
+        setResumeOriginalName(profile.resumeOriginalName || '');
+      }
+      return;
+    }
+
+    // If form is pristine / clean, keep state aligned with incoming profile
+    setFullName(profile.fullName || '');
+    setPhone(profile.phone || '');
+    setLocation(profile.location || '');
+    setQualification(profile.qualification || '');
+    setExperience(profile.experience || '');
+    setCurrentSalary(profile.currentSalary !== undefined && profile.currentSalary !== null ? String(profile.currentSalary) : '');
+    setExpectedSalary(profile.expectedSalary !== undefined && profile.expectedSalary !== null ? String(profile.expectedSalary) : '');
+    setSkills(profile.skills || '');
+    setNoticePeriod(profile.noticePeriod || '30 days');
+    setPortfolioUrl(profile.portfolioUrl || '');
+    setAvatarUrl(profile.avatarUrl || '');
+    setResumeUrl(profile.resumeUrl || '');
+    setResumeOriginalName(profile.resumeOriginalName || '');
   }, [profile]);
 
   // Handle Photo / Avatar Upload (< 500 KB, JPG/JPEG/PNG)
@@ -340,6 +383,7 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
       }
 
       setSaved(true);
+      isDirtyRef.current = false;
       if (onProfileUpdated && data.profile) {
         onProfileUpdated(data.profile);
       }
@@ -383,7 +427,13 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
         </div>
       )}
 
-      <form onSubmit={handleSave} className="space-y-4 text-xs">
+      <form
+        onSubmit={handleSave}
+        onChange={() => {
+          isDirtyRef.current = true;
+        }}
+        className="space-y-4 text-xs"
+      >
         {/* Profile Photo / Avatar Card */}
         <div className="p-4 bg-gray-50/80 rounded-2xl border border-gray-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
@@ -581,6 +631,7 @@ export default function SeekerProfileSection({ profile, onProfileUpdated }: Seek
                                 type="button"
                                 onClick={() => {
                                   setQualification(opt);
+                                  isDirtyRef.current = true;
                                   setQualDropdownOpen(false);
                                   setQualSearchQuery('');
                                 }}

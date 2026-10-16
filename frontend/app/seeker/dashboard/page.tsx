@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import SeekerSidebar from '@/job-seeker/SeekerSidebar';
 import SeekerTopbar from '@/job-seeker/SeekerTopbar';
@@ -42,6 +42,11 @@ export default function SeekerDashboardPage() {
 
   const isFetchingRef = useRef(false);
   const lastFetchedAtRef = useRef<number>(Date.now());
+  const activeTabRef = useRef(activeTab);
+
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
 
   // Calculate unread/unseen applications count
   const unreadAppliedCount = Math.max(0, applications.length - seenAppliedCount);
@@ -137,7 +142,12 @@ export default function SeekerDashboardPage() {
       const fetchedApps = appRes.status === 'fulfilled' && Array.isArray(appRes.value?.applications) ? appRes.value.applications : [];
       const fetchedJobs = jobsRes.status === 'fulfilled' && Array.isArray(jobsRes.value?.jobs) ? jobsRes.value.jobs : [];
 
-      setUser(fetchedUser);
+      setUser((prevUser: any) => {
+        if (!manual && activeTabRef.current === 'PROFILE' && prevUser) {
+          return prevUser;
+        }
+        return fetchedUser;
+      });
       setApplications(fetchedApps);
       setRecommendedJobs(fetchedJobs);
       lastFetchedAtRef.current = Date.now();
@@ -254,15 +264,17 @@ export default function SeekerDashboardPage() {
     }));
   };
 
-  const profile = user?.seekerProfile || {
-    fullName: user?.fullName || user?.email?.split('@')[0] || '',
-    phone: user?.phone || '',
-    location: '',
-    experience: '',
-    qualification: '',
-    currentSalary: null,
-    expectedSalary: null,
-  };
+  const profile = useMemo(() => {
+    return user?.seekerProfile || {
+      fullName: user?.fullName || user?.email?.split('@')[0] || '',
+      phone: user?.phone || '',
+      location: '',
+      experience: '',
+      qualification: '',
+      currentSalary: null,
+      expectedSalary: null,
+    };
+  }, [user?.seekerProfile, user?.fullName, user?.phone, user?.email]);
 
   const currentScore = profile.profileCompleted !== undefined && profile.profileCompleted !== null
     ? profile.profileCompleted

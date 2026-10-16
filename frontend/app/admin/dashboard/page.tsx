@@ -138,34 +138,64 @@ export default function AdminDashboardPage() {
   const [pushLoading, setPushLoading] = useState(false);
   const [pushTestLoading, setPushTestLoading] = useState(false);
   const [pushStatusMsg, setPushStatusMsg] = useState<string | null>(null);
+  const [showPushPromptBanner, setShowPushPromptBanner] = useState(false);
 
-  // Auto-Prompt & Silent Device Registration (Zomato/Swiggy style)
+  // Check notification permission on mount
   useEffect(() => {
     if (typeof window === 'undefined' || !isPushNotificationSupported()) return;
 
-    const timer = setTimeout(async () => {
-      try {
-        if (Notification.permission === 'granted') {
-          // Already allowed: quietly register/sync device token with server
-          setPushPermission('granted');
-          await subscribeToPushNotifications('ADMIN');
-        } else if (Notification.permission === 'default') {
-          // Automatic native browser prompt on login/first visit
-          const perm = await Notification.requestPermission();
-          setPushPermission(perm);
-          if (perm === 'granted') {
-            await subscribeToPushNotifications('ADMIN');
-          }
-        } else {
-          setPushPermission(Notification.permission);
-        }
-      } catch (err) {
-        console.warn('Auto-push sync:', err);
-      }
-    }, 1200);
+    const currentPerm = Notification.permission;
+    setPushPermission(currentPerm);
 
-    return () => clearTimeout(timer);
+    if (currentPerm === 'granted') {
+      // Already allowed: quietly ensure device push subscription is synced with server
+      subscribeToPushNotifications('ADMIN').catch(() => {});
+    } else if (currentPerm === 'default') {
+      // Browser hasn't asked yet: show the prompt banner so a direct user gesture can trigger native dialog
+      try {
+        const dismissed = sessionStorage.getItem('torbit_admin_push_banner_dismissed');
+        if (!dismissed) {
+          setShowPushPromptBanner(true);
+        }
+      } catch (e) {
+        setShowPushPromptBanner(true);
+      }
+    }
   }, []);
+
+  const handleAllowPushFromBanner = async () => {
+    setPushLoading(true);
+    try {
+      // Direct user gesture: triggers browser's native allow/block dialog cleanly on Mobile, Tablet & Desktop
+      const perm = await Notification.requestPermission();
+      setPushPermission(perm);
+      if (perm === 'granted') {
+        const res = await subscribeToPushNotifications('ADMIN');
+        if (res.success) {
+          setShowPushPromptBanner(false);
+          showToast('🔔 Notifications enabled! Device linked to receive recruiter alerts.');
+          // Pop a real native notification into the OS tray immediately
+          sendTestAdminPush();
+        } else {
+          showToast(`⚠️ ${res.message}`);
+        }
+      } else if (perm === 'denied') {
+        setShowPushPromptBanner(false);
+        showToast('⚠️ Notifications were blocked in browser settings.');
+      }
+    } catch (err: any) {
+      console.error('Error requesting push permission:', err);
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
+  const handleDismissPushBanner = () => {
+    setShowPushPromptBanner(false);
+    try {
+      sessionStorage.setItem('torbit_admin_push_banner_dismissed', 'true');
+    } catch (e) {}
+  };
 
   const handleEnablePushFromDropdown = async () => {
     setPushLoading(true);
@@ -2992,6 +3022,49 @@ export default function AdminDashboardPage() {
         {/* Main Dashboard Tabs Container */}
         <main className="flex-1 px-3.5 sm:px-7 py-4 space-y-4 pb-12">
         
+          {/* Instant Push Notification Prompt Banner (Swiggy / Zomato style for Mobile/Tablet/Desktop) */}
+          {showPushPromptBanner && pushPermission !== 'granted' && (
+            <div className="bg-[#080809] text-white rounded-2xl p-4 sm:p-5 border border-slate-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in duration-300">
+              <div className="flex items-start gap-3.5 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-[#b2c359]/20 border border-[#b2c359]/40 flex items-center justify-center shrink-0 text-[#b2c359] mt-0.5 shadow-xs">
+                  <NotificationsActiveOutlinedIcon sx={{ fontSize: 22 }} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-extrabold text-xs sm:text-sm text-white tracking-tight">
+                      Enable Real-Time Recruiter Alerts (Mobile, Tablet &amp; Desktop)
+                    </h3>
+                    <span className="bg-[#b2c359] text-[#080809] text-[9px] font-black px-1.5 py-0.5 rounded tracking-wide uppercase">
+                      Instant Push
+                    </span>
+                  </div>
+                  <p className="text-[11px] sm:text-xs text-slate-300 mt-1 leading-relaxed max-w-2xl">
+                    Get instant notifications in your device’s notification bar whenever a new recruiter registers or submits company documents for verification — just like Swiggy / Zomato notifications.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5 shrink-0 self-end md:self-auto w-full md:w-auto">
+                <button
+                  type="button"
+                  onClick={handleDismissPushBanner}
+                  className="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                >
+                  Later
+                </button>
+                <button
+                  type="button"
+                  disabled={pushLoading}
+                  onClick={handleAllowPushFromBanner}
+                  className="flex-1 md:flex-initial px-5 py-2.5 bg-[#b2c359] hover:bg-[#a1b248] active:scale-95 text-slate-950 font-black text-xs rounded-xl transition shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <NotificationsActiveOutlinedIcon sx={{ fontSize: 16 }} />
+                  <span>{pushLoading ? 'Connecting Device...' : 'Allow Notifications'}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* ========================================================= */}
           {/* 6.1 TAB: DASHBOARD (OVERVIEW) */}
           {/* ========================================================= */}
