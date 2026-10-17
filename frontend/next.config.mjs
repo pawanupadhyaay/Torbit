@@ -5,6 +5,19 @@ const nextConfig = {
   images: {
     domains: ["images.unsplash.com", "via.placeholder.com", "localhost", "127.0.0.1", "pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev"],
   },
+  async headers() {
+    return [
+      {
+        source: '/:path*.(svg|jpg|jpeg|png|webp|ico|json)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     return [
       {
