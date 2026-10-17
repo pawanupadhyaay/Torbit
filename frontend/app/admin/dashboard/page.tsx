@@ -281,9 +281,16 @@ export default function AdminDashboardPage() {
   const [jobTypeFilter, setJobTypeFilter] = useState('ALL');
   const [jobFeaturedFilter, setJobFeaturedFilter] = useState<'ALL' | 'FEATURED' | 'STANDARD'>('ALL');
   const [jobSortBy, setJobSortBy] = useState<'NEWEST' | 'OLDEST' | 'APPLICANTS_DESC' | 'APPLICANTS_ASC' | 'TITLE_ASC' | 'COMPANY_ASC'>('NEWEST');
-  const [flaggedJobs, setFlaggedJobs] = useState<any[]>([
-    { id: 'fj-1', title: 'Senior Property Advisor - Duplicate', company: 'Global Skyline Properties', reason: 'Repeated posting within 24 hours' }
-  ]);
+  const [flaggedJobs, setFlaggedJobs] = useState<any[]>([]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('torbit_admin_flagged_jobs');
+      if (saved !== null) {
+        setFlaggedJobs(JSON.parse(saved));
+      }
+    } catch (e) {}
+  }, []);
 
   // Modals state
   const [selectedCompanyForView, setSelectedCompanyForView] = useState<any>(null);
@@ -1346,8 +1353,14 @@ export default function AdminDashboardPage() {
 
   // Actions: Remove Flagged Job
   const handleRemoveFlaggedJob = (id: string) => {
-    setFlaggedJobs(prev => prev.filter(fj => fj.id !== id));
-    showToast('Flagged listing removed.');
+    setFlaggedJobs(prev => {
+      const updated = prev.filter(fj => fj.id !== id);
+      try {
+        localStorage.setItem('torbit_admin_flagged_jobs', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+    showToast('Flagged listing removed permanently.');
   };
 
   // Sub-Admin Handlers
