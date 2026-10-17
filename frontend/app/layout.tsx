@@ -49,6 +49,24 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="192x192" href="/icon.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon.png" />
         <link rel="shortcut icon" href="/favicon.png" />
+        {/* Preload High-Priority LCP Hero Background for Mobile & Desktop */}
+        <link
+          rel="preload"
+          as="image"
+          href="/hero-bg-mobile.webp"
+          type="image/webp"
+          media="(max-width: 767px)"
+          fetchPriority="high"
+        />
+        <link
+          rel="preload"
+          as="image"
+          href="/hero-bg.webp"
+          type="image/webp"
+          media="(min-width: 768px)"
+          fetchPriority="high"
+        />
+        <link rel="preconnect" href="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev" />
         {/* Google AdSense */}
         <script
           async

@@ -316,12 +316,17 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
     <div className="relative bg-[#0c1424] text-white py-7 sm:py-12 lg:py-16 font-['Helvetica',Arial,sans-serif] z-20">
       {/* Background Architectural Panoramic Real Estate Skyline Image Layer */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-transform duration-1000 scale-[1.01]"
-          style={{
-            backgroundImage: `url('/hero-bg.jpg')`
-          }}
-        />
+        <picture className="absolute inset-0 block w-full h-full">
+          <source media="(max-width: 767px)" srcSet="/hero-bg-mobile.webp" type="image/webp" />
+          <source media="(min-width: 768px)" srcSet="/hero-bg.webp" type="image/webp" />
+          <img
+            src="/hero-bg.jpg"
+            alt="Real Estate Skyline"
+            className="w-full h-full object-cover object-center transition-transform duration-1000 scale-[1.01] pointer-events-none"
+            fetchPriority="high"
+            decoding="async"
+          />
+        </picture>
         {/* Balanced cinematic gradient overlay: keeps skyline vivid and warm while text stays razor-sharp */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#060c18]/88 via-[#060c18]/55 to-[#060c18]/25" />
         {/* Top and bottom subtle vignette to smoothly integrate with header and page flow */}
