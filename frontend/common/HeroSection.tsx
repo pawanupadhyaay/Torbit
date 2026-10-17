@@ -320,8 +320,10 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
           <source media="(max-width: 767px)" srcSet="/hero-bg-mobile.webp" type="image/webp" />
           <source media="(min-width: 768px)" srcSet="/hero-bg.webp" type="image/webp" />
           <img
-            src="/hero-bg.jpg"
+            src="/hero-bg-mobile.webp"
             alt="Real Estate Skyline"
+            width={768}
+            height={400}
             className="w-full h-full object-cover object-center transition-transform duration-1000 scale-[1.01] pointer-events-none"
             fetchPriority="high"
             decoding="async"
@@ -395,6 +397,7 @@ export default function HeroSection({ categories, onSearch, onOpenAuth }: HeroSe
                         }}
                         className="text-gray-400 hover:text-gray-600 transition p-0.5 rounded-full hover:bg-gray-100 flex items-center justify-center shrink-0 cursor-pointer"
                         title="Clear keyword"
+                        aria-label="Clear keyword search"
                       >
                         <CloseOutlinedIcon sx={{ fontSize: 16 }} />
                       </button>

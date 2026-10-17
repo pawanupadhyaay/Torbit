@@ -3,17 +3,20 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2, ShieldAlert, AlertCircle } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Header from '@/common/Header';
 import Footer from '@/common/Footer';
 import HeroSection from '@/common/HeroSection';
 import PopularCategories from '@/common/PopularCategories';
 import FeaturedJobs from '@/common/FeaturedJobs';
 import RightSidebar from '@/common/RightSidebar';
-import AuthModal from '@/common/AuthModal';
-import ApplyJobModal from '@/job-seeker/ApplyJobModal';
-import JobDetailsModal from '@/common/JobDetailsModal';
 import MobileBottomBar from '@/common/MobileBottomBar';
 import { useBodyScrollLock } from '@/lib/useBodyScrollLock';
+
+// Dynamically loaded modals to optimize mobile initial bundle size & LCP/FCP
+const AuthModal = dynamic(() => import('@/common/AuthModal'), { ssr: false });
+const ApplyJobModal = dynamic(() => import('@/job-seeker/ApplyJobModal'), { ssr: false });
+const JobDetailsModal = dynamic(() => import('@/common/JobDetailsModal'), { ssr: false });
 
 export default function HomePage() {
   const router = useRouter();

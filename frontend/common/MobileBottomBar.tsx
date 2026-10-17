@@ -140,6 +140,7 @@ export default function MobileBottomBar({ onOpenAuth }: MobileBottomBarProps) {
         <button
           type="button"
           onClick={handleAccountClick}
+          aria-label={currentUser ? 'Open Account' : 'Login'}
           className={`flex flex-col items-center justify-center p-1 min-w-[54px] active:scale-95 transition group cursor-pointer ${
             isAccountActive ? 'text-[#9eb047]' : 'text-slate-700 hover:text-[#b2c359]'
           }`}

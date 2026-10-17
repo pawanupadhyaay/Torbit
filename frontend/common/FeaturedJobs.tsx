@@ -183,6 +183,10 @@ export default function FeaturedJobs({ jobs, onApply, onViewDetails, appliedJobI
                     <img 
                       src={job.company.logoUrl} 
                       alt={job.company.companyName || 'Company'} 
+                      loading="lazy"
+                      decoding="async"
+                      width={48}
+                      height={48}
                       className="w-full h-full object-contain p-1"
                     />
                   ) : (
@@ -242,7 +246,7 @@ export default function FeaturedJobs({ jobs, onApply, onViewDetails, appliedJobI
                   <div className="font-black text-xs sm:text-sm text-gray-950">
                     {formatSalary(job)}
                   </div>
-                  <div className="text-[10px] text-gray-400">
+                  <div className="text-[10px] text-slate-500 font-medium">
                     {formatTimeAgo(job.createdAt)}
                   </div>
                 </div>

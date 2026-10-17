@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -67,11 +68,11 @@ export default function RootLayout({
           fetchPriority="high"
         />
         <link rel="preconnect" href="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev" />
-        {/* Google AdSense */}
-        <script
-          async
+        {/* Google AdSense - lazyOnload loads after page is fully interactive to maximize mobile performance */}
+        <Script
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5357796196782631"
           crossOrigin="anonymous"
+          strategy="lazyOnload"
         />
         <script
           dangerouslySetInnerHTML={{

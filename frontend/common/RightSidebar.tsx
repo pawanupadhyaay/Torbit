@@ -229,6 +229,10 @@ export default function RightSidebar({ onOpenAuth }: { onOpenAuth: (role?: any, 
                     <img 
                       src={c.logoUrl} 
                       alt={c.name} 
+                      loading="lazy"
+                      decoding="async"
+                      width={120}
+                      height={28}
                       className="max-h-6 max-w-[88%] object-contain group-hover:scale-105 transition-transform" 
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';

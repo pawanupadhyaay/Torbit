@@ -249,7 +249,7 @@ export default function PopularCategories({ categories, onSelectCategory, isLoad
                       {cat.name}
                     </h4>
                   </div>
-                  <p className="text-[10px] text-gray-400 mt-1 font-medium whitespace-nowrap">
+                  <p className="text-[10px] text-slate-600 mt-1 font-semibold whitespace-nowrap">
                     ({cat.jobCount || 0} Jobs)
                   </p>
                 </div>

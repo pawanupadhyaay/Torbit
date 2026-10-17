@@ -207,10 +207,12 @@ export default function Header({ onOpenAuth, currentUser: propUser }: HeaderProp
         {/* BRAND LOGO (Left on Mobile, Centered on Desktop) */}
         {/* ========================================================= */}
         <div className="flex items-center order-1 md:order-2 shrink-0">
-          <Link href="/?view=home" className="flex items-center group py-0.5" title="Torbit Realty Home">
+          <Link href="/?view=home" className="flex items-center group py-0.5" title="Torbit Realty Home" aria-label="Torbit Realty Home">
             <img
               src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
               alt="Torbit Realty"
+              width={200}
+              height={44}
               className="h-7 sm:h-9 md:h-11 w-auto object-contain max-w-[130px] sm:max-w-[200px] md:max-w-[300px] group-hover:opacity-95 transition-opacity"
             />
           </Link>
@@ -299,6 +301,7 @@ export default function Header({ onOpenAuth, currentUser: propUser }: HeaderProp
             <button
               type="button"
               onClick={handleLogout}
+              aria-label="Sign out of your account"
               className="border border-gray-200 hover:border-red-300 bg-gray-50 hover:bg-red-50 active:scale-95 text-[#080809] hover:text-red-600 font-['Helvetica',Arial,sans-serif] font-bold text-[11px] sm:text-[13px] md:text-[14px] leading-tight uppercase p-1.5 sm:px-3 md:px-3.5 sm:py-2 md:py-2.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap group shrink-0"
               title="Sign out of your account"
             >
@@ -342,6 +345,7 @@ export default function Header({ onOpenAuth, currentUser: propUser }: HeaderProp
             target="_blank"
             rel="noopener noreferrer"
             title="Main Website"
+            aria-label="Torbit Realty Main Website"
             className="sm:hidden p-1.5 bg-slate-100 hover:bg-[#b2c359]/20 text-slate-700 hover:text-[#b2c359] rounded-lg border border-slate-200 transition flex items-center justify-center"
           >
             <Globe className="w-4 h-4 text-[#9eb047]" />

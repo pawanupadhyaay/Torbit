@@ -76,6 +76,10 @@ export default function Footer() {
                 <img
                   src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
                   alt="Torbit Realty"
+                  loading="lazy"
+                  decoding="async"
+                  width={160}
+                  height={36}
                   className="h-7 sm:h-9 w-auto object-contain"
                 />
               </div>
