@@ -266,42 +266,44 @@ export default function Header({ onOpenAuth, currentUser: propUser }: HeaderProp
             {/* Admin Dashboard Button */}
             <Link
               href="/admin/dashboard"
-              className="auth-link-admin bg-[#b2c359] hover:bg-[#9eb047] active:scale-95 text-white font-['Helvetica',Arial,sans-serif] font-bold text-[11px] sm:text-[13px] md:text-[14px] leading-tight uppercase px-2.5 sm:px-3.5 md:px-4 py-1.5 sm:py-2 md:py-2.5 rounded-lg shadow-xs transition items-center gap-1.5 whitespace-nowrap"
+              className="auth-link-admin bg-[#b2c359] hover:bg-[#9eb047] active:scale-95 text-white font-['Helvetica',Arial,sans-serif] font-bold text-[11px] sm:text-[13px] md:text-[14px] leading-tight uppercase px-2 sm:px-3.5 md:px-4 py-1.5 sm:py-2 md:py-2.5 rounded-lg shadow-xs transition items-center gap-1.5 whitespace-nowrap"
               title="Open Admin Dashboard"
             >
               <LayoutDashboard className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-              <span>Admin Dashboard</span>
+              <span className="hidden sm:inline">Admin Dashboard</span>
+              <span className="sm:hidden">Dashboard</span>
             </Link>
 
             {/* Recruiter Dashboard Button */}
             <Link
               href={dashboardUrl.startsWith('/recruiter') ? dashboardUrl : '/recruiter/dashboard'}
-              className="auth-link-recruiter bg-[#b2c359] hover:bg-[#9eb047] active:scale-95 text-white font-['Helvetica',Arial,sans-serif] font-bold text-[11px] sm:text-[13px] md:text-[14px] leading-tight uppercase px-2.5 sm:px-3.5 md:px-4 py-1.5 sm:py-2 md:py-2.5 rounded-lg shadow-xs transition items-center gap-1.5 whitespace-nowrap"
+              className="auth-link-recruiter bg-[#b2c359] hover:bg-[#9eb047] active:scale-95 text-white font-['Helvetica',Arial,sans-serif] font-bold text-[11px] sm:text-[13px] md:text-[14px] leading-tight uppercase px-2 sm:px-3.5 md:px-4 py-1.5 sm:py-2 md:py-2.5 rounded-lg shadow-xs transition items-center gap-1.5 whitespace-nowrap"
               title="Open Recruiter Dashboard"
             >
               <LayoutDashboard className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-              <span>Recruiter Dashboard</span>
+              <span className="hidden sm:inline">Recruiter Dashboard</span>
+              <span className="sm:hidden">Dashboard</span>
             </Link>
 
             {/* Job Seeker Dashboard Button */}
             <Link
               href={dashboardUrl.startsWith('/seeker') ? dashboardUrl : '/seeker/dashboard'}
-              className="auth-link-seeker bg-[#b2c359] hover:bg-[#9eb047] active:scale-95 text-white font-['Helvetica',Arial,sans-serif] font-bold text-[11px] sm:text-[13px] md:text-[14px] leading-tight uppercase px-2.5 sm:px-3.5 md:px-4 py-1.5 sm:py-2 md:py-2.5 rounded-lg shadow-xs transition items-center gap-1.5 whitespace-nowrap"
+              className="auth-link-seeker bg-[#b2c359] hover:bg-[#9eb047] active:scale-95 text-white font-['Helvetica',Arial,sans-serif] font-bold text-[11px] sm:text-[13px] md:text-[14px] leading-tight uppercase px-2 sm:px-3.5 md:px-4 py-1.5 sm:py-2 md:py-2.5 rounded-lg shadow-xs transition items-center gap-1.5 whitespace-nowrap"
               title="Open Seeker Dashboard"
             >
               <LayoutDashboard className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
               <span className="hidden sm:inline">Job Seeker Dashboard</span>
-              <span className="sm:hidden">Seeker Dashboard</span>
+              <span className="sm:hidden">Dashboard</span>
             </Link>
 
             <button
               type="button"
               onClick={handleLogout}
-              className="border border-gray-200 hover:border-red-300 bg-gray-50 hover:bg-red-50 active:scale-95 text-[#080809] hover:text-red-600 font-['Helvetica',Arial,sans-serif] font-bold text-[11px] sm:text-[13px] md:text-[14px] leading-tight uppercase px-2.5 sm:px-3 md:px-3.5 py-1.5 sm:py-2 md:py-2.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap group"
+              className="border border-gray-200 hover:border-red-300 bg-gray-50 hover:bg-red-50 active:scale-95 text-[#080809] hover:text-red-600 font-['Helvetica',Arial,sans-serif] font-bold text-[11px] sm:text-[13px] md:text-[14px] leading-tight uppercase p-1.5 sm:px-3 md:px-3.5 sm:py-2 md:py-2.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap group shrink-0"
               title="Sign out of your account"
             >
               <LogOut className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600 group-hover:text-red-600 shrink-0" />
-              <span>LOGOUT</span>
+              <span className="hidden sm:inline">LOGOUT</span>
             </button>
           </div>
         </div>
@@ -309,12 +311,12 @@ export default function Header({ onOpenAuth, currentUser: propUser }: HeaderProp
         {/* ========================================================= */}
         {/* RIGHT SIDE: POST A JOB & MAIN WEBSITE (Desktop & Mobile) */}
         {/* ========================================================= */}
-        <div className="flex items-center gap-1.5 sm:gap-2 md:order-3">
-          {/* Post a Job button: ONLY for Recruiter or Admin */}
+        <div className="flex items-center gap-1.5 sm:gap-2 order-3 md:order-3">
+          {/* Post a Job button: ONLY for Recruiter or Admin (hidden on mobile header because it's prominent in MobileBottomBar) */}
           {(isRecruiter || isAdmin) && (
             <Link
               href={postJobUrl}
-              className="bg-slate-900 hover:bg-black text-white font-['Helvetica',Arial,sans-serif] font-bold text-[11px] sm:text-[13px] md:text-[14px] leading-tight uppercase px-2.5 sm:px-3.5 md:px-4 py-1.5 sm:py-2 md:py-2.5 rounded-lg transition flex items-center gap-1 shadow-xs active:scale-95"
+              className="hidden sm:flex bg-slate-900 hover:bg-black text-white font-['Helvetica',Arial,sans-serif] font-bold text-[11px] sm:text-[13px] md:text-[14px] leading-tight uppercase px-2.5 sm:px-3.5 md:px-4 py-1.5 sm:py-2 md:py-2.5 rounded-lg transition items-center gap-1 shadow-xs active:scale-95"
             >
               <PlusCircle className="w-3.5 h-3.5 text-[#b2c359]" />
               <span className="hidden sm:inline">POST A JOB</span>
