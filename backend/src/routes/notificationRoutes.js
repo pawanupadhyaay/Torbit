@@ -68,7 +68,7 @@ router.post("/test-admin", async (req, res) => {
     const result = await pushNotificationService.sendToAdmins({
       title: title || "🔔 Test Notification: Torbit Realty",
       body: body || "Your mobile notification bar is active & ready for instant recruiter alerts!",
-      url: "/admin",
+      url: "/admin/dashboard",
       icon: "/logo.png"
     });
 

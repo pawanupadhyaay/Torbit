@@ -122,6 +122,30 @@ const normalizeSpecialCompanies = (list: any[]): SpecialCompanyItem[] => {
 export default function AdminDashboardPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'DASHBOARD' | 'APPROVALS' | 'COMPANIES' | 'SEEKERS' | 'JOBS' | 'ANALYTICS' | 'SETTINGS'>('DASHBOARD');
+
+  // Deep-link sync: automatically activate tab from URL query params (e.g. ?tab=approvals from notifications)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const syncTabFromUrl = () => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const tabParam = params.get('tab')?.toUpperCase();
+        if (tabParam) {
+          const validTabs: Array<'DASHBOARD' | 'APPROVALS' | 'COMPANIES' | 'SEEKERS' | 'JOBS' | 'ANALYTICS' | 'SETTINGS'> = [
+            'DASHBOARD', 'APPROVALS', 'COMPANIES', 'SEEKERS', 'JOBS', 'ANALYTICS', 'SETTINGS'
+          ];
+          if (validTabs.includes(tabParam as any)) {
+            setActiveTab(tabParam as any);
+          }
+        }
+      } catch (e) {}
+    };
+
+    syncTabFromUrl();
+    window.addEventListener('popstate', syncTabFromUrl);
+    return () => window.removeEventListener('popstate', syncTabFromUrl);
+  }, []);
+
   const [approvalFilter, setApprovalFilter] = useState<'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
   const [approvalDateSort, setApprovalDateSort] = useState<'NEWEST' | 'OLDEST'>('NEWEST');
   const [analyticsTimeframe, setAnalyticsTimeframe] = useState<'7D' | '30D' | '90D' | 'ALL'>('7D');

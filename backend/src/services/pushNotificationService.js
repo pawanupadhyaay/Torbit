@@ -134,9 +134,9 @@ async function sendToAdmins(payload) {
     body: payload.body || "New update received on Torbit Realty.",
     icon: payload.icon || "/logo.png",
     badge: payload.badge || "/logo.png",
-    url: payload.url || "/admin",
+    url: payload.url || "/admin/dashboard",
     data: {
-      url: payload.url || "/admin",
+      url: payload.url || "/admin/dashboard",
       timestamp: Date.now(),
       ...payload.data
     }

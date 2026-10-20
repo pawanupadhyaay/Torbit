@@ -14,6 +14,15 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['@mui/icons-material', '@mui/material', 'lucide-react'],
   },
+  async redirects() {
+    return [
+      {
+        source: '/admin',
+        destination: '/admin/dashboard',
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

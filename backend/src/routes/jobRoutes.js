@@ -210,7 +210,7 @@ router.post("/", authenticateToken, async (req, res) => {
     pushNotificationService.sendToAdmins({
       title: "💼 New Job Posted!",
       body: `${company.companyName} posted "${job.title}" (${job.location})`,
-      url: "/admin",
+      url: "/admin/dashboard?tab=jobs",
       icon: "/logo.png"
     }).catch(() => {});
 

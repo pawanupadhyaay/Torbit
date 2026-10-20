@@ -505,7 +505,7 @@ router.post("/register-recruiter", async (req, res) => {
     pushNotificationService.sendToAdmins({
       title: "🏢 New Recruiter Registered!",
       body: `${companyName.trim()} (${cleanGst}) has registered and is awaiting verification.`,
-      url: "/admin",
+      url: "/admin/dashboard?tab=approvals",
       icon: "/logo.png",
       data: {
         type: "NEW_RECRUITER",
