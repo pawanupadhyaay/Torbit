@@ -216,15 +216,13 @@ export default function AdminDashboardPage() {
         const res = await subscribeToPushNotifications('ADMIN');
         if (res.success) {
           setShowPushPromptBanner(false);
-          showToast('🔔 Notifications enabled! Device linked to receive recruiter alerts.');
-          // Pop a real native notification into the OS tray immediately
-          sendTestAdminPush();
+          showToast('Notifications enabled! Device linked to receive recruiter alerts.');
         } else {
-          showToast(`⚠️ ${res.message}`);
+          showToast(`Warning: ${res.message}`);
         }
       } else if (perm === 'denied') {
         setShowPushPromptBanner(false);
-        showToast('⚠️ Notifications were blocked in browser settings.');
+        showToast('Notifications were blocked in browser settings.');
       }
     } catch (err: any) {
       console.error('Error requesting push permission:', err);
@@ -247,10 +245,9 @@ export default function AdminDashboardPage() {
       const res = await subscribeToPushNotifications('ADMIN');
       if (res.success) {
         setPushPermission('granted');
-        setPushStatusMsg('✅ Push alerts enabled on this device!');
-        sendTestAdminPush();
+        setPushStatusMsg('Push alerts enabled on this device.');
       } else {
-        setPushStatusMsg(`⚠️ ${res.message}`);
+        setPushStatusMsg(`Warning: ${res.message}`);
       }
     } catch (e: any) {
       setPushStatusMsg(`❌ ${e.message}`);

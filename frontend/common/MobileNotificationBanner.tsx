@@ -39,10 +39,9 @@ export default function MobileNotificationBanner() {
       const res = await subscribeToPushNotifications('ADMIN');
       if (res.success) {
         setPermission('granted');
-        setStatusMessage('✅ Mobile & tablet push notifications activated for this device!');
-        sendTestAdminPush();
+        setStatusMessage('Mobile & tablet push notifications activated for this device.');
       } else {
-        setStatusMessage(`⚠️ ${res.message}`);
+        setStatusMessage(`Warning: ${res.message}`);
       }
     } catch (err: any) {
       setStatusMessage(`❌ ${err.message}`);
