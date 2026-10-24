@@ -745,7 +745,7 @@ export default function AdminDashboardPage() {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminUser');
     try { sessionStorage.clear(); } catch (e) {}
-    window.location.href = '/?view=home';
+    window.location.href = '/';
   };
 
   // Fetch real data from backend endpoints with live change detection

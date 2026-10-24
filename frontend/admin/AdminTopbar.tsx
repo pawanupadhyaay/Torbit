@@ -180,7 +180,7 @@ export default function AdminTopbar({
               localStorage.removeItem('adminToken');
               localStorage.removeItem('adminUser');
               try { sessionStorage.clear(); } catch (e) {}
-              window.location.href = '/?view=home';
+              window.location.href = '/';
             }}
             title="Sign Out"
             className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition ml-1 cursor-pointer"

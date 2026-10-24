@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://jobs.torbitrealty.com'),
   title: 'Torbit Jobs | Premier Career & Job Portal',
   description: 'Enterprise Job Portal for Top Talent & Verified Hiring Employers.',
+  alternates: {
+    canonical: './',
+  },
   icons: {
     icon: [
       { url: '/icon.svg', type: 'image/svg+xml' },

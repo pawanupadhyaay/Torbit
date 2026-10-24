@@ -42,7 +42,7 @@ export default function SeekerSidebar({
     localStorage.removeItem('torbit_last_active_role');
     localStorage.removeItem('torbit_session_saved_at');
     try { sessionStorage.clear(); } catch (e) {}
-    window.location.href = '/?view=home';
+    window.location.href = '/';
   };
 
   const navItems = [

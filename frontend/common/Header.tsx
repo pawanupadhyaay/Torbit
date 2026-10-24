@@ -158,7 +158,7 @@ export default function Header({ onOpenAuth, currentUser: propUser }: HeaderProp
       }
     } catch (e) {}
     setCurrentUser(null);
-    window.location.href = '/?view=home';
+    window.location.href = '/';
   };
 
   const role = mounted ? currentUser?.role : null;
@@ -207,7 +207,7 @@ export default function Header({ onOpenAuth, currentUser: propUser }: HeaderProp
         {/* BRAND LOGO (Left on Mobile, Centered on Desktop) */}
         {/* ========================================================= */}
         <div className="flex items-center order-1 md:order-2 shrink-0">
-          <Link href="/?view=home" className="flex items-center group py-0.5" title="Torbit Realty Home" aria-label="Torbit Realty Home">
+          <Link href="/" className="flex items-center group py-0.5" title="Torbit Realty Home" aria-label="Torbit Realty Home">
             <img
               src="https://pub-eb6c1f57d56548118a8cce2abc2983f2.r2.dev/Assets/Torbit%20Logo.png"
               alt="Torbit Realty"

@@ -153,7 +153,7 @@ export default function AdminSidebar({ activeTab, setActiveTab, pendingCount }: 
             localStorage.removeItem('torbit_last_active_role');
             localStorage.removeItem('torbit_session_saved_at');
             try { sessionStorage.clear(); } catch (e) {}
-            window.location.href = '/?view=home';
+            window.location.href = '/';
           }}
           title="Logout Admin"
           className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-900 rounded-lg transition cursor-pointer"
